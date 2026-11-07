@@ -34,6 +34,22 @@ npm run serve        # http://127.0.0.1:4173
 
 No navegador as listas IPTV não liberam CORS, então o app pede tudo ao **proxy local** (`server/proxy.mjs`), que também reescreve as playlists HLS. Para abrir de outro aparelho da casa: `HOST=0.0.0.0 npm run serve`.
 
+## Programa para Windows
+
+Instalador pronto: `PRISMA-Setup-0.1.0.exe` (Electron, com o proxy das listas embutido — não precisa de Node.js nem de terminal).
+
+- Na primeira vez o Windows mostra **"O Windows protegeu o computador"** (o programa não tem assinatura digital paga): clique em **Mais informações › Executar assim mesmo**.
+- Atalhos: **F11** tela cheia · **Esc** voltar · **setas + Enter** navegam como no controle · **Ctrl+R** recarrega · **F12** diagnóstico.
+- Os dados (lista, favoritos) ficam em `%APPDATA%\prisma-app`.
+
+Gerar de novo o instalador (em Linux precisa do Wine com 32 bits; no Windows não precisa):
+
+```bash
+npm run dist:win     # cria release/PRISMA-Setup-<versão>.exe
+```
+
+> O electron-builder termina com o aviso `Cannot read properties of null (reading 'channel')` ao criar o arquivo de atualização automática (que não usamos). O instalador já está completo nesse ponto.
+
 ## Instalar na TV LG (webOS)
 
 ```bash

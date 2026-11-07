@@ -9,7 +9,9 @@
     "build:webos": "tsc --noEmit && vite build --mode webos && node scripts/webos-pack.mjs",
     "serve": "node server/serve.mjs",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "desktop": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win --x64"
   },
   "dependencies": {
     "hls.js": "1.7.4",
@@ -24,9 +26,51 @@
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-legacy": "8.2.4",
     "@vitejs/plugin-react": "6.2.1",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
     "terser": "5.51.2",
     "typescript": "5.9.3",
     "vite": "8.3.6",
     "vitest": "5.1.0"
+  },
+  "main": "desktop/main.mjs",
+  "description": "PRISMA — player de IPTV",
+  "author": "Samuel Costa",
+  "build": {
+    "appId": "com.prisma.iptv",
+    "productName": "PRISMA",
+    "copyright": "Uso pessoal",
+    "directories": {
+      "output": "release",
+      "buildResources": "desktop"
+    },
+    "files": [
+      "dist/**",
+      "desktop/**",
+      "server/**",
+      "package.json"
+    ],
+    "icon": "desktop/icon.png",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "desktop/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PRISMA",
+      "artifactName": "PRISMA-Setup-${version}.exe",
+      "language": "1046"
+    }
   }
 }

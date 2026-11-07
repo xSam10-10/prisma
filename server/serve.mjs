@@ -1,16 +1,13 @@
-// Servidor do PRISMA para usar no computador: serve o app já compilado
-// (pasta dist) e o proxy das listas. Uso:  npm run build && npm run serve
+// Servidor do PRISMA: serve o app compilado (pasta dist) e o proxy das listas.
+// Usado pelo programa de Windows (desktop/main.mjs) e por "npm run serve".
 // Para abrir de outro aparelho da casa:  HOST=0.0.0.0 npm run serve
 
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleProxy } from './proxy.mjs';
 
-const root = fileURLToPath(new URL('../dist/', import.meta.url));
-const PORT = Number(process.env.PORT || 4173);
-const HOST = process.env.HOST || '127.0.0.1';
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript',
@@ -24,19 +21,39 @@ const TYPES = {
   '.woff2': 'font/woff2',
 };
 
-if (!existsSync(join(root, 'index.html'))) {
-  console.error('Pasta dist não encontrada. Rode "npm run build" antes.');
-  process.exit(1);
+/** Sobe o servidor e devolve a porta usada. Tenta as portas seguintes se a primeira estiver ocupada. */
+export function startServer(root, port = 4173, host = '127.0.0.1', tries = 10) {
+  const base = normalize(root.endsWith(sep) ? root : root + sep);
+  const server = createServer((req, res) => {
+    if (req.url?.startsWith('/proxy?')) return void handleProxy(req, res);
+    const path = decodeURIComponent((req.url || '/').split('?')[0]);
+    let file = normalize(join(base, path));
+    if (!file.startsWith(base)) return void res.writeHead(403).end();
+    if (!existsSync(file) || statSync(file).isDirectory()) file = join(base, 'index.html');
+    res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
+    createReadStream(file).pipe(res);
+  });
+  return new Promise((resolve, reject) => {
+    const attempt = (p, left) => {
+      server.once('error', (e) => {
+        if (e.code === 'EADDRINUSE' && left > 0) attempt(p + 1, left - 1);
+        else reject(e);
+      });
+      server.listen(p, host, () => resolve(p));
+    };
+    attempt(port, tries);
+  });
 }
 
-createServer((req, res) => {
-  if (req.url?.startsWith('/proxy?')) return void handleProxy(req, res);
-  const path = decodeURIComponent((req.url || '/').split('?')[0]);
-  let file = normalize(join(root, path));
-  if (!file.startsWith(root)) return void res.writeHead(403).end();
-  if (!existsSync(file) || statSync(file).isDirectory()) file = join(root, 'index.html');
-  res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
-  createReadStream(file).pipe(res);
-}).listen(PORT, HOST, () => {
-  console.log(`PRISMA rodando em http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
-});
+// Execução direta: npm run serve
+if (process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1])) {
+  const root = fileURLToPath(new URL('../dist/', import.meta.url));
+  if (!existsSync(join(root, 'index.html'))) {
+    console.error('Pasta dist não encontrada. Rode "npm run build" antes.');
+    process.exit(1);
+  }
+  const HOST = process.env.HOST || '127.0.0.1';
+  startServer(root, Number(process.env.PORT || 4173), HOST).then((p) =>
+    console.log(`PRISMA rodando em http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${p}`),
+  );
+}

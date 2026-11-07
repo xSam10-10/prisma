@@ -193,6 +193,7 @@ Com LG webOS + Roku + Android + computador:
 - Telas: Adicionar lista, **Ao vivo (estrutura A)**, tela cheia, Início simples, Busca, Ajustes › Lista; demais abas "em breve"
 - Guia "agora / a seguir" via API Xtream
 - Testado com lista de teste local e um servidor Xtream falso (`test/fake-xtream.mjs`, usuário `teste`, senha `1234`)
+- **Programa para Windows** (Electron): instalador `PRISMA-Setup-0.1.0.exe`, proxy embutido, porta interna 47815; `npm run dist:win`
 - Detalhes, comandos e instalação na LG: `prisma-app/README.md`
 
 **Pendências / dúvidas abertas:**
