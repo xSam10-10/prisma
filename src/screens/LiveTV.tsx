@@ -206,13 +206,13 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
           onPick={pick}
           navDefault
           label="Canais"
+          rowHeight={54}
           render={(c) => (
             <>
               <span className="num">{c.number ?? ''}</span>
               <ChannelLogo ch={c} />
               <div className="txt">
                 <span className="name">{c.name}</span>
-                <span className="sub">{c.group}</span>
               </div>
               {isFav(c) && <span style={{ color: T.warn, display: 'flex' }}>{Icon.star(true)}</span>}
               {playing?.id === c.id && <span className="playing" aria-label="Assistindo" />}

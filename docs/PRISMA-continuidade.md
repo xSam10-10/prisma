@@ -213,6 +213,9 @@ Com LG webOS + Roku + Android + computador:
 **Logotipos (0.3.0):** `src/core/logos.ts` + `public/logos/`. Prioridade: logos do usuário (`public/logos/custom/meus-logos.json`, nome do canal → arquivo) › oficiais embutidos (120 logos BR do tv-logo/tv-logos, CC BY-SA, uso pessoal) › logo da lista › iniciais. Nome comparado sem acentos, símbolos e marcas de qualidade (HD, FHD, 4K, H265, [ALT]); um logo vale para todas as versões. Ajustes › Aparência › Logotipos (oficiais primeiro / da lista primeiro).
 **Ao vivo (0.3.0):** categorias em coluna vertical (TV/computador); emojis/símbolos dos nomes de categoria removidos (a estrela amarela vinha do nome da categoria da Goldcard); estrela só nos favoritos.
 
+**Nomes curtos (0.4.0):** `src/core/names.ts` — nome do canal até a qualidade (SD/HD/FHD/UHD/4K); o resto ([ALT], [H265], FHDR…) sai. Canais ao vivo com o mesmo nome curto na mesma categoria viram um só, e as versões extras passam a ser fonte 2, 3… (`fullName` guarda o nome original, usado na busca e nos logos). Lista de canais em uma linha (sem a categoria embaixo).
+**Início (0.4.0):** cards 16:9 com logo em destaque (`ChannelTile`), número do canal e selo "Último".
+
 **Pendências / dúvidas abertas:**
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
 - **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade

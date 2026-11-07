@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cleanLabel, logoKey } from '../src/core/logos';
+import { simplifyName } from '../src/core/names';
 
 describe('nomes de canais e categorias', () => {
   it('limpa emojis e símbolos das categorias', () => {
@@ -14,5 +15,21 @@ describe('nomes de canais e categorias', () => {
     expect(logoKey('Jovem Pan News 4K FHDR')).toBe('jovem pan news');
     expect(logoKey('A&E HD')).toBe('a e e');
     expect(logoKey('HBO Plus HD')).toBe('hbo plus');
+  });
+});
+
+describe('nome curto do canal', () => {
+  it('corta o que vem depois da qualidade', () => {
+    expect(simplifyName('GLOBO RJ HD [ALT]')).toBe('GLOBO RJ HD');
+    expect(simplifyName('GLOBO RJ FHD [H265]')).toBe('GLOBO RJ FHD');
+    expect(simplifyName('SPORTV 2 FHD [H265]')).toBe('SPORTV 2 FHD');
+    expect(simplifyName('GLOBO SP 4K FHDR')).toBe('GLOBO SP 4K');
+    expect(simplifyName('Jovem Pan News 4K FHDR')).toBe('Jovem Pan News 4K');
+    expect(simplifyName('CARTOON NETWORK FHD [ALT]')).toBe('CARTOON NETWORK FHD');
+    expect(simplifyName('GLOBO RJ SD')).toBe('GLOBO RJ SD');
+  });
+  it('sem qualidade, mantém o nome', () => {
+    expect(simplifyName('A FAZENDA 18 SINAL 01')).toBe('A FAZENDA 18 SINAL 01');
+    expect(simplifyName('HD Channel')).toBe('HD Channel');
   });
 });

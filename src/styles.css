@@ -125,7 +125,7 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
   -webkit-flex-grow: 1; flex-grow: 1; min-width: 0;
 }
 .row .txt > * + * { margin-top: 3px; }
-.row .name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .name { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .sub { font-size: 15px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .playing { width: 10px; height: 10px; border-radius: 5px; background: #ff6b3d; -webkit-flex-shrink: 0; flex-shrink: 0; }
 
@@ -218,6 +218,37 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 .cat:focus, .cat.on:focus { background: #f4f4f8; color: #0b0b12; }
 .cat:focus .cat-count { color: #4a4a5a; }
 
+/* ---- Cards de canal (Início) ---- */
+.tile {
+  -webkit-flex-shrink: 0; flex-shrink: 0; border: 0; padding: 0; background: transparent; cursor: pointer; text-align: left; color: #f4f4f8;
+  display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; border-radius: 20px; box-shadow: none !important;
+}
+.tile-art {
+  position: relative; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  border-radius: 18px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.35);
+  -webkit-transition: box-shadow 0.15s ease; transition: box-shadow 0.15s ease;
+}
+.tile-art img { max-width: 62%; max-height: 54%; object-fit: contain; -webkit-filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45)); filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45)); }
+.tile-ini {
+  width: 34%; height: 46%; border-radius: 16px; color: #fff; font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 26px;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+}
+.tile-num {
+  position: absolute; left: 10px; top: 10px; padding: 3px 9px; border-radius: 999px; font-size: 13px; font-weight: 700;
+  background: rgba(0, 0, 0, 0.55); color: #f4f4f8;
+}
+.tile-badge {
+  position: absolute; right: 10px; top: 10px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;
+  background: #ff6b3d; color: #0b0b12; text-transform: uppercase;
+}
+.tile-name { margin-top: 10px; padding: 0 4px; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile:focus .tile-art { box-shadow: 0 0 0 3px #f4f4f8, 0 14px 30px rgba(0, 0, 0, 0.5); }
+html:not(.kbd) .tile:focus .tile-art { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.35); }
+.tile:hover .tile-art { border-color: rgba(255, 255, 255, 0.35); }
+.mobile .tile-name { font-size: 14px; margin-top: 8px; }
+.mobile .tile-ini { font-size: 20px; border-radius: 12px; }
+
 /* Espaçamento entre filhos (substitui "gap"; no fim para valer sobre as regras acima) */
 .gx-2 > * + * { margin-left: 2px; }   .gy-2 > * + * { margin-top: 2px; }
 .gx-4 > * + * { margin-left: 4px; }   .gy-4 > * + * { margin-top: 4px; }
@@ -229,6 +260,7 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 .gx-16 > * + * { margin-left: 16px; } .gy-16 > * + * { margin-top: 16px; }
 .gx-18 > * + * { margin-left: 18px; } .gy-18 > * + * { margin-top: 18px; }
 .gx-22 > * + * { margin-left: 22px; } .gy-22 > * + * { margin-top: 22px; }
+.gx-20 > * + * { margin-left: 20px; } .gy-20 > * + * { margin-top: 20px; }
 .gx-24 > * + * { margin-left: 24px; } .gy-24 > * + * { margin-top: 24px; }
 .cols > * { -webkit-flex: 1 1 0px; flex: 1 1 0px; min-width: 0; }
 

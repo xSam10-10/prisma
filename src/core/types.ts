@@ -6,6 +6,8 @@ export interface Channel {
   id: string;            // id estável dentro da lista
   kind: ItemKind;
   name: string;
+  /** Nome completo como veio na lista (o `name` é o curto). */
+  fullName?: string;
   number?: number;       // número do canal (tvg-chno ou posição)
   group: string;         // categoria (group-title / categoria Xtream)
   logo?: string;

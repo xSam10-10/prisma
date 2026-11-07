@@ -35,28 +35,62 @@ export function initials(name: string): string {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+/** "#RRGGBB" + opacidade → "rgba(...)" (a TV de 2017 não entende #RRGGBBAA). */
+export function rgba(hex: string, a: number): string {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
 export function colorFor(name: string): string {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
   return PALETTE[Math.abs(h) % PALETTE.length];
 }
 
-/** Logo do canal: meus logos › oficiais › da lista (conforme Ajustes) › iniciais. */
-export function ChannelLogo({ ch, size = 40 }: { ch: Channel; size?: number }) {
+/** Logo a mostrar para o canal: meus logos › oficiais › da lista (conforme Ajustes). Pula os que falham. */
+export function useLogo(ch: Channel): { src?: string; onError: () => void } {
   const { settings } = useSettings();
-  const cands = logoCandidates(ch.name, ch.logo, settings.logoSource === 'list');
+  const cands = logoCandidates(ch.fullName ?? ch.name, ch.logo, settings.logoSource === 'list');
   const [failed, setFailed] = useState(0);
   useEffect(() => setFailed(0), [ch.id, ch.logo, settings.logoSource]);
-  const src = cands[failed];
+  return { src: cands[failed], onError: () => setFailed((f) => f + 1) };
+}
+
+/** Logo pequeno (listas): imagem ou iniciais. */
+export function ChannelLogo({ ch, size = 40 }: { ch: Channel; size?: number }) {
+  const { src, onError } = useLogo(ch);
   const style = { width: size, height: size, background: src ? undefined : colorFor(ch.name) };
   return (
     <span className="logo-box" style={style}>
-      {src ? (
-        <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed((f) => f + 1)} />
-      ) : (
-        initials(ch.name)
-      )}
+      {src ? <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={onError} /> : initials(ch.name)}
     </span>
+  );
+}
+
+/** Miniatura 16:9 com o logo em destaque (cards do Início). */
+export function ChannelTile({ ch, width, onClick, badge }: { ch: Channel; width: number; onClick: () => void; badge?: string }) {
+  const { src, onError } = useLogo(ch);
+  const c = colorFor(ch.name);
+  const h = Math.round((width * 9) / 16);
+  return (
+    <button className="tile grow" data-nav="" onClick={onClick} style={{ width }} aria-label={ch.name}>
+      <span
+        className="tile-art"
+        style={{
+          height: h,
+          background: `radial-gradient(ellipse 80% 90% at 50% 40%, ${rgba(c, 0.33)} 0%, ${rgba(c, 0.13)} 45%, rgba(0,0,0,0) 75%), linear-gradient(160deg, #262636 0%, #15151F 100%)`,
+        }}
+      >
+        {src ? (
+          <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={onError} />
+        ) : (
+          <span className="tile-ini" style={{ background: c }}>{initials(ch.name)}</span>
+        )}
+        {ch.number != null && <span className="tile-num">{ch.number}</span>}
+        {badge && <span className="tile-badge">{badge}</span>}
+      </span>
+      <span className="tile-name">{ch.name}</span>
+    </button>
   );
 }
 

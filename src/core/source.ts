@@ -1,5 +1,6 @@
 import { detectXtreamFromUrl, parseM3U } from './m3u';
 import { cleanLabel } from './logos';
+import { simplifyName } from './names';
 import { fetchText } from './net';
 import { idbDel, idbGet, idbSet } from './storage';
 import { SourceError, type Category, type Channel, type ItemKind, type Playlist, type SourceConfig } from './types';
@@ -9,12 +10,35 @@ const PLAYLIST_KEY = 'playlist';
 
 export type Progress = (msg: string) => void;
 
-/** Tira emojis e símbolos decorativos de categorias e nomes (ex.: "♦ CANAIS | FHD ⭐"). */
+/**
+ * Arruma a lista para exibir:
+ *  · tira emojis e símbolos decorativos (ex.: "♦ CANAIS | FHD ⭐");
+ *  · nome curto do canal, até a qualidade ("GLOBO RJ HD [ALT]" → "GLOBO RJ HD");
+ *  · canais ao vivo que ficam com o mesmo nome na mesma categoria viram um só,
+ *    e as outras versões passam a ser "fonte 2, 3…" (o player troca sozinho se uma cair).
+ */
 export function tidyPlaylist(p: Playlist): Playlist {
+  const seen = new Map<string, Channel>();
+  const out: Channel[] = [];
   for (const it of p.items) {
     it.group = cleanLabel(it.group);
-    it.name = cleanLabel(it.name);
+    const full = cleanLabel(it.fullName ?? it.name);
+    it.fullName = full;
+    it.name = simplifyName(full);
+    if (it.kind === 'live') {
+      const key = it.group + '|' + it.name.toLowerCase();
+      const first = seen.get(key);
+      if (first) {
+        const extra = [it.url, ...(it.altUrls ?? [])].filter((u) => u && u !== first.url && !(first.altUrls ?? []).includes(u));
+        first.altUrls = [...(first.altUrls ?? []), ...extra];
+        if (!first.logo && it.logo) first.logo = it.logo;
+        continue;
+      }
+      seen.set(key, it);
+    }
+    out.push(it);
   }
+  p.items = out;
   return p;
 }
 

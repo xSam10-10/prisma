@@ -1,35 +1,13 @@
 import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Channel, Playlist } from '../core/types';
-import { Ambient, ChannelLogo, Icon, Symbol } from '../ui/bits';
+import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol } from '../ui/bits';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 import { focusFirst } from '../ui/nav';
 import { useLayout } from '../ui/layout';
 
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
-function ChannelCard({ ch, onClick }: { ch: Channel; onClick: () => void }) {
-  return (
-    <button
-      className="grow"
-      data-nav=""
-      onClick={onClick}
-      style={{
-        width: 200, height: 130, flexShrink: 0, borderRadius: 20, border: 0, cursor: 'pointer', padding: 16, textAlign: 'left',
-        background: 'rgba(255,255,255,0.08)', color: T.text, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <ChannelLogo ch={ch} size={48} />
-      </div>
-      <div className="gy-2" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <span style={{ fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.name}</span>
-        <span className="muted" style={{ fontSize: 14 }}>{ch.number} · {ch.group}</span>
-      </div>
-    </button>
-  );
 }
 
 // ---------------------------------------------------------------- Início
@@ -69,19 +47,21 @@ export function Home({
       </div>
 
       <Shelf title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
-      <Shelf title="Vistos por último" items={recents} empty="Os canais que você assistir aparecem aqui." onWatch={(c) => onWatch(c, recents)} />
+      <Shelf title="Vistos por último" badgeFor={(_c, i) => (i === 0 ? 'Último' : undefined)} items={recents} empty="Os canais que você assistir aparecem aqui." onWatch={(c) => onWatch(c, recents)} />
     </div>
   );
 }
 
-function Shelf({ title, items, empty, onWatch }: { title: string; items: Channel[]; empty: string; onWatch: (c: Channel) => void }) {
+function Shelf({ title, items, empty, onWatch, badgeFor }: { title: string; items: Channel[]; empty: string; onWatch: (c: Channel) => void; badgeFor?: (c: Channel, i: number) => string | undefined }) {
   const L = useLayout();
   return (
     <div className="gy-12" style={{ marginTop: L.form === 'mobile' ? 22 : 34, display: 'flex', flexDirection: 'column' }}>
       <span className="title" style={{ fontSize: L.form === 'mobile' ? 19 : 22, padding: `0 ${L.px}px` }}>{title}</span>
       {items.length ? (
-        <div className="scroll-x gx-16" style={{ padding: `10px ${L.px}px 14px ${L.px}px`, margin: '-8px 0 -14px 0' }}>
-          {items.slice(0, 20).map((c) => <ChannelCard key={c.id} ch={c} onClick={() => onWatch(c)} />)}
+        <div className="scroll-x gx-20" style={{ padding: `12px ${L.px}px 18px ${L.px}px`, margin: '-8px 0 -14px 0' }}>
+          {items.slice(0, 20).map((c, i) => (
+            <ChannelTile key={c.id} ch={c} width={L.form === 'mobile' ? 168 : 248} onClick={() => onWatch(c)} badge={badgeFor?.(c, i)} />
+          ))}
         </div>
       ) : (
         <span className="muted" style={{ fontSize: 16, padding: `0 ${L.px}px` }}>{empty}</span>
@@ -100,7 +80,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
   const results = useMemo(() => {
     const n = normalize(q.trim());
     if (n.length < 2) return [];
-    return playlist.items.filter((i) => normalize(i.name).includes(n)).slice(0, 500);
+    return playlist.items.filter((i) => normalize(i.fullName ?? i.name).includes(n)).slice(0, 500);
   }, [q, playlist]);
   const live = results.filter((r) => r.kind === 'live');
   const vod = results.length - live.length;
@@ -140,13 +120,13 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
           onIndex={setIndex}
           onPick={(c) => onWatch(c, live)}
           label="Resultados"
+          rowHeight={54}
           render={(c) => (
             <>
               <span className="num">{c.number ?? ''}</span>
               <ChannelLogo ch={c} />
               <div className="txt">
                 <span className="name">{c.name}</span>
-                <span className="sub">{c.group}</span>
               </div>
             </>
           )}
