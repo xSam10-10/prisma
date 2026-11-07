@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import legacy from '@vitejs/plugin-legacy';
@@ -12,6 +13,7 @@ export default defineConfig(({ mode }) => {
   const webos = mode === 'webos';
   return {
     base: webos ? './' : '/',
+    define: { __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version) },
     plugins: [
       react(),
       prismaProxyPlugin(),

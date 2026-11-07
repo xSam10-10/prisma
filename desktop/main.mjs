@@ -3,7 +3,9 @@
 // (app + proxy das listas) e abre uma janela própria apontando para ele.
 // Porta fixa (47815) para que favoritos e a lista salva não se percam.
 
-import { app, BrowserWindow, Menu, shell } from 'electron';
+import { app, BrowserWindow, Menu, session, shell } from 'electron';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { chromiumFetch } from './netfetch.mjs';
 import { fileURLToPath } from 'node:url';
 import { setFetch } from '../server/proxy.mjs';
@@ -20,7 +22,18 @@ app.on('second-instance', () => {
   }
 });
 
+/** Versão nova instalada: limpa o cache do navegador interno (os dados — lista, favoritos — ficam). */
+async function clearCacheOnUpdate() {
+  const mark = join(app.getPath('userData'), 'versao.txt');
+  const before = existsSync(mark) ? readFileSync(mark, 'utf8').trim() : '';
+  if (before !== app.getVersion()) {
+    await session.defaultSession.clearCache();
+    writeFileSync(mark, app.getVersion());
+  }
+}
+
 async function createWindow() {
+  await clearCacheOnUpdate();
   const root = fileURLToPath(new URL('../dist/', import.meta.url));
   // Rede do Chromium: usa o proxy e os certificados configurados no Windows.
   setFetch(chromiumFetch);

@@ -30,7 +30,10 @@ export function startServer(root, port = 4173, host = '127.0.0.1', tries = 10) {
     let file = normalize(join(base, path));
     if (!file.startsWith(base)) return void res.writeHead(403).end();
     if (!existsSync(file) || statSync(file).isDirectory()) file = join(base, 'index.html');
-    res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
+    // index.html nunca em cache (senão uma versão nova abre o app velho);
+    // os arquivos de /assets têm o código no nome e podem ficar em cache.
+    const cache = file.includes(`${sep}assets${sep}`) ? 'public, max-age=31536000, immutable' : 'no-store';
+    res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream', 'cache-control': cache });
     createReadStream(file).pipe(res);
   });
   return new Promise((resolve, reject) => {

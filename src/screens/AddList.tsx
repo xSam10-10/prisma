@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { SourceError, type SourceConfig } from '../core/types';
 import { Ambient, Brand } from '../ui/bits';
 import { focusFirst } from '../ui/nav';
+import { VERSION } from '../version';
 
 type Mode = 'm3u' | 'xtream' | 'file' | 'demo';
 
@@ -77,6 +78,7 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
       <div style={{ position: 'absolute', left: 64, top: 36 }}>
         <Brand />
       </div>
+      <span className="muted" style={{ position: 'absolute', left: 64, bottom: 36, fontSize: 14 }}>Versão {VERSION}</span>
 
       <div className="gy-14" style={{ position: 'absolute', left: 64, top: 120, width: 420, display: 'flex', flexDirection: 'column' }}>
         <span className="title" style={{ fontSize: 40, lineHeight: 1.05, fontWeight: 800 }}>Adicione a sua lista</span>

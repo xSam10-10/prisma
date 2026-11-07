@@ -4,6 +4,7 @@ import type { Channel, Playlist } from '../core/types';
 import { Ambient, ChannelLogo, Icon, Symbol } from '../ui/bits';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 import { focusFirst } from '../ui/nav';
+import { VERSION } from '../version';
 
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -185,6 +186,7 @@ export function Settings({
     ...(a?.maxConnections ? ([['Telas ao mesmo tempo', `${a.activeConnections ?? 0} em uso de ${a.maxConnections}`]] as [string, string][]) : []),
     ['Conteúdo', `${count('live')} canais · ${count('movie')} filmes · ${count('series')} séries`],
     ['Atualizada', new Date(playlist.loadedAt).toLocaleString('pt-BR')],
+    ['Versão do PRISMA', VERSION],
   ];
   return (
     <div className="gx-24" ref={root} style={{ position: 'absolute', left: 64, right: 64, top: 110, bottom: 36, display: 'flex' }}>
