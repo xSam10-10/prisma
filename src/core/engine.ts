@@ -4,7 +4,18 @@
 import Hls from 'hls.js';
 import mpegts from 'mpegts.js';
 import { USE_PROXY, proxify } from './net';
+import { LITE } from './platform';
 import type { Channel } from './types';
+
+/** video.play() só devolve Promise no Chromium 50+ (a TV de 2017 tem o 38). */
+function safePlay(v: HTMLVideoElement) {
+  try {
+    const p = v.play() as Promise<void> | undefined;
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  } catch {
+    /* ignora */
+  }
+}
 
 export type EngineEvent =
   | { type: 'playing' }
@@ -72,7 +83,8 @@ export class Engine {
     this.onEvent({ type: 'error', message });
   }
 
-  play(url: string, ch?: Channel, startAt = 0): void {
+  /** native = usa o player do próprio aparelho (na LG, o da TV). */
+  play(url: string, ch?: Channel, startAt = 0, native = false): void {
     this.stop();
     this.destroyed = false;
     this.armStall();
@@ -80,9 +92,9 @@ export class Engine {
     const k = kindOf(url);
     const src = withHeaders(url, ch);
 
-    if (k === 'hls' && Hls.isSupported()) {
+    if (!native && k === 'hls' && Hls.isSupported()) {
       const hls = new Hls({
-        enableWorker: true,
+        enableWorker: !LITE, // o worker não recebe os polyfills da TV antiga
         lowLatencyMode: false,
         backBufferLength: 30,
         manifestLoadingMaxRetry: 2,
@@ -110,27 +122,32 @@ export class Engine {
       });
       hls.loadSource(src);
       hls.attachMedia(v);
-      v.play().catch(() => {});
+      safePlay(v);
       return;
     }
 
-    if (k === 'ts' && mpegts.getFeatureList().mseLivePlayback) {
+    if (!native && k === 'ts' && mpegts.getFeatureList().mseLivePlayback) {
       const p = mpegts.createPlayer(
         { type: 'mpegts', isLive: true, url: new URL(src, location.href).href },
-        { enableWorker: true, liveBufferLatencyChasing: true, lazyLoad: false },
+        { enableWorker: !LITE, liveBufferLatencyChasing: true, lazyLoad: false },
       );
       this.ts = p;
       p.on(mpegts.Events.ERROR, () => this.fail('O canal está fora do ar ou não respondeu.'));
       p.attachMediaElement(v);
       p.load();
-      Promise.resolve(p.play()).catch(() => {});
+      try {
+        const r = p.play() as Promise<void> | undefined;
+        if (r && typeof r.catch === 'function') r.catch(() => {});
+      } catch {
+        /* ignora */
+      }
       return;
     }
 
     // Nativo: MP4 (filmes) ou HLS no Safari / Android.
     v.src = src;
     if (startAt) v.currentTime = startAt;
-    v.play().catch(() => {});
+    safePlay(v);
   }
 
   stop(): void {

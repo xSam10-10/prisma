@@ -1,3 +1,4 @@
+import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { progressOf } from '../core/epg';
 import { categoriesOf } from '../core/source';
@@ -5,6 +6,7 @@ import { prefGet, prefSet } from '../core/storage';
 import type { Channel, Playlist } from '../core/types';
 import { ChannelLogo, Icon, Symbol, fmtTime } from '../ui/bits';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
+import { ensureVisible } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
 import type { Rect } from './Player';
 
@@ -62,7 +64,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
   // Rola os chips para mostrar a categoria escolhida.
   useEffect(() => {
     const el = chipsRef.current?.querySelector<HTMLElement>('.chip.on');
-    el?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+    if (el) ensureVisible(el);
   }, [cat]);
 
   const selected = list[index];
@@ -86,11 +88,10 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
     <>
       {/* Lista de canais */}
       <div
-        className="glass"
+        className="glass gy-12"
         style={{
-          position: 'absolute', left: 64, top: 100, bottom: 36, width: 430, padding: 16, borderRadius: 'var(--radius-panel)',
-          display: 'flex', flexDirection: 'column', gap: 12,
-        }}
+          position: 'absolute', left: 64, top: 100, bottom: 36, width: 430, padding: 16, borderRadius: T.radiusPanel,
+          display: 'flex', flexDirection: 'column', }}
       >
         <div ref={chipsRef} className="scroll-x" role="tablist" aria-label="Categorias">
           {chips.map((c) => (
@@ -136,12 +137,12 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
                 <span className="name">{c.name}</span>
                 <span className="sub">{c.group}</span>
               </div>
-              {isFav(c) && <span style={{ color: 'var(--warn)', display: 'flex' }}>{Icon.star(true)}</span>}
+              {isFav(c) && <span style={{ color: T.warn, display: 'flex' }}>{Icon.star(true)}</span>}
               {playing?.id === c.id && <span className="playing" aria-label="Assistindo" />}
             </>
           )}
           empty={
-            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="gy-10" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
               <span className="title" style={{ fontSize: 20 }}>{cat === FAV ? 'Nenhum favorito ainda' : 'Nenhum canal aqui'}</span>
               <span className="muted" style={{ fontSize: 16 }}>
                 {cat === FAV ? 'Abra um canal em tela cheia e aperte "Favoritar". Ele aparece aqui.' : 'Escolha outra categoria.'}
@@ -161,7 +162,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
         <div aria-hidden="true" style={{ position: 'absolute', left: 300, top: -80, width: 440, height: 440, borderRadius: '50%', background: '#5B2B85' }} />
         <div aria-hidden="true" style={{ position: 'absolute', left: 60, top: 190, width: 240, height: 240, borderRadius: '50%', background: '#3D1E5E' }} />
         {!playing && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <div className="gy-12" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <Symbol size={64} />
             <span className="title" style={{ fontSize: 22 }}>Escolha um canal e aperte OK</span>
             <span className="muted" style={{ fontSize: 16 }}>OK de novo abre em tela cheia</span>
@@ -173,14 +174,13 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
         <>
           <span className="badge-live" style={{ position: 'absolute', left: PREVIEW_RECT.left + 18, top: PREVIEW_RECT.top + 18, zIndex: 6 }}>● Ao vivo</span>
           <div
-            className="glass"
+            className="glass gx-16"
             style={{
               position: 'absolute', left: PREVIEW_RECT.left + 14, width: PREVIEW_RECT.width - 28, top: PREVIEW_RECT.top + PREVIEW_RECT.height - 14 - 92,
               height: 92, padding: '14px 18px', borderRadius: 20, background: 'rgba(11,11,18,0.6)', zIndex: 6,
-              display: 'flex', alignItems: 'center', gap: 16,
-            }}
+              display: 'flex', alignItems: 'center', }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexGrow: 1, minWidth: 0 }}>
+            <div className="gy-4" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
               <span style={{ fontSize: 15, color: '#D6D6E0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {playing.number} · {playing.name}
                 {curPlay ? ` · ${fmtTime(curPlay.start)} – ${fmtTime(curPlay.end)}` : ''}
@@ -191,10 +191,10 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
               <div className="progress"><div style={{ width: curPlay ? `${progressOf(curPlay, now) * 100}%` : '100%' }} /></div>
             </div>
             <button
-              className="btn"
+              className="btn icon"
               data-nav=""
               aria-label={isFav(playing) ? 'Remover dos favoritos' : 'Favoritar'}
-              style={{ width: 46, padding: 0, justifyContent: 'center', color: isFav(playing) ? 'var(--warn)' : undefined }}
+              style={{ width: 46, padding: 0, justifyContent: 'center', color: isFav(playing) ? T.warn : undefined }}
               onClick={() => toggleFav(playing)}
             >
               {Icon.star(isFav(playing))}
@@ -208,27 +208,26 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
 
       {/* A seguir (do canal selecionado na lista) */}
       <div
-        className="glass"
+        className="glass gy-12"
         style={{
           position: 'absolute', left: 518, right: 64, top: 446, bottom: 36, padding: '14px 18px', borderRadius: 26,
-          display: 'flex', flexDirection: 'column', gap: 12,
-        }}
+          display: 'flex', flexDirection: 'column', }}
       >
-        <div style={{ display: 'flex', gap: 18, fontSize: 16, fontWeight: 700, alignItems: 'baseline' }}>
+        <div className="gx-18" style={{ display: 'flex', fontSize: 16, fontWeight: 700, alignItems: 'baseline' }}>
           <span>A seguir</span>
           <span className="muted" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selected ? `${selected.number ?? ''} · ${selected.name}` : ''}
           </span>
         </div>
         {epgSel === null && selected ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          <div className="gx-12 cols" style={{ display: 'flex' }}>
             {[0, 1, 2].map((i) => <div key={i} className="skel" style={{ height: 132 }} />)}
           </div>
         ) : epgSel && epgSel.length ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          <div className="gx-12 cols" style={{ display: 'flex' }}>
             {epgSel.slice(0, 3).map((e, i) => (
-              <div key={i} style={{ height: 132, padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6, overflow: 'hidden' }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: i === 0 ? 'var(--live)' : 'var(--warn)' }}>
+              <div className="gy-6" key={i} style={{ height: 132, padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: i === 0 ? T.live : T.warn }}>
                   {i === 0 ? 'Agora · ' : ''}{fmtTime(e.start)} – {fmtTime(e.end)}
                 </span>
                 <span style={{ fontSize: 17, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</span>
@@ -239,7 +238,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
             ))}
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 4px' }}>
+          <div className="gx-14" style={{ display: 'flex', alignItems: 'center', padding: '10px 4px' }}>
             <span className="badge-live">Ao vivo</span>
             <span className="muted" style={{ fontSize: 16 }}>
               {selected ? 'Este canal não tem guia de programação.' : 'Nenhum canal selecionado.'}

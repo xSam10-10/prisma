@@ -118,10 +118,50 @@ export function findNeighbor(from: HTMLElement, dir: Dir, root?: HTMLElement): H
   return best;
 }
 
+/**
+ * Rola só o contêiner mais próximo (fileira de chips, prateleira) para o
+ * elemento ficar à vista. Não usa scrollIntoView com opções, que o
+ * Chromium 38 da TV trata como "alinhar no topo" e desloca a tela toda.
+ */
+export function ensureVisible(el: HTMLElement): void {
+  let p = el.parentElement;
+  while (p && !p.classList.contains('stage')) {
+    if (p.classList.contains('scroll-x') || p.classList.contains('scroll-y')) {
+      const er = el.getBoundingClientRect();
+      const pr = p.getBoundingClientRect();
+      const k = pr.width / (p.clientWidth || pr.width) || 1; // escala do palco
+      if (er.left < pr.left) p.scrollLeft -= (pr.left - er.left) / k + 8;
+      else if (er.right > pr.right) p.scrollLeft += (er.right - pr.right) / k + 8;
+      if (er.top < pr.top) p.scrollTop -= (pr.top - er.top) / k + 8;
+      else if (er.bottom > pr.bottom) p.scrollTop += (er.bottom - pr.bottom) / k + 8;
+    }
+    p = p.parentElement;
+  }
+  resetStageScroll();
+}
+
+/** Na TV antiga, focar um elemento rola o palco sozinho: desfaz. */
+function resetStageScroll() {
+  const st = document.querySelector<HTMLElement>('.stage');
+  if (st && (st.scrollTop || st.scrollLeft)) {
+    st.scrollTop = 0;
+    st.scrollLeft = 0;
+  }
+  const vp = st?.parentElement;
+  if (vp && (vp.scrollTop || vp.scrollLeft)) {
+    vp.scrollTop = 0;
+    vp.scrollLeft = 0;
+  }
+}
+
 export function focusEl(el: HTMLElement | null | undefined): boolean {
   if (!el) return false;
-  el.focus({ preventScroll: true });
-  el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  try {
+    el.focus({ preventScroll: true });
+  } catch {
+    el.focus();
+  }
+  ensureVisible(el);
   return true;
 }
 

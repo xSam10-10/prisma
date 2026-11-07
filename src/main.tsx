@@ -1,10 +1,11 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { installNavigation } from './ui/nav';
+import { LITE } from './core/platform';
 import './styles.css';
 
 // Na TV LG, efeitos de vidro (blur) pesam: usa a versão "leve".
-if (import.meta.env.MODE === 'webos' || /web0s|webos|netcast/i.test(navigator.userAgent)) {
+if (LITE) {
   document.documentElement.classList.add('lite');
 }
 

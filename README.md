@@ -47,7 +47,22 @@ ares-launch --device tv com.prisma.iptv
 
 Na TV o app acessa a lista direto (sem proxy). O build usa só scripts "legacy" porque módulos ES não carregam via `file://`.
 
-> **Compatibilidade:** o layout usa `gap` em flexbox, que precisa de Chromium 84+ — TVs LG **webOS 22 (2022) ou mais novas**. Em TVs mais antigas o app abre, mas os espaçamentos podem sair errados. Se a sua TV for anterior a 2022, me avise que eu troco o `gap` por margens.
+> **Compatibilidade — TV LG OLED55B7P (2017, webOS 3.5, Chromium 38):** o build da TV é feito para esse navegador antigo:
+> - scripts convertidos para **ES5** pelo Babel no `scripts/webos-pack.mjs` (conferido com `npx es-check es5 "dist-webos/assets/*.js"`);
+> - CSS sem variáveis, sem `gap` em flexbox (classes `gx-N` / `gy-N`), sem grid, sem `inset` e com prefixos `-webkit-`;
+> - sem blur (vidro vira painel sólido), sem worker no hls.js, `video.play()` sem Promise;
+> - se o hls.js/mpegts.js não tocar um canal, o app tenta o **player nativo da TV** antes de dar "fora do ar".
+> Ainda não foi testado numa B7 de verdade — a primeira instalação é o teste.
+
+## Testar a sua lista (Goldcard) no computador
+
+```bash
+npm install
+npm run dev
+```
+
+Abra http://127.0.0.1:5173 → **Link M3U / SS IPTV** → cole o link `get.php?...` da Goldcard → Entrar.
+O app detecta que é Xtream e usa a API. Se algo falhar, a mensagem na tela diz o motivo (senha, lista vencida, servidor fora).
 
 ## Testar sem a lista real
 

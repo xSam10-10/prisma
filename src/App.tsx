@@ -7,7 +7,7 @@ import { LiveTV, PREVIEW_RECT } from './screens/LiveTV';
 import { Home, Search, Settings, Soon } from './screens/Other';
 import { Player, type PlayerMode } from './screens/Player';
 import { Ambient, Brand, Icon, Symbol } from './ui/bits';
-import { pushBack } from './ui/nav';
+import { focusEl, pushBack } from './ui/nav';
 
 type Tab = 'inicio' | 'aovivo' | 'jogos' | 'filmes' | 'series' | 'anime' | 'busca' | 'lista' | 'ajustes';
 
@@ -87,7 +87,7 @@ export function App() {
       setFull(false);
       setTab('aovivo');
       // Volta o foco para a lista de canais.
-      setTimeout(() => document.querySelector<HTMLElement>('.vlist')?.focus({ preventScroll: true }), 50);
+      setTimeout(() => focusEl(document.querySelector<HTMLElement>('.vlist')), 50);
     }
   }, []);
 
@@ -134,7 +134,7 @@ export function App() {
   let body: React.ReactNode = null;
   if (phase === 'boot') {
     body = (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+      <div className="gy-24" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <Ambient variant="home" />
         <Symbol size={120} />
         <div className="spinner" />
@@ -208,7 +208,7 @@ export function App() {
 
   return (
     <div className="viewport">
-      <div className="stage" style={{ transform: `scale(${scale})` }}>
+      <div className="stage" style={{ transform: `scale(${scale})`, WebkitTransform: `scale(${scale})` }}>
         {body}
         {phase === 'app' && (
           <Player

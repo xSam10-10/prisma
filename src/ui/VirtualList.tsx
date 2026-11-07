@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
-import { KEY, dirOf, isEnter } from './nav';
+import { KEY, dirOf, focusEl, isEnter } from './nav';
 
 // Lista que só desenha as linhas visíveis: aguenta listas com milhares de
 // canais na TV. É um único ponto de foco; cima/baixo andam dentro dela e
@@ -31,7 +31,7 @@ function VirtualListInner<T>(
   const [top, setTop] = useState(0);
   const step = rowHeight + gap;
 
-  useImperativeHandle(ref, () => ({ focus: () => box.current?.focus({ preventScroll: true }) }));
+  useImperativeHandle(ref, () => ({ focus: () => focusEl(box.current) }));
 
   useEffect(() => {
     const el = box.current;
@@ -91,7 +91,7 @@ function VirtualListInner<T>(
         onClick={() => {
           onIndex(i);
           onPick(items[i], i);
-          box.current?.focus({ preventScroll: true });
+          focusEl(box.current);
         }}
       >
         {render(items[i], i, i === index)}

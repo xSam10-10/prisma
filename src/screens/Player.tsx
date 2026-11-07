@@ -1,5 +1,7 @@
+import { T } from '../ui/tokens';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Engine } from '../core/engine';
+import { IS_WEBOS } from '../core/platform';
 import { progressOf } from '../core/epg';
 import type { Channel, Playlist } from '../core/types';
 import { ChannelLogo, Icon, fmtTime } from '../ui/bits';
@@ -50,7 +52,15 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const epg = useEpg(playlist, channel, 200);
   const now = useClock();
 
-  const sources = channel ? [channel.url, ...(channel.altUrls ?? [])].filter(Boolean) : [];
+  // Tentativas em ordem: cada fonte com o motor JS (hls.js / mpegts.js) e,
+  // na TV LG, também com o player nativo da TV.
+  const urls = channel ? [channel.url, ...(channel.altUrls ?? [])].filter(Boolean) : [];
+  const sources = urls.reduce<{ u: string; n: number; native: boolean }[]>((acc, u, n) => {
+    acc.push({ u, n, native: false });
+    if (IS_WEBOS) acc.push({ u, n, native: true });
+    return acc;
+  }, []);
+  const cur0 = sources[srcIdx] ?? sources[0];
 
   useEffect(() => {
     const v = videoRef.current!;
@@ -84,14 +94,14 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       engine.current?.stop();
       return;
     }
-    const url = sources[srcIdx] ?? sources[0];
-    if (!url) {
+    const t = sources[srcIdx] ?? sources[0];
+    if (!t) {
       setStatus('error');
       setErrMsg('Este item não tem endereço de vídeo.');
       return;
     }
     setStatus('loading');
-    engine.current?.play(url, channel);
+    engine.current?.play(t.u, channel, 0, t.native);
   }, [channel?.id, srcIdx, attempt, mode === 'off']); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showOverlay = useCallback((focus = false) => {
@@ -175,26 +185,25 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       <video ref={videoRef} playsInline autoPlay onClick={() => (full ? setOverlay((o) => !o) : onMode('full'))} />
 
       {status === 'loading' && mode !== 'off' && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
           <div className="spinner" />
         </div>
       )}
 
       {status === 'error' && mode !== 'off' && channel && (
-        <div
+        <div className="gy-14"
           style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: 14, background: 'rgba(11,11,18,0.88)', textAlign: 'center', padding: 24,
+            position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(11,11,18,0.88)', textAlign: 'center', padding: 24,
           }}
         >
-          <span className="badge-live" style={{ background: 'var(--live)' }}>Canal fora do ar</span>
+          <span className="badge-live" style={{ background: T.live }}>Canal fora do ar</span>
           <span className="title" style={{ fontSize: full ? 32 : 22 }}>{channel.name}</span>
           <span className="muted" style={{ fontSize: 16 }}>{errMsg}</span>
           {full && (
-            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <div className="gx-12" style={{ display: 'flex', marginTop: 22 }}>
               {sources.length > 1 && (
                 <button className="btn primary" data-nav="" data-nav-default="" onClick={() => setSrcIdx((i) => (i + 1) % sources.length)}>
-                  Tentar fonte {((srcIdx + 1) % sources.length) + 1}
+                  Tentar outra fonte
                 </button>
               )}
               <button className="btn" data-nav="" onClick={() => {
@@ -212,20 +221,25 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         <div
           ref={overlayRef}
           style={{
-            position: 'absolute', inset: 0, pointerEvents: overlay ? 'auto' : 'none', opacity: overlay ? 1 : 0, transition: 'opacity .25s',
+            position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: overlay ? 'auto' : 'none', opacity: overlay ? 1 : 0, transition: 'opacity .25s',
             background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.35) 38%, transparent 60%), linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 22%)',
           }}
         >
-          <div style={{ position: 'absolute', left: 64, top: 36, display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="gx-10" style={{ position: 'absolute', left: 64, top: 36, display: 'flex', alignItems: 'center' }}>
             <span className="badge-live">● Ao vivo</span>
             {height ? <span className="chip" style={{ height: 30, display: 'inline-flex', alignItems: 'center' }}>{height >= 2000 ? '4K' : height >= 1000 ? 'Full HD' : height >= 700 ? 'HD' : 'SD'}</span> : null}
-            {sources.length > 1 && <span className="muted" style={{ fontSize: 15 }}>Fonte {srcIdx + 1} de {sources.length}</span>}
+            {cur0 && (urls.length > 1 || cur0.native) && (
+              <span className="muted" style={{ fontSize: 15 }}>
+                Fonte {cur0.n + 1} de {urls.length}
+                {cur0.native ? ' · player da TV' : ''}
+              </span>
+            )}
           </div>
           <div style={{ position: 'absolute', right: 64, top: 36, fontSize: 18, fontWeight: 700 }}>{fmtTime(now)}</div>
 
-          <div style={{ position: 'absolute', left: 64, right: 64, bottom: 36, display: 'flex', alignItems: 'flex-end', gap: 22 }}>
+          <div className="gx-22" style={{ position: 'absolute', left: 64, right: 64, bottom: 36, display: 'flex', alignItems: 'flex-end' }}>
             <ChannelLogo ch={channel} size={84} />
-            <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="gy-6" style={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: 16, color: '#D6D6E0' }}>
                 {channel.number} · {channel.name}
                 {cur ? ` · ${fmtTime(cur.start)} – ${fmtTime(cur.end)}` : ''}
@@ -237,9 +251,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
                 <span className="muted" style={{ fontSize: 16 }}>Ao vivo · este canal não tem guia de programação</span>
               )}
               {next && <span className="muted" style={{ fontSize: 16 }}>A seguir · {fmtTime(next.start)} {next.title}</span>}
-              <span className="muted" style={{ fontSize: 14, marginTop: 4 }}>▲▼ trocar de canal · números para ir direto · Voltar sai da tela cheia</span>
+              <span className="muted" style={{ fontSize: 14, marginTop: 10 }}>▲▼ trocar de canal · números para ir direto · Voltar sai da tela cheia</span>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="gx-10" style={{ display: 'flex' }}>
               <button className="btn" data-nav="" onClick={() => toggleFav(channel)} aria-pressed={fav}>
                 {Icon.star(fav)} {fav ? 'Favorito' : 'Favoritar'}
               </button>

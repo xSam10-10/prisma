@@ -197,7 +197,8 @@ Com LG webOS + Roku + Android + computador:
 
 **Pendências / dúvidas abertas:**
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
-- **Modelo/ano da TV LG**: o layout usa `gap` em flexbox (webOS 22+, 2022 em diante); TV mais antiga precisa de ajuste
+- **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade
+- **Lista Goldcard recebida** (link `get.php` no chat — não guardar em arquivos do projeto). O ambiente de nuvem não alcança servidores `http://` comuns, então o teste com a lista real é no computador do usuário (`npm run dev`)
 - Repositório no GitHub (hoje o código vai no .zip)
 
 **Próximo:** passo 3 (guia XMLTV completo e grade por dia), depois passo 4 (VOD + TMDB).
@@ -217,6 +218,6 @@ Com LG webOS + Roku + Android + computador:
 
 ## 10. Próximo passo imediato
 
-1. Testar o app com a lista da Goldcard (enviar link M3U ou servidor/usuário/senha)
+1. Usuário testa a lista Goldcard no computador (`npm run dev`) e instala na TV B7 (README); trazer os erros/prints
 2. Fase 1 · passo 3: guia XMLTV completo
 3. Em paralelo, quando quiser: tema HBO Max no canvas v2, página "Temas"

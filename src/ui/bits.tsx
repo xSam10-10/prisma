@@ -25,7 +25,7 @@ const PALETTE = ['#2B5BD7', '#C8264B', '#7A2E9C', '#B4531F', '#0E7490', '#3D7BFF
 export function initials(name: string): string {
   const clean = name
     .replace(/\b(HD|FHD|UHD|SD|4K|H265|HEVC|\[.*?\]|\(.*?\))\b/gi, '')
-    .replace(/[^\p{L}\p{N} ]/gu, ' ')
+    .replace(/[^A-Za-z0-9\u00C0-\u024F ]/g, ' ')
     .trim();
   const words = clean.split(/\s+/).filter(Boolean);
   if (!words.length) return '•';
@@ -68,11 +68,21 @@ export function Ambient({ variant = 'live' }: { variant?: 'live' | 'home' | 'sof
             { left: 760, top: 260, w: 620, h: 520, c: '#3DD6C4', blur: 140, o: 0.22 },
           ]
         : [{ left: 420, top: 200, w: 640, h: 480, c: '#3D2BFF', blur: 150, o: 0.25 }];
+  // Gradiente radial em vez de blur: funciona na TV de 2017 e pesa menos.
   return (
     <div className="ambient" aria-hidden="true">
-      {spots.map((s, i) => (
-        <i key={i} style={{ left: s.left, top: s.top, width: s.w, height: s.h, background: s.c, filter: `blur(${s.blur}px)`, opacity: s.o }} />
-      ))}
+      {spots.map((s, i) => {
+        const pad = s.blur;
+        return (
+          <i
+            key={i}
+            style={{
+              left: s.left - pad, top: s.top - pad, width: s.w + pad * 2, height: s.h + pad * 2, opacity: s.o,
+              background: `radial-gradient(ellipse closest-side, ${s.c} 0%, ${s.c} 35%, transparent 100%)`,
+            }}
+          />
+        );
+      })}
     </div>
   );
 }

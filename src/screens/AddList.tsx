@@ -1,3 +1,4 @@
+import { T } from '../ui/tokens';
 import { useEffect, useRef, useState } from 'react';
 import { SourceError, type SourceConfig } from '../core/types';
 import { Ambient, Brand } from '../ui/bits';
@@ -71,18 +72,18 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
     error?.code === 'auth' ? 'Usuário ou senha errados' : error?.code === 'expired' ? 'Lista vencida' : error?.code === 'empty' ? 'Lista vazia' : 'Não deu para abrir a lista';
 
   return (
-    <div ref={root} style={{ position: 'absolute', inset: 0 }}>
+    <div ref={root} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
       <Ambient variant="home" />
       <div style={{ position: 'absolute', left: 64, top: 36 }}>
         <Brand />
       </div>
 
-      <div style={{ position: 'absolute', left: 64, top: 120, width: 420, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="gy-14" style={{ position: 'absolute', left: 64, top: 120, width: 420, display: 'flex', flexDirection: 'column' }}>
         <span className="title" style={{ fontSize: 40, lineHeight: 1.05, fontWeight: 800 }}>Adicione a sua lista</span>
         <span className="muted" style={{ fontSize: 18, lineHeight: 1.45 }}>
           O PRISMA é um player: ele mostra os canais, filmes e séries da lista que você assina. Nada sai deste aparelho.
         </span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+        <div className="gy-8" style={{ display: 'flex', flexDirection: 'column', marginTop: 26 }}>
           {MODES.map((m) => (
             <button
               key={m.id}
@@ -99,15 +100,15 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
           ))}
         </div>
         {onCancel && (
-          <button className="btn" data-nav="" style={{ alignSelf: 'flex-start', marginTop: 8 }} onClick={onCancel}>
+          <button className="btn" data-nav="" style={{ alignSelf: 'flex-start', marginTop: 22 }} onClick={onCancel}>
             Voltar
           </button>
         )}
       </div>
 
       <div
-        className="glass"
-        style={{ position: 'absolute', left: 540, right: 64, top: 120, bottom: 36, borderRadius: 'var(--radius-panel)', padding: 32, display: 'flex', flexDirection: 'column', gap: 18 }}
+        className="glass gy-18"
+        style={{ position: 'absolute', left: 540, right: 64, top: 120, bottom: 36, borderRadius: T.radiusPanel, padding: 32, display: 'flex', flexDirection: 'column' }}
       >
         <span className="muted" style={{ fontSize: 16 }}>{hint}</span>
 
@@ -123,7 +124,7 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
               <label htmlFor="f-server">Servidor (com a porta, se houver)</label>
               <input id="f-server" data-nav="" placeholder="http://servidor.com:8080" inputMode="url" autoCapitalize="off" autoCorrect="off" value={server} onChange={(e) => setServer(e.target.value)} />
             </div>
-            <div style={{ display: 'flex', gap: 14 }}>
+            <div className="gx-14" style={{ display: 'flex' }}>
               <div className="field" style={{ flex: 1 }}>
                 <label htmlFor="f-user">Usuário</label>
                 <input id="f-user" data-nav="" autoCapitalize="off" autoCorrect="off" value={user} onChange={(e) => setUser(e.target.value)} />
@@ -152,13 +153,13 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
         <div style={{ flexGrow: 1 }} />
 
         {error && (
-          <div style={{ padding: 16, borderRadius: 18, background: 'rgba(255,107,61,0.14)', border: '1px solid rgba(255,107,61,0.5)', display: 'flex', flexDirection: 'column', gap: 4 }} role="alert">
-            <span style={{ fontWeight: 700, color: 'var(--live)', fontSize: 16 }}>{errTitle}</span>
+          <div className="gy-4" style={{ padding: 16, borderRadius: 18, background: 'rgba(255,107,61,0.14)', border: '1px solid rgba(255,107,61,0.5)', display: 'flex', flexDirection: 'column' }} role="alert">
+            <span style={{ fontWeight: 700, color: T.live, fontSize: 16 }}>{errTitle}</span>
             <span style={{ fontSize: 16 }}>{error.message}</span>
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div className="gx-16" style={{ display: 'flex', alignItems: 'center' }}>
           <button className="btn primary" data-nav="" disabled={busy} onClick={submit} style={{ height: 52, padding: '0 28px' }}>
             {mode === 'file' ? 'Escolher arquivo' : mode === 'demo' ? 'Abrir lista de teste' : 'Entrar'}
           </button>

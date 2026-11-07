@@ -1,3 +1,4 @@
+import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Channel, Playlist } from '../core/types';
 import { Ambient, ChannelLogo, Icon, Symbol } from '../ui/bits';
@@ -16,13 +17,13 @@ function ChannelCard({ ch, onClick }: { ch: Channel; onClick: () => void }) {
       onClick={onClick}
       style={{
         width: 200, height: 130, flexShrink: 0, borderRadius: 20, border: 0, cursor: 'pointer', padding: 16, textAlign: 'left',
-        background: 'rgba(255,255,255,0.08)', color: 'var(--text)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        background: 'rgba(255,255,255,0.08)', color: T.text, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <ChannelLogo ch={ch} size={48} />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+      <div className="gy-2" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{ fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.name}</span>
         <span className="muted" style={{ fontSize: 14 }}>{ch.number} · {ch.group}</span>
       </div>
@@ -49,14 +50,14 @@ export function Home({
     requestAnimationFrame(() => focusFirst(root.current));
   }, []);
   return (
-    <div ref={root} style={{ position: 'absolute', inset: 0 }}>
-      <div style={{ position: 'absolute', left: 64, top: 112, width: 640, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div ref={root} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
+      <div className="gy-12" style={{ position: 'absolute', left: 64, top: 112, width: 640, display: 'flex', flexDirection: 'column' }}>
         <span className="badge-live" style={{ alignSelf: 'flex-start' }}>{last ? 'Continuar assistindo' : 'Ao vivo'}</span>
         <span className="title" style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.05 }}>{last ? last.name : 'Bem-vindo ao PRISMA'}</span>
         <span className="muted" style={{ fontSize: 18 }}>
           {playlist.source.name} · {live.length.toLocaleString('pt-BR')} canais · {movies.toLocaleString('pt-BR')} filmes · {series.toLocaleString('pt-BR')} séries
         </span>
-        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+        <div className="gx-12" style={{ display: 'flex', marginTop: 20 }}>
           {last && (
             <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onWatch(last, recents)}>▶ Assistir {last.name}</button>
           )}
@@ -72,10 +73,10 @@ export function Home({
 
 function Shelf({ title, items, empty, top, onWatch }: { title: string; items: Channel[]; empty: string; top: number; onWatch: (c: Channel) => void }) {
   return (
-    <div style={{ position: 'absolute', left: 64, right: 0, top, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="gy-12" style={{ position: 'absolute', left: 64, right: 0, top, display: 'flex', flexDirection: 'column' }}>
       <span className="title" style={{ fontSize: 22 }}>{title}</span>
       {items.length ? (
-        <div className="scroll-x" style={{ gap: 16, padding: '10px 64px 14px 8px', margin: '-10px 0 -14px -8px' }}>
+        <div className="scroll-x gx-16" style={{ padding: '10px 64px 14px 8px', margin: '2px 0 -14px -8px' }}>
           {items.slice(0, 20).map((c) => <ChannelCard key={c.id} ch={c} onClick={() => onWatch(c)} />)}
         </div>
       ) : (
@@ -100,7 +101,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
   const live = results.filter((r) => r.kind === 'live');
   const vod = results.length - live.length;
   return (
-    <div style={{ position: 'absolute', left: 64, right: 64, top: 110, bottom: 36, display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="gy-16" style={{ position: 'absolute', left: 64, right: 64, top: 110, bottom: 36, display: 'flex', flexDirection: 'column' }}>
       <div className="field">
         <input
           ref={inputRef}
@@ -125,7 +126,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
           ? 'Digite pelo menos 2 letras. Na TV, o teclado do aparelho aparece ao apertar OK no campo.'
           : `${live.length} canais${vod ? ` · ${vod} filmes/séries (chegam no passo 4 da Fase 1)` : ''}`}
       </span>
-      <div className="glass" style={{ flexGrow: 1, borderRadius: 'var(--radius-panel)', padding: 16, display: 'flex', minHeight: 0 }}>
+      <div className="glass" style={{ flexGrow: 1, borderRadius: T.radiusPanel, padding: 16, display: 'flex', minHeight: 0 }}>
         <VirtualList
           ref={listRef}
           items={live}
@@ -145,7 +146,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
           )}
           empty={
             q.trim().length >= 2 ? (
-              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="gy-8" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
                 <span className="title" style={{ fontSize: 20 }}>Nada encontrado para “{q.trim()}”</span>
                 <span className="muted" style={{ fontSize: 16 }}>Tente outra palavra, sem “HD” ou “FHD”, ou só parte do nome.</span>
               </div>
@@ -186,22 +187,22 @@ export function Settings({
     ['Atualizada', new Date(playlist.loadedAt).toLocaleString('pt-BR')],
   ];
   return (
-    <div ref={root} style={{ position: 'absolute', left: 64, right: 64, top: 110, bottom: 36, display: 'flex', gap: 24 }}>
-      <div style={{ width: 300, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="gx-24" ref={root} style={{ position: 'absolute', left: 64, right: 64, top: 110, bottom: 36, display: 'flex' }}>
+      <div className="gy-10" style={{ width: 300, display: 'flex', flexDirection: 'column' }}>
         <span className="title" style={{ fontSize: 26 }}>Ajustes</span>
         <button className="btn primary" data-nav="" style={{ borderRadius: 16, height: 52, justifyContent: 'flex-start' }}>Lista</button>
         <button className="btn" data-nav="" disabled style={{ borderRadius: 16, height: 52, justifyContent: 'flex-start' }}>Aparência · passo 5</button>
         <button className="btn" data-nav="" disabled style={{ borderRadius: 16, height: 52, justifyContent: 'flex-start' }}>Perfis · passo 5</button>
       </div>
-      <div className="glass" style={{ flexGrow: 1, borderRadius: 'var(--radius-panel)', padding: 28, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="glass gy-14" style={{ flexGrow: 1, borderRadius: T.radiusPanel, padding: 28, display: 'flex', flexDirection: 'column' }}>
         {rows.map(([k, v]) => (
-          <div key={k} style={{ display: 'flex', gap: 16, fontSize: 17 }}>
+          <div className="gx-16" key={k} style={{ display: 'flex', fontSize: 17 }}>
             <span className="muted" style={{ width: 210, flexShrink: 0 }}>{k}</span>
             <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</span>
           </div>
         ))}
         <div style={{ flexGrow: 1 }} />
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="gx-12" style={{ display: 'flex', alignItems: 'center' }}>
           <button className="btn primary" data-nav="" data-nav-default="" disabled={reloading || s.type === 'm3u-file'} onClick={onReload}>
             {reloading ? 'Atualizando…' : 'Atualizar lista agora'}
           </button>
@@ -216,12 +217,12 @@ export function Settings({
 // ---------------------------------------------------------------- Em breve
 export function Soon({ title, step, text, count }: { title: string; step: string; text: string; count?: number }) {
   return (
-    <div style={{ position: 'absolute', inset: 0 }}>
+    <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
       <Ambient variant="soft" />
-      <div style={{ position: 'absolute', left: 64, top: 160, width: 720, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="gy-14" style={{ position: 'absolute', left: 64, top: 160, width: 720, display: 'flex', flexDirection: 'column' }}>
         <Symbol size={72} />
         <span className="title" style={{ fontSize: 40, fontWeight: 800 }}>{title}</span>
-        <span className="chip" style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', background: 'rgba(245,184,61,0.18)', color: 'var(--warn)' }}>
+        <span className="chip" style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', background: 'rgba(245,184,61,0.18)', color: T.warn }}>
           {step}
         </span>
         <span className="muted" style={{ fontSize: 18, lineHeight: 1.5 }}>{text}</span>
