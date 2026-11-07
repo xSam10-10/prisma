@@ -32,7 +32,7 @@ export function liveGeometry(L: Layout) {
   // TV / computador: lista à esquerda, prévia e "A seguir" à direita.
   // Painel com duas colunas: categorias (vertical) + canais.
   const chanW = Math.round(Math.min(500, Math.max(340, L.W * 0.26)));
-  const listW = CAT_W + 12 + chanW + 32;
+  const listW = CAT_W + 11 + chanW + 28;
   const left = L.px + listW + 24;
   const width = L.W - left - L.px;
   const avail = L.H - L.top - L.bottom;
@@ -46,7 +46,7 @@ export function liveGeometry(L: Layout) {
   };
 }
 
-const CAT_W = 210;
+const CAT_W = 236;
 
 export const FAV = '__fav__';
 export const ALL = '__all__';
@@ -135,12 +135,12 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
       <div
         className={mobile ? '' : 'glass'}
         style={{
-          position: 'absolute', ...G.list, padding: mobile ? 0 : 16, borderRadius: T.radiusPanel,
+          position: 'absolute', ...G.list, padding: mobile ? 0 : 14, borderRadius: T.radiusPanel,
           display: 'flex', flexDirection: 'row', }}
       >
         {!mobile && (
           // Categorias na vertical (TV e computador). Ao entrar na coluna, o foco vai para a categoria atual.
-          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" role="tablist" aria-label="Categorias" style={{ width: CAT_W, flexShrink: 0, marginRight: 12 }}>
+          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" role="tablist" aria-label="Categorias" style={{ width: CAT_W, flexShrink: 0 }}>
             {chips.map((c) => (
               <button
                 key={c.id}
@@ -161,7 +161,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
                   listRef.current?.focus();
                 }}
               >
-                <span className="cat-name">{c.name}</span>
+                <span className="cat-name" title={c.name}>{c.name}</span>
                 <span className="cat-count">{c.count.toLocaleString('pt-BR')}</span>
               </button>
             ))}

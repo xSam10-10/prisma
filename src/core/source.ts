@@ -1,6 +1,6 @@
 import { detectXtreamFromUrl, parseM3U } from './m3u';
 import { cleanLabel } from './logos';
-import { simplifyName } from './names';
+import { simplifyGroups, simplifyName } from './names';
 import { fetchText } from './net';
 import { idbDel, idbGet, idbSet } from './storage';
 import { SourceError, type Category, type Channel, type ItemKind, type Playlist, type SourceConfig } from './types';
@@ -13,6 +13,7 @@ export type Progress = (msg: string) => void;
 /**
  * Arruma a lista para exibir:
  *  · tira emojis e símbolos decorativos (ex.: "♦ CANAIS | FHD ⭐");
+ *  · categoria sem termos de codificação ("CANAIS | FHD H265" → "CANAIS | FHD"), se não repetir nome;
  *  · nome curto do canal, até a qualidade ("GLOBO RJ HD [ALT]" → "GLOBO RJ HD");
  *  · canais ao vivo que ficam com o mesmo nome na mesma categoria viram um só,
  *    e as outras versões passam a ser "fonte 2, 3…" (o player troca sozinho se uma cair).
@@ -20,8 +21,10 @@ export type Progress = (msg: string) => void;
 export function tidyPlaylist(p: Playlist): Playlist {
   const seen = new Map<string, Channel>();
   const out: Channel[] = [];
+  for (const it of p.items) it.group = cleanLabel(it.group);
+  const groupName = simplifyGroups(p.items.map((i) => i.group));
   for (const it of p.items) {
-    it.group = cleanLabel(it.group);
+    it.group = groupName.get(it.group) ?? it.group;
     const full = cleanLabel(it.fullName ?? it.name);
     it.fullName = full;
     it.name = simplifyName(full);

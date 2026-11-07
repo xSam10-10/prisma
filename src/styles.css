@@ -113,13 +113,13 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 .vlist { position: relative; overflow: hidden; -webkit-flex-grow: 1; flex-grow: 1; min-height: 0; border-radius: 18px; }
 .vlist:focus { box-shadow: none !important; }
 .row {
-  position: absolute; left: 0; right: 0; height: 62px; padding: 0 12px; border-radius: 18px; cursor: pointer; color: #f4f4f8;
+  position: absolute; left: 0; right: 0; height: 62px; padding: 0 12px 0 6px; border-radius: 16px; cursor: pointer; color: #f4f4f8;
   display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
 }
 .row > * + * { margin-left: 12px; }
 .row.sel { background: rgba(255, 255, 255, 0.12); }
 .vlist:focus .row.sel { background: rgba(255, 255, 255, 0.94); color: #0b0b12; box-shadow: 0 0 0 3px #f4f4f8; }
-.row .num { width: 40px; font-size: 15px; font-weight: 600; opacity: 0.75; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.row .num { width: 40px; font-size: 14px; font-weight: 600; opacity: 0.65; text-align: right; -webkit-flex-shrink: 0; flex-shrink: 0; }
 .row .txt {
   display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
   -webkit-flex-grow: 1; flex-grow: 1; min-width: 0;
@@ -205,18 +205,25 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 .wrap-row > * { margin: 0 12px 12px 0; }
 
 /* ---- Coluna de categorias (Ao vivo, TV e computador) ---- */
-.cats { padding: 3px; margin: -3px 12px -3px -3px; }
-.cats > * + * { margin-top: 4px; }
+.cats {
+  padding: 3px 10px 3px 3px; margin: -3px 10px -3px -3px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+.cats > * + * { margin-top: 2px; }
 .cat {
-  width: 100%; min-height: 46px; padding: 8px 12px; border: 0; border-radius: 14px; cursor: pointer; text-align: left;
-  background: transparent; color: #f4f4f8; font-size: 15px; font-weight: 600;
+  width: 100%; height: 44px; padding: 0 10px 0 14px; border: 0; border-radius: 12px; cursor: pointer; text-align: left;
+  background: transparent; color: #e4e4ee; font-size: 15px; font-weight: 600;
   display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
 }
-.cat .cat-name { -webkit-flex-grow: 1; flex-grow: 1; min-width: 0; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.cat .cat-count { margin-left: 8px; font-size: 13px; color: #a6a6b8; -webkit-flex-shrink: 0; flex-shrink: 0; }
-.cat.on { background: rgba(255, 255, 255, 0.14); }
+.cat .cat-name { -webkit-flex-grow: 1; flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat .cat-count {
+  margin-left: 8px; -webkit-flex-shrink: 0; flex-shrink: 0; min-width: 28px; padding: 2px 7px; border-radius: 999px; text-align: center;
+  font-size: 12px; font-weight: 700; color: #a6a6b8; background: rgba(255, 255, 255, 0.07);
+}
+.cat.on { background: rgba(255, 255, 255, 0.12); color: #f4f4f8; }
+.cat.on .cat-count { background: #3dd6c4; color: #0b0b12; }
 .cat:focus, .cat.on:focus { background: #f4f4f8; color: #0b0b12; }
-.cat:focus .cat-count { color: #4a4a5a; }
+.cat:focus .cat-count { background: rgba(11, 11, 18, 0.12); color: #0b0b12; }
 
 /* ---- Cards de canal (Início) ---- */
 .tile {

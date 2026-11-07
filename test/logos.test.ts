@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cleanLabel, logoKey } from '../src/core/logos';
-import { simplifyName } from '../src/core/names';
+import { simplifyGroup, simplifyGroups, simplifyName } from '../src/core/names';
 
 describe('nomes de canais e categorias', () => {
   it('limpa emojis e símbolos das categorias', () => {
@@ -31,5 +31,19 @@ describe('nome curto do canal', () => {
   it('sem qualidade, mantém o nome', () => {
     expect(simplifyName('A FAZENDA 18 SINAL 01')).toBe('A FAZENDA 18 SINAL 01');
     expect(simplifyName('HD Channel')).toBe('HD Channel');
+  });
+});
+
+describe('nome curto da categoria', () => {
+  it('tira H265/HEVC', () => {
+    expect(simplifyGroup('CANAIS | FHD H265')).toBe('CANAIS | FHD');
+    expect(simplifyGroup('Filmes HEVC')).toBe('Filmes');
+    expect(simplifyGroup('REDE RECORD')).toBe('REDE RECORD');
+  });
+  it('não cria categorias com nome repetido', () => {
+    const m = simplifyGroups(['CANAIS | FHD H265', 'CANAIS | UHD 4K', 'ABERTOS']);
+    expect(m.get('CANAIS | FHD H265')).toBe('CANAIS | FHD');
+    const c = simplifyGroups(['CANAIS | FHD', 'CANAIS | FHD H265']);
+    expect(c.get('CANAIS | FHD H265')).toBe('CANAIS | FHD H265');
   });
 });

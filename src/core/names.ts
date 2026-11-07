@@ -17,3 +17,28 @@ export function simplifyName(name: string): string {
   }
   return base || name.trim();
 }
+
+/** Termos técnicos de codificação que não ajudam a escolher a categoria. */
+const CODEC = /\s*\b(H\.?\s?265|H\.?\s?264|HEVC|AVC|X265|X264)\b\s*/gi;
+
+/** "CANAIS | FHD H265" → "CANAIS | FHD". */
+export function simplifyGroup(group: string): string {
+  const out = group.replace(CODEC, ' ').replace(/\s+/g, ' ').replace(/[\s|•·\-–—:]+$/g, '').trim();
+  return out || group;
+}
+
+/**
+ * Nomes curtos das categorias, sem criar nomes repetidos: se duas categorias
+ * diferentes ficariam iguais (ex.: "FHD" e "FHD H265"), as duas ficam como estão.
+ */
+export function simplifyGroups(groups: string[]): Map<string, string> {
+  const uniq = [...new Set(groups)];
+  const byShort = new Map<string, string[]>();
+  for (const g of uniq) {
+    const k = simplifyGroup(g).toLowerCase();
+    byShort.set(k, [...(byShort.get(k) ?? []), g]);
+  }
+  const out = new Map<string, string>();
+  for (const g of uniq) out.set(g, byShort.get(simplifyGroup(g).toLowerCase())!.length > 1 ? g : simplifyGroup(g));
+  return out;
+}
