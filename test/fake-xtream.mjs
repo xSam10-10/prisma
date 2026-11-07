@@ -37,6 +37,10 @@ function epgFor(id) {
 createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   const send = (obj) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(obj));
+  // Simula painel que só aceita um player específico: REQUIRE_UA=IPTVSmartersPlayer
+  if (process.env.REQUIRE_UA && req.headers['user-agent'] !== process.env.REQUIRE_UA && u.pathname === '/player_api.php') {
+    return res.writeHead(502, { 'content-type': 'text/html', server: 'cloudflare' }).end('<html><head><title>502 Bad Gateway</title></head></html>');
+  }
   if (u.pathname === '/player_api.php') {
     if (u.searchParams.get('username') !== 'teste' || u.searchParams.get('password') !== '1234') return send({ user_info: { auth: 0 } });
     const a = u.searchParams.get('action');

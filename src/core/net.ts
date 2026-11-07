@@ -31,10 +31,21 @@ export function fetchText(url: string, timeoutMs = 30000): Promise<string> {
       const st = xhr.status;
       const isFile = /^file:/i.test(xhr.responseURL || url);
       if (isFile && st === 0) return resolve(xhr.responseText);
-      if (st === 401 || st === 403) return reject(new SourceError('auth', 'Usuário ou senha incorretos, ou lista vencida.'));
+      let detail = '';
+      try {
+        detail = decodeURIComponent(xhr.getResponseHeader('x-prisma-detail') || '');
+      } catch {
+        /* ignora */
+      }
+      const why = detail ? ` (${detail})` : '';
+      if (st === 401 || st === 403) return reject(new SourceError('auth', `O servidor recusou o acesso${why}. Confira usuário e senha; se estiver numa rede de empresa, ela pode estar bloqueando.`));
       if (st === 502 && xhr.getResponseHeader('x-prisma-proxy') === 'error')
-        return reject(new SourceError('network', 'Não foi possível conectar ao servidor da lista.'));
-      if (st < 200 || st >= 300) return reject(new SourceError('network', `O servidor respondeu com erro ${st}.`));
+        return reject(new SourceError('network', `Não foi possível conectar ao servidor da lista${why}.`));
+      if (st >= 500)
+        return reject(
+          new SourceError('network', `O servidor da lista respondeu com erro ${st}${why}. Pode ser instabilidade do servidor ou bloqueio da rede (por exemplo, rede de empresa).`),
+        );
+      if (st < 200 || st >= 300) return reject(new SourceError('network', `O servidor respondeu com erro ${st}${why}.`));
       resolve(xhr.responseText);
     };
     xhr.send();

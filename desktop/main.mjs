@@ -4,7 +4,9 @@
 // Porta fixa (47815) para que favoritos e a lista salva não se percam.
 
 import { app, BrowserWindow, Menu, shell } from 'electron';
+import { chromiumFetch } from './netfetch.mjs';
 import { fileURLToPath } from 'node:url';
+import { setFetch } from '../server/proxy.mjs';
 import { startServer } from '../server/serve.mjs';
 
 const PORT = 47815;
@@ -20,6 +22,8 @@ app.on('second-instance', () => {
 
 async function createWindow() {
   const root = fileURLToPath(new URL('../dist/', import.meta.url));
+  // Rede do Chromium: usa o proxy e os certificados configurados no Windows.
+  setFetch(chromiumFetch);
   const port = await startServer(root, PORT);
 
   win = new BrowserWindow({
