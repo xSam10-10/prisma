@@ -1,0 +1,15 @@
+{
+  "id": "com.prisma.iptv",
+  "version": "0.1.0",
+  "vendor": "PRISMA",
+  "type": "web",
+  "main": "index.html",
+  "title": "PRISMA",
+  "icon": "icon-80.png",
+  "largeIcon": "largeIcon-130.png",
+  "splashBackground": "splash-1920x1080.png",
+  "bgColor": "#0B0B12",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "requiredPermissions": []
+}

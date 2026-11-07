@@ -1,0 +1,30 @@
+{
+  "name": "prisma-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:webos": "tsc --noEmit && vite build --mode webos && node scripts/webos-pack.mjs",
+    "serve": "node server/serve.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hls.js": "1.7.4",
+    "mpegts.js": "1.8.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-legacy": "8.2.4",
+    "@vitejs/plugin-react": "6.2.1",
+    "terser": "5.51.2",
+    "typescript": "5.9.3",
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
+  }
+}

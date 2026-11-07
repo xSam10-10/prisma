@@ -1,0 +1,15 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="prisma1" tvg-chno="101" group-title="Abertos",PRISMA Um HD
+./prisma1/index.m3u8
+#EXTINF:-1 tvg-id="prisma2" tvg-chno="102" group-title="Esportes",PRISMA Esportes HD
+./prisma2/index.m3u8
+#EXTINF:-1 tvg-id="prisma3" tvg-chno="103" group-title="Notícias",PRISMA Notícias
+http://127.0.0.1:9/fora-do-ar.m3u8
+#EXTINF:-1 tvg-chno="103" group-title="Notícias",PRISMA Notícias
+./prisma3/index.m3u8
+#EXTINF:-1 tvg-chno="104" group-title="Filmes 24h",PRISMA Filmes 24h
+./prisma4/index.m3u8
+#EXTINF:-1 tvg-chno="105" group-title="Esportes",PRISMA TS (MPEG-TS)
+./canal-ts.ts
+#EXTINF:-1 tvg-chno="106" group-title="Abertos",Canal Fora do Ar
+http://127.0.0.1:9/canal-fora.m3u8
