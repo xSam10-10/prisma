@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
 import { prefGet, prefSet } from './core/storage';
 import { SourceError, type Channel, type Playlist, type SourceConfig } from './core/types';
 import { AddList } from './screens/AddList';
-import { LiveTV, PREVIEW_RECT } from './screens/LiveTV';
-import { Home, Search, Settings, Soon } from './screens/Other';
+import { LiveTV, liveGeometry } from './screens/LiveTV';
+import { Home, Search, Soon } from './screens/Other';
+import { Settings } from './screens/Settings';
+import { SettingsContext, loadSettings, saveSettings, type Settings as SettingsT } from './core/settings';
+import { LayoutContext, useViewportLayout, type Layout } from './ui/layout';
 import { Player, type PlayerMode } from './screens/Player';
 import { Ambient, Brand, Icon, Symbol } from './ui/bits';
 import { focusEl, pushBack } from './ui/nav';
@@ -20,19 +23,29 @@ const TABS: [Tab, string][] = [
   ['anime', 'Anime'],
 ];
 
-function useStageScale() {
-  const [scale, setScale] = useState(1);
-  useLayoutEffect(() => {
-    const fit = () => setScale(Math.min(window.innerWidth / 1280, window.innerHeight / 720));
-    fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
-  }, []);
-  return scale;
-}
+const TAB_ICON: Record<string, string> = { inicio: '⌂', aovivo: '●', jogos: '◎', filmes: '▶', series: '▤', anime: '✦' };
 
 export function App() {
-  const scale = useStageScale();
+  const [settings, setSettings] = useState<SettingsT>(loadSettings);
+  const updateSettings = useCallback((patch: Partial<SettingsT>) => {
+    setSettings((cur) => {
+      const next = { ...cur, ...patch };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+  const settingsApi = useMemo(() => ({ settings, update: updateSettings }), [settings, updateSettings]);
+  const L = useViewportLayout(settings);
+  const scale = L.scale;
+  const mobileForm = L.form === 'mobile';
+
+  // Classes globais: forma da interface e toque.
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.toggle('mobile', mobileForm);
+    const touch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
+    html.classList.toggle('touch', touch || mobileForm);
+  }, [mobileForm]);
   const [phase, setPhase] = useState<'boot' | 'add' | 'app'>('boot');
   const [playlist, setPlaylist] = useState<Playlist>();
   const [progress, setProgress] = useState('');
@@ -51,6 +64,15 @@ export function App() {
       if (p?.items?.length) {
         setPlaylist(p);
         setPhase('app');
+        // Ajustes › Player › "Ao abrir o PRISMA: último canal".
+        if (loadSettings().resumeLast) {
+          const last = recentIds[0] && p.items.find((i) => i.id === recentIds[0] && i.kind === 'live');
+          if (last) {
+            setPlaying(last);
+            setTab('aovivo');
+            setFull(true);
+          }
+        }
       } else setPhase('add');
     });
   }, []);
@@ -200,15 +222,17 @@ export function App() {
     body = (
       <>
         <Ambient variant={tab === 'inicio' ? 'home' : 'live'} />
-        {!full && <TopBar tab={tab} onTab={setTab} />}
+        {!full && (mobileForm ? <MobileBars tab={tab} onTab={setTab} L={L} /> : <TopBar tab={tab} onTab={setTab} L={L} />)}
         <div key={tab}>{screen}</div>
       </>
     );
   }
 
   return (
+    <SettingsContext.Provider value={settingsApi}>
+    <LayoutContext.Provider value={L}>
     <div className="viewport">
-      <div className="stage" style={{ transform: `scale(${scale})`, WebkitTransform: `scale(${scale})` }}>
+      <div className="stage" style={{ width: L.W, height: L.H, transform: `scale(${scale})`, WebkitTransform: `scale(${scale})` }}>
         {body}
         {phase === 'app' && (
           <Player
@@ -217,7 +241,7 @@ export function App() {
             zapList={zapList.length ? zapList : live}
             allLive={live}
             mode={mode}
-            rect={PREVIEW_RECT}
+            rect={liveGeometry(L).preview}
             isFav={isFav}
             toggleFav={toggleFav}
             onMode={onPlayerMode}
@@ -226,12 +250,14 @@ export function App() {
         )}
       </div>
     </div>
+    </LayoutContext.Provider>
+    </SettingsContext.Provider>
   );
 }
 
-function TopBar({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
+function TopBar({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Layout }) {
   return (
-    <div className="top">
+    <div className="top" style={{ left: L.px, right: L.px, top: 30 + L.safeY }}>
       <Brand />
       <div style={{ flexGrow: 1 }} />
       <nav className="pill glass" aria-label="Menu">
@@ -246,5 +272,27 @@ function TopBar({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
       <button className={'round' + (tab === 'lista' ? ' on' : '')} data-nav="" aria-label="Minha lista" onClick={() => onTab('lista')}>{Icon.bookmark}</button>
       <button className="round avatar" data-nav="" aria-label="Perfil e ajustes" onClick={() => onTab('ajustes')}>S</button>
     </div>
+  );
+}
+
+/** Celular: cabeçalho fino em cima e barra de abas flutuante embaixo (estrutura A no celular). */
+function MobileBars({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Layout }) {
+  return (
+    <>
+      <div className="m-head" style={{ left: L.px, right: L.px, top: 8 + L.safeY }}>
+        <Brand size={26} />
+        <div className="spacer" />
+        <button className={'round' + (tab === 'busca' ? ' on' : '')} data-nav="" aria-label="Buscar" onClick={() => onTab('busca')}>{Icon.search}</button>
+        <button className="round avatar" data-nav="" aria-label="Perfil e ajustes" onClick={() => onTab('ajustes')}>S</button>
+      </div>
+      <nav className="m-tabs glass" aria-label="Menu" style={{ left: L.px, right: L.px, bottom: 12 + L.safeY }}>
+        {TABS.map(([id, label]) => (
+          <button key={id} data-nav="" className={id === tab ? 'on' : ''} aria-current={id === tab ? 'page' : undefined} onClick={() => onTab(id)}>
+            <span className="ic" aria-hidden="true">{TAB_ICON[id]}</span>
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+    </>
   );
 }

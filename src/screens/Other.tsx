@@ -4,7 +4,7 @@ import type { Channel, Playlist } from '../core/types';
 import { Ambient, ChannelLogo, Icon, Symbol } from '../ui/bits';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 import { focusFirst } from '../ui/nav';
-import { VERSION } from '../version';
+import { useLayout } from '../ui/layout';
 
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -47,18 +47,20 @@ export function Home({
   const movies = playlist.items.filter((i) => i.kind === 'movie').length;
   const series = playlist.items.filter((i) => i.kind === 'series').length;
   const last = recents[0];
+  const L = useLayout();
+  const mobile = L.form === 'mobile';
   useEffect(() => {
     requestAnimationFrame(() => focusFirst(root.current));
   }, []);
   return (
-    <div ref={root} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
-      <div className="gy-12" style={{ position: 'absolute', left: 64, top: 112, width: 640, display: 'flex', flexDirection: 'column' }}>
-        <span className="badge-live" style={{ alignSelf: 'flex-start' }}>{last ? 'Continuar assistindo' : 'Ao vivo'}</span>
-        <span className="title" style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.05 }}>{last ? last.name : 'Bem-vindo ao PRISMA'}</span>
-        <span className="muted" style={{ fontSize: 18 }}>
+    <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }}>
+      <div className="gy-12" style={{ padding: `${mobile ? 4 : 12}px ${L.px}px 0`, maxWidth: 760, display: 'flex', flexDirection: 'column' }}>
+        <span className="badge-live" style={{ alignSelf: 'flex-start', fontSize: mobile ? 12 : 14 }}>{last ? 'Continuar assistindo' : 'Ao vivo'}</span>
+        <span className="title" style={{ fontSize: mobile ? 28 : 40, fontWeight: 800, lineHeight: 1.05 }}>{last ? last.name : 'Bem-vindo ao PRISMA'}</span>
+        <span className="muted" style={{ fontSize: mobile ? 15 : 18 }}>
           {playlist.source.name} · {live.length.toLocaleString('pt-BR')} canais · {movies.toLocaleString('pt-BR')} filmes · {series.toLocaleString('pt-BR')} séries
         </span>
-        <div className="gx-12" style={{ display: 'flex', marginTop: 20 }}>
+        <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', marginTop: 14 }}>
           {last && (
             <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onWatch(last, recents)}>▶ Assistir {last.name}</button>
           )}
@@ -66,22 +68,23 @@ export function Home({
         </div>
       </div>
 
-      <Shelf title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." top={330} onWatch={(c) => onWatch(c, favs)} />
-      <Shelf title="Vistos por último" items={recents} empty="Os canais que você assistir aparecem aqui." top={520} onWatch={(c) => onWatch(c, recents)} />
+      <Shelf title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
+      <Shelf title="Vistos por último" items={recents} empty="Os canais que você assistir aparecem aqui." onWatch={(c) => onWatch(c, recents)} />
     </div>
   );
 }
 
-function Shelf({ title, items, empty, top, onWatch }: { title: string; items: Channel[]; empty: string; top: number; onWatch: (c: Channel) => void }) {
+function Shelf({ title, items, empty, onWatch }: { title: string; items: Channel[]; empty: string; onWatch: (c: Channel) => void }) {
+  const L = useLayout();
   return (
-    <div className="gy-12" style={{ position: 'absolute', left: 64, right: 0, top, display: 'flex', flexDirection: 'column' }}>
-      <span className="title" style={{ fontSize: 22 }}>{title}</span>
+    <div className="gy-12" style={{ marginTop: L.form === 'mobile' ? 22 : 34, display: 'flex', flexDirection: 'column' }}>
+      <span className="title" style={{ fontSize: L.form === 'mobile' ? 19 : 22, padding: `0 ${L.px}px` }}>{title}</span>
       {items.length ? (
-        <div className="scroll-x gx-16" style={{ padding: '10px 64px 14px 8px', margin: '2px 0 -14px -8px' }}>
+        <div className="scroll-x gx-16" style={{ padding: `10px ${L.px}px 14px ${L.px}px`, margin: '-8px 0 -14px 0' }}>
           {items.slice(0, 20).map((c) => <ChannelCard key={c.id} ch={c} onClick={() => onWatch(c)} />)}
         </div>
       ) : (
-        <span className="muted" style={{ fontSize: 16 }}>{empty}</span>
+        <span className="muted" style={{ fontSize: 16, padding: `0 ${L.px}px` }}>{empty}</span>
       )}
     </div>
   );
@@ -101,8 +104,10 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
   }, [q, playlist]);
   const live = results.filter((r) => r.kind === 'live');
   const vod = results.length - live.length;
+  const L = useLayout();
+  const mobile = L.form === 'mobile';
   return (
-    <div className="gy-16" style={{ position: 'absolute', left: 64, right: 64, top: 110, bottom: 36, display: 'flex', flexDirection: 'column' }}>
+    <div className="gy-16" style={{ position: 'absolute', left: L.px, right: L.px, top: L.top + (mobile ? 0 : 10), bottom: L.bottom, display: 'flex', flexDirection: 'column' }}>
       <div className="field">
         <input
           ref={inputRef}
@@ -119,7 +124,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
               listRef.current?.focus();
             }
           }}
-          style={{ height: 60, fontSize: 22 }}
+          style={{ height: mobile ? 50 : 60, fontSize: mobile ? 18 : 22 }}
         />
       </div>
       <span className="muted" style={{ fontSize: 16 }}>
@@ -127,7 +132,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
           ? 'Digite pelo menos 2 letras. Na TV, o teclado do aparelho aparece ao apertar OK no campo.'
           : `${live.length} canais${vod ? ` · ${vod} filmes/séries (chegam no passo 4 da Fase 1)` : ''}`}
       </span>
-      <div className="glass" style={{ flexGrow: 1, borderRadius: T.radiusPanel, padding: 16, display: 'flex', minHeight: 0 }}>
+      <div className={mobile ? '' : 'glass'} style={{ flexGrow: 1, borderRadius: T.radiusPanel, padding: mobile ? 0 : 16, display: 'flex', minHeight: 0 }}>
         <VirtualList
           ref={listRef}
           items={live}
@@ -159,77 +164,22 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
   );
 }
 
-// ---------------------------------------------------------------- Ajustes
-export function Settings({
-  playlist, onReload, onChange, onRemove, reloading,
-}: {
-  playlist: Playlist;
-  onReload: () => void;
-  onChange: () => void;
-  onRemove: () => void;
-  reloading: boolean;
-}) {
-  const root = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    requestAnimationFrame(() => focusFirst(root.current));
-  }, []);
-  const s = playlist.source;
-  const a = playlist.account;
-  const count = (k: Channel['kind']) => playlist.items.filter((i) => i.kind === k).length.toLocaleString('pt-BR');
-  const kind = s.type === 'xtream' ? 'Xtream (Smarters / XCIPTV)' : s.type === 'm3u' ? 'Link M3U' : 'Arquivo M3U';
-  const rows: [string, string][] = [
-    ['Nome', s.name],
-    ['Tipo', kind],
-    ...(s.type === 'xtream' ? ([['Servidor', s.server], ['Usuário', s.username]] as [string, string][]) : []),
-    ...(s.type === 'm3u' ? ([['Link', s.url.replace(/(password=)[^&]+/i, '$1••••')]] as [string, string][]) : []),
-    ...(a?.expiresAt ? ([['Vence em', new Date(a.expiresAt).toLocaleDateString('pt-BR')]] as [string, string][]) : []),
-    ...(a?.maxConnections ? ([['Telas ao mesmo tempo', `${a.activeConnections ?? 0} em uso de ${a.maxConnections}`]] as [string, string][]) : []),
-    ['Conteúdo', `${count('live')} canais · ${count('movie')} filmes · ${count('series')} séries`],
-    ['Atualizada', new Date(playlist.loadedAt).toLocaleString('pt-BR')],
-    ['Versão do PRISMA', VERSION],
-  ];
-  return (
-    <div className="gx-24" ref={root} style={{ position: 'absolute', left: 64, right: 64, top: 110, bottom: 36, display: 'flex' }}>
-      <div className="gy-10" style={{ width: 300, display: 'flex', flexDirection: 'column' }}>
-        <span className="title" style={{ fontSize: 26 }}>Ajustes</span>
-        <button className="btn primary" data-nav="" style={{ borderRadius: 16, height: 52, justifyContent: 'flex-start' }}>Lista</button>
-        <button className="btn" data-nav="" disabled style={{ borderRadius: 16, height: 52, justifyContent: 'flex-start' }}>Aparência · passo 5</button>
-        <button className="btn" data-nav="" disabled style={{ borderRadius: 16, height: 52, justifyContent: 'flex-start' }}>Perfis · passo 5</button>
-      </div>
-      <div className="glass gy-14" style={{ flexGrow: 1, borderRadius: T.radiusPanel, padding: 28, display: 'flex', flexDirection: 'column' }}>
-        {rows.map(([k, v]) => (
-          <div className="gx-16" key={k} style={{ display: 'flex', fontSize: 17 }}>
-            <span className="muted" style={{ width: 210, flexShrink: 0 }}>{k}</span>
-            <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</span>
-          </div>
-        ))}
-        <div style={{ flexGrow: 1 }} />
-        <div className="gx-12" style={{ display: 'flex', alignItems: 'center' }}>
-          <button className="btn primary" data-nav="" data-nav-default="" disabled={reloading || s.type === 'm3u-file'} onClick={onReload}>
-            {reloading ? 'Atualizando…' : 'Atualizar lista agora'}
-          </button>
-          <button className="btn" data-nav="" onClick={onChange}>Trocar lista</button>
-          <button className="btn" data-nav="" onClick={onRemove}>Remover lista</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------- Em breve
 export function Soon({ title, step, text, count }: { title: string; step: string; text: string; count?: number }) {
+  const L = useLayout();
+  const mobile = L.form === 'mobile';
   return (
     <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
       <Ambient variant="soft" />
-      <div className="gy-14" style={{ position: 'absolute', left: 64, top: 160, width: 720, display: 'flex', flexDirection: 'column' }}>
-        <Symbol size={72} />
-        <span className="title" style={{ fontSize: 40, fontWeight: 800 }}>{title}</span>
+      <div className="gy-14" style={{ position: 'absolute', left: L.px, top: L.top + (mobile ? 20 : 60), width: Math.min(720, L.W - L.px * 2), display: 'flex', flexDirection: 'column' }}>
+        <Symbol size={mobile ? 52 : 72} />
+        <span className="title" style={{ fontSize: mobile ? 30 : 40, fontWeight: 800 }}>{title}</span>
         <span className="chip" style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', background: 'rgba(245,184,61,0.18)', color: T.warn }}>
           {step}
         </span>
-        <span className="muted" style={{ fontSize: 18, lineHeight: 1.5 }}>{text}</span>
+        <span className="muted" style={{ fontSize: mobile ? 16 : 18, lineHeight: 1.5 }}>{text}</span>
         {count !== undefined && (
-          <span style={{ fontSize: 18 }}>
+          <span style={{ fontSize: mobile ? 16 : 18 }}>
             {Icon.bookmark} <b>{count.toLocaleString('pt-BR')}</b> itens já foram lidos da sua lista e estão prontos para esta tela.
           </span>
         )}

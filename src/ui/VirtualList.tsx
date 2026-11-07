@@ -81,6 +81,27 @@ function VirtualListInner<T>(
     setTop((v) => Math.max(0, Math.min(maxTop, v + e.deltaY)));
   };
 
+  // Arrastar com o dedo (celular, tela touch). Toque curto = clique normal.
+  const touch = useRef<{ y: number; top: number; moved: boolean } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touch.current = { y: e.touches[0].clientY, top: t, moved: false };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const st = touch.current;
+    if (!st || !box.current) return;
+    const k = box.current.getBoundingClientRect().height / (box.current.clientHeight || 1) || 1; // escala do palco
+    const dy = (st.y - e.touches[0].clientY) / k;
+    if (Math.abs(dy) > 6) st.moved = true;
+    setTop(Math.max(0, Math.min(maxTop, st.top + dy)));
+  };
+  const swallowClick = (e: React.MouseEvent) => {
+    if (touch.current?.moved) {
+      e.stopPropagation();
+      e.preventDefault();
+      touch.current = null;
+    }
+  };
+
   const rows: ReactNode[] = [];
   for (let i = first; i <= last; i++) {
     rows.push(
@@ -110,6 +131,9 @@ function VirtualListInner<T>(
       role="listbox"
       onKeyDown={onKeyDown}
       onWheel={onWheel}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onClickCapture={swallowClick}
     >
       {items.length ? rows : empty}
     </div>

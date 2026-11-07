@@ -34,6 +34,19 @@ npm run serve        # http://127.0.0.1:4173
 
 No navegador as listas IPTV não liberam CORS, então o app pede tudo ao **proxy local** (`server/proxy.mjs`), que também reescreve as playlists HLS. Para abrir de outro aparelho da casa: `HOST=0.0.0.0 npm run serve`.
 
+## Tela adaptável (TV, 4K, ultrawide, celular)
+
+O app mede a tela e ajusta a área de desenho (`src/ui/layout.ts`), sem faixas pretas:
+
+| Tela | Área de desenho | Forma |
+|---|---|---|
+| TV / monitor 16:9 (1080p, 4K) | 1280 × 720 (só muda a escala) | TV e computador |
+| Ultrawide 21:9 / 32:9 | 1720 × 720 / 2560 × 720 | TV e computador |
+| 16:10 / 4:3 | 1280 × 800 / 1280 × 960 | TV e computador |
+| Celular em pé / deitado, telas pequenas | ~400 de largura (ou altura) | Celular: abas embaixo, vídeo em cima ou ao lado |
+
+Ajustes › Tela permite forçar a forma, mudar o tamanho da interface (80–130%) e adicionar margem de segurança para TVs que cortam as bordas. Ajustes › Sobre mostra a resolução detectada.
+
 ## Programa para Windows
 
 Instalador pronto: `PRISMA-Setup-0.1.0.exe` (Electron, com o proxy das listas embutido — não precisa de Node.js nem de terminal).

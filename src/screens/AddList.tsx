@@ -4,6 +4,7 @@ import { SourceError, type SourceConfig } from '../core/types';
 import { Ambient, Brand } from '../ui/bits';
 import { focusFirst } from '../ui/nav';
 import { VERSION } from '../version';
+import { useLayout } from '../ui/layout';
 
 type Mode = 'm3u' | 'xtream' | 'file' | 'demo';
 
@@ -72,26 +73,35 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
   const errTitle =
     error?.code === 'auth' ? 'Usuário ou senha errados' : error?.code === 'expired' ? 'Lista vencida' : error?.code === 'empty' ? 'Lista vazia' : 'Não deu para abrir a lista';
 
+  const L = useLayout();
+  const mobile = L.form === 'mobile';
+  // Na TV os blocos ficam posicionados; no celular viram uma coluna que rola.
+  const abs = (st: React.CSSProperties): React.CSSProperties => (mobile ? {} : st);
+  const top0 = 36 + L.safeY;
+
   return (
     <div ref={root} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
       <Ambient variant="home" />
-      <div style={{ position: 'absolute', left: 64, top: 36 }}>
-        <Brand />
+      <div
+        className={mobile ? 'scroll-y gy-16' : ''}
+        style={mobile ? { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, padding: `${16 + L.safeY}px ${L.px}px 24px`, display: 'flex', flexDirection: 'column' } : undefined}
+      >
+      <div style={abs({ position: 'absolute', left: L.px, top: top0 })}>
+        <Brand size={mobile ? 28 : 34} />
       </div>
-      <span className="muted" style={{ position: 'absolute', left: 64, bottom: 36, fontSize: 14 }}>Versão {VERSION}</span>
 
-      <div className="gy-14" style={{ position: 'absolute', left: 64, top: 120, width: 420, display: 'flex', flexDirection: 'column' }}>
-        <span className="title" style={{ fontSize: 40, lineHeight: 1.05, fontWeight: 800 }}>Adicione a sua lista</span>
-        <span className="muted" style={{ fontSize: 18, lineHeight: 1.45 }}>
+      <div className="gy-14" style={{ ...abs({ position: 'absolute', left: L.px, top: top0 + 84, width: 420 }), display: 'flex', flexDirection: 'column' }}>
+        <span className="title" style={{ fontSize: mobile ? 30 : 40, lineHeight: 1.05, fontWeight: 800 }}>Adicione a sua lista</span>
+        <span className="muted" style={{ fontSize: mobile ? 15 : 18, lineHeight: 1.45 }}>
           O PRISMA é um player: ele mostra os canais, filmes e séries da lista que você assina. Nada sai deste aparelho.
         </span>
-        <div className="gy-8" style={{ display: 'flex', flexDirection: 'column', marginTop: 26 }}>
+        <div className={mobile ? 'wrap-row' : 'gy-8'} style={{ display: 'flex', flexDirection: mobile ? 'row' : 'column', flexWrap: mobile ? 'wrap' : undefined, marginTop: mobile ? 4 : 26 }}>
           {MODES.map((m) => (
             <button
               key={m.id}
               className={'btn' + (m.id === mode ? ' primary' : '')}
               data-nav=""
-              style={{ justifyContent: 'flex-start', borderRadius: 16, height: 52 }}
+              style={{ justifyContent: 'flex-start', borderRadius: 16, height: mobile ? 42 : 52 }}
               onClick={() => {
                 setMode(m.id);
                 setError(null);
@@ -110,7 +120,7 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
 
       <div
         className="glass gy-18"
-        style={{ position: 'absolute', left: 540, right: 64, top: 120, bottom: 36, borderRadius: T.radiusPanel, padding: 32, display: 'flex', flexDirection: 'column' }}
+        style={{ ...abs({ position: 'absolute', left: L.px + 476, right: L.px, top: top0 + 84, bottom: L.bottom }), borderRadius: mobile ? 20 : T.radiusPanel, padding: mobile ? 18 : 32, display: 'flex', flexDirection: 'column' }}
       >
         <span className="muted" style={{ fontSize: 16 }}>{hint}</span>
 
@@ -126,7 +136,7 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
               <label htmlFor="f-server">Servidor (com a porta, se houver)</label>
               <input id="f-server" data-nav="" placeholder="http://servidor.com:8080" inputMode="url" autoCapitalize="off" autoCorrect="off" value={server} onChange={(e) => setServer(e.target.value)} />
             </div>
-            <div className="gx-14" style={{ display: 'flex' }}>
+            <div className={mobile ? 'gy-18' : 'gx-14'} style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row' }}>
               <div className="field" style={{ flex: 1 }}>
                 <label htmlFor="f-user">Usuário</label>
                 <input id="f-user" data-nav="" autoCapitalize="off" autoCorrect="off" value={user} onChange={(e) => setUser(e.target.value)} />
@@ -152,7 +162,7 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
           </span>
         )}
 
-        <div style={{ flexGrow: 1 }} />
+        {!mobile && <div style={{ flexGrow: 1 }} />}
 
         {error && (
           <div className="gy-4" style={{ padding: 16, borderRadius: 18, background: 'rgba(255,107,61,0.14)', border: '1px solid rgba(255,107,61,0.5)', display: 'flex', flexDirection: 'column' }} role="alert">
@@ -172,6 +182,8 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
             </>
           )}
         </div>
+      </div>
+      <span className="muted" style={{ ...abs({ position: 'absolute', left: L.px, bottom: L.bottom }), fontSize: 14 }}>Versão {VERSION}</span>
       </div>
     </div>
   );

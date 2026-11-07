@@ -14,9 +14,15 @@ button, input { font-family: inherit; }
   position: fixed; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden; background: #000;
 }
 .stage {
-  position: absolute; left: 50%; top: 50%; width: 1280px; height: 720px; margin: -360px 0 0 -640px; overflow: hidden;
-  background: #0b0b12; -webkit-transform-origin: 50% 50%; transform-origin: 50% 50%;
+  /* Tamanho (W×H em unidades) e escala vêm do sistema de layout (src/ui/layout.ts). */
+  position: absolute; left: 0; top: 0; overflow: hidden;
+  background: #0b0b12; -webkit-transform-origin: 0 0; transform-origin: 0 0;
 }
+/* Toque (celular, tela touch): listas horizontais e painéis roláveis com o dedo. */
+.touch .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.touch .scroll-x::-webkit-scrollbar, .touch .scroll-y::-webkit-scrollbar { display: none; }
+.touch .scroll-y { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.mobile .btn { height: 42px; padding: 0 16px; font-size: 15px; }
 .fill { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
 
 /* ---- Foco do controle: borda branca 3 px + 6% maior ---- */
@@ -133,7 +139,7 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 /* ---- Player ---- */
 .player { position: absolute; overflow: hidden; background: #000; z-index: 5; }
 .player video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
-.player.full { left: 0 !important; top: 0 !important; width: 1280px !important; height: 720px !important; border-radius: 0 !important; z-index: 30; }
+.player.full { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0 !important; z-index: 30; }
 .player.hidden { visibility: hidden; pointer-events: none; }
 
 .spinner {
@@ -153,6 +159,50 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 .scroll-x { display: -webkit-flex; display: flex; overflow: hidden; padding: 4px; margin: -4px; }
 .scroll-x > * + * { margin-left: 6px; }
 .scroll-y { overflow: hidden; }
+
+/* ---- Celular: cabeçalho e barra de abas flutuante ---- */
+.m-head {
+  position: absolute; height: 46px; z-index: 10;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+}
+.m-head > * + * { margin-left: 10px; }
+.m-head .round { width: 40px; height: 40px; border-radius: 20px; }
+.m-tabs {
+  position: absolute; height: 62px; z-index: 12; border-radius: 22px; padding: 6px;
+  display: -webkit-flex; display: flex; background: rgba(21, 21, 31, 0.92);
+}
+.m-tabs button {
+  -webkit-flex: 1 1 0px; flex: 1 1 0px; min-width: 0; border: 0; border-radius: 16px; cursor: pointer;
+  background: transparent; color: #a6a6b8; font-size: 11px; font-weight: 600; padding: 0 2px;
+  display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+  -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+}
+.m-tabs button .ic { font-size: 17px; line-height: 20px; margin-bottom: 2px; }
+.m-tabs button.on { background: rgba(255, 255, 255, 0.92); color: #0b0b12; }
+
+/* ---- Ajustes ---- */
+.sec {
+  border: 0; cursor: pointer; text-align: left; border-radius: 16px; padding: 12px 18px; color: #f4f4f8;
+  background: rgba(255, 255, 255, 0.07); font-size: 17px;
+  display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+}
+.sec > * + * { margin-top: 3px; }
+.sec.on { background: #3dd6c4; color: #0b0b12; }
+.sec.on .muted { color: rgba(11, 11, 18, 0.7); }
+.mobile .sec { -webkit-flex-shrink: 0; flex-shrink: 0; padding: 10px 16px; font-size: 15px; border-radius: 999px; }
+.opts > * + * { margin-top: 10px; }
+.opt-row { padding: 14px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.opt-row:last-child { border-bottom: 0; }
+.choice {
+  width: 260px; height: 48px; -webkit-flex-shrink: 0; flex-shrink: 0; border: 0; border-radius: 999px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.12); color: #f4f4f8; font-size: 16px; font-weight: 700; padding: 0 8px;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+}
+.choice .arrow { width: 28px; font-size: 22px; line-height: 22px; color: #3dd6c4; text-align: center; }
+.choice:focus { background: #f4f4f8; color: #0b0b12; }
+.choice:disabled { opacity: 0.5; cursor: default; }
+.mobile .choice { width: 100%; height: 44px; }
+.wrap-row > * { margin: 0 12px 12px 0; }
 
 /* Espaçamento entre filhos (substitui "gap"; no fim para valer sobre as regras acima) */
 .gx-2 > * + * { margin-left: 2px; }   .gy-2 > * + * { margin-top: 2px; }

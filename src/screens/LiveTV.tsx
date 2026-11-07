@@ -9,8 +9,40 @@ import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 import { ensureVisible } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
 import type { Rect } from './Player';
+import { useLayout, type Layout } from '../ui/layout';
 
-export const PREVIEW_RECT: Rect = { left: 518, top: 100, width: 698, height: 330, radius: 28 };
+/** Geometria da tela Ao vivo para a tela atual (o Player usa o mesmo retângulo). */
+export function liveGeometry(L: Layout) {
+  if (L.form === 'mobile') {
+    const pad = L.px;
+    if (L.landscape) {
+      // Celular deitado: vídeo à esquerda, lista à direita.
+      const vw = Math.round((L.W - pad * 3) * 0.58);
+      // Deixa espaço para a faixa de informações (56) abaixo do vídeo.
+      const vh = Math.min(Math.round((vw * 9) / 16), L.H - L.top - L.bottom - 64);
+      const preview: Rect = { left: pad, top: L.top, width: vw, height: vh, radius: 16 };
+      return { preview, list: { left: pad * 2 + vw, top: L.top, right: pad, bottom: L.bottom }, info: { left: pad, top: L.top + vh + 8, width: vw }, next: null };
+    }
+    const vw = L.W - pad * 2;
+    const vh = Math.round((vw * 9) / 16);
+    const preview: Rect = { left: pad, top: L.top, width: vw, height: vh, radius: 16 };
+    const infoTop = L.top + vh + 8;
+    return { preview, list: { left: pad, top: infoTop + 64, right: pad, bottom: L.bottom }, info: { left: pad, top: infoTop, width: vw }, next: null };
+  }
+  // TV / computador: lista à esquerda, prévia e "A seguir" à direita.
+  const listW = Math.round(Math.min(560, Math.max(400, L.W * 0.3)));
+  const left = L.px + listW + 24;
+  const width = L.W - left - L.px;
+  const avail = L.H - L.top - L.bottom;
+  const height = Math.round(Math.max(300, Math.min((width * 9) / 16, avail - 200)));
+  const preview: Rect = { left, top: L.top, width, height, radius: 28 };
+  return {
+    preview,
+    list: { left: L.px, top: L.top, width: listW, bottom: L.bottom },
+    info: null,
+    next: { left, right: L.px, top: L.top + height + 16, bottom: L.bottom },
+  };
+}
 
 export const FAV = '__fav__';
 export const ALL = '__all__';
@@ -79,6 +111,11 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
     ...cats.map((c) => ({ id: c.id, name: c.name, count: c.count })),
   ];
 
+  const L = useLayout();
+  const G = liveGeometry(L);
+  const P = G.preview;
+  const mobile = L.form === 'mobile';
+
   const pick = (c: Channel) => {
     if (playing?.id === c.id) onFull();
     else onPlay(c, list);
@@ -88,9 +125,9 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
     <>
       {/* Lista de canais */}
       <div
-        className="glass gy-12"
+        className={mobile ? 'gy-8' : 'glass gy-12'}
         style={{
-          position: 'absolute', left: 64, top: 100, bottom: 36, width: 430, padding: 16, borderRadius: T.radiusPanel,
+          position: 'absolute', ...G.list, padding: mobile ? 0 : 16, borderRadius: T.radiusPanel,
           display: 'flex', flexDirection: 'column', }}
       >
         <div ref={chipsRef} className="scroll-x" role="tablist" aria-label="Categorias">
@@ -155,37 +192,41 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
       {/* Prévia: o vídeo é o Player (desenhado por cima, no mesmo lugar) */}
       <div
         style={{
-          position: 'absolute', left: PREVIEW_RECT.left, top: PREVIEW_RECT.top, width: PREVIEW_RECT.width, height: PREVIEW_RECT.height,
-          borderRadius: 28, overflow: 'hidden', background: '#2A1640',
+          position: 'absolute', left: P.left, top: P.top, width: P.width, height: P.height,
+          borderRadius: P.radius, overflow: 'hidden', background: '#2A1640',
         }}
       >
         <div aria-hidden="true" style={{ position: 'absolute', left: 300, top: -80, width: 440, height: 440, borderRadius: '50%', background: '#5B2B85' }} />
         <div aria-hidden="true" style={{ position: 'absolute', left: 60, top: 190, width: 240, height: 240, borderRadius: '50%', background: '#3D1E5E' }} />
         {!playing && (
           <div className="gy-12" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <Symbol size={64} />
-            <span className="title" style={{ fontSize: 22 }}>Escolha um canal e aperte OK</span>
-            <span className="muted" style={{ fontSize: 16 }}>OK de novo abre em tela cheia</span>
+            <Symbol size={mobile ? 44 : 64} />
+            <span className="title" style={{ fontSize: mobile ? 17 : 22 }}>{mobile ? 'Toque num canal para assistir' : 'Escolha um canal e aperte OK'}</span>
+            <span className="muted" style={{ fontSize: mobile ? 14 : 16 }}>{mobile ? 'Toque de novo para tela cheia' : 'OK de novo abre em tela cheia'}</span>
           </div>
         )}
       </div>
 
       {playing && (
         <>
-          <span className="badge-live" style={{ position: 'absolute', left: PREVIEW_RECT.left + 18, top: PREVIEW_RECT.top + 18, zIndex: 6 }}>● Ao vivo</span>
+          <span className="badge-live" style={{ position: 'absolute', left: P.left + (mobile ? 10 : 18), top: P.top + (mobile ? 10 : 18), zIndex: 6, fontSize: mobile ? 12 : 14 }}>● Ao vivo</span>
           <div
             className="glass gx-16"
-            style={{
-              position: 'absolute', left: PREVIEW_RECT.left + 14, width: PREVIEW_RECT.width - 28, top: PREVIEW_RECT.top + PREVIEW_RECT.height - 14 - 92,
-              height: 92, padding: '14px 18px', borderRadius: 20, background: 'rgba(11,11,18,0.6)', zIndex: 6,
-              display: 'flex', alignItems: 'center', }}
+            style={
+              G.info
+                ? { position: 'absolute', left: G.info.left, top: G.info.top, width: G.info.width, height: 56, padding: '6px 10px', borderRadius: 16, display: 'flex', alignItems: 'center', zIndex: 6 }
+                : {
+                    position: 'absolute', left: P.left + 14, width: P.width - 28, top: P.top + P.height - 14 - 92,
+                    height: 92, padding: '14px 18px', borderRadius: 20, background: 'rgba(11,11,18,0.6)', zIndex: 6,
+                    display: 'flex', alignItems: 'center', }
+            }
           >
             <div className="gy-4" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 15, color: '#D6D6E0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: mobile ? 12 : 15, color: '#D6D6E0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {playing.number} · {playing.name}
                 {curPlay ? ` · ${fmtTime(curPlay.start)} – ${fmtTime(curPlay.end)}` : ''}
               </span>
-              <span className="title" style={{ fontSize: 22, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span className="title" style={{ fontSize: mobile ? 16 : 22, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {curPlay?.title ?? playing.name}
               </span>
               <div className="progress"><div style={{ width: curPlay ? `${progressOf(curPlay, now) * 100}%` : '100%' }} /></div>
@@ -199,19 +240,21 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
             >
               {Icon.star(isFav(playing))}
             </button>
-            <button className="btn primary" data-nav="" onClick={onFull}>
-              {Icon.expand} Tela cheia
+            <button className={'btn primary' + (mobile ? ' icon' : '')} data-nav="" aria-label="Tela cheia" onClick={onFull} style={mobile ? { width: 46, padding: 0, justifyContent: 'center' } : undefined}>
+              {Icon.expand}
+              {mobile ? null : ' Tela cheia'}
             </button>
           </div>
         </>
       )}
 
-      {/* A seguir (do canal selecionado na lista) */}
+      {/* A seguir (do canal selecionado na lista) — só na TV/computador */}
+      {G.next && (
       <div
         className="glass gy-12"
         style={{
-          position: 'absolute', left: 518, right: 64, top: 446, bottom: 36, padding: '14px 18px', borderRadius: 26,
-          display: 'flex', flexDirection: 'column', }}
+          position: 'absolute', ...G.next, padding: '14px 18px', borderRadius: 26,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden', }}
       >
         <div className="gx-18" style={{ display: 'flex', fontSize: 16, fontWeight: 700, alignItems: 'baseline' }}>
           <span>A seguir</span>
@@ -247,6 +290,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
           </div>
         )}
       </div>
+      )}
     </>
   );
 }

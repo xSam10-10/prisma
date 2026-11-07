@@ -206,6 +206,10 @@ Com LG webOS + Roku + Android + computador:
 | SS IPTV | `http://e.zyonbr.sbs/p/<usuário>/<senha>/ssiptv` |
 | DNS STB / SmartUp | `191.96.78.246` |
 
+**Ajustes (0.2.0):** Tela (formato automático/TV/celular, tamanho 80–130%, margem de segurança) · Player (informações na tela cheia: completas/só o canal/nenhuma, tempo, formato do vídeo ajustar/preencher/esticar, formato preferido HLS/TS, abrir no último canal) · Aparência (A e Prisma; B, C e Netflix no passo 5) · Lista · Sobre (versão e diagnóstico da tela).
+**Tela adaptável (0.2.0):** `src/ui/layout.ts` — área de desenho acompanha a proporção (ultrawide, 4:3, 4K), forma "celular" com abas embaixo. Testado em 9 tamanhos. Vale para Windows, TV, navegador e para o Android/Google TV futuros (mesmo código).
+**Goldcard funcionando** com Xtream em `http://lvbxsmart.xyz` (07/11).
+
 **Pendências / dúvidas abertas:**
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
 - **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade
