@@ -197,6 +197,15 @@ Com LG webOS + Roku + Android + computador:
 - **Programa para Windows** (Electron): instalador `PRISMA-Setup-0.1.0.exe`, proxy embutido, porta interna 47815; `npm run dist:win`
 - Detalhes, comandos e instalação na LG: `prisma-app/README.md`
 
+**Endereços da Goldcard** (sem usuário/senha, que ficam só com o usuário):
+| Uso | Endereço |
+|---|---|
+| Xtream para Smarters (recomendado no PRISMA) | `http://lvbxsmart.xyz` |
+| Xtream para XCIPTV | `http://607187.sbs` (em 07/11 respondeu `nginx 502` ao PRISMA) |
+| M3U / HLS | `http://607187.sbs/get.php?...&type=m3u_plus&output=mpegts` ou `output=hls` |
+| SS IPTV | `http://e.zyonbr.sbs/p/<usuário>/<senha>/ssiptv` |
+| DNS STB / SmartUp | `191.96.78.246` |
+
 **Pendências / dúvidas abertas:**
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
 - **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade
