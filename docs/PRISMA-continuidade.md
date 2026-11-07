@@ -1,5 +1,6 @@
 # PRISMA — documento de continuidade do projeto
 
+> O código está em https://github.com/xSam10-10/prisma (pasta docs/ tem este arquivo).
 > Cole este arquivo (ou o conteúdo dele) no início da nova conversa e diga:
 > "Este é o projeto PRISMA. Leia tudo e continue de onde paramos."
 
@@ -200,7 +201,7 @@ Com LG webOS + Roku + Android + computador:
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
 - **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade
 - **Lista Goldcard recebida** (link `get.php` no chat — não guardar em arquivos do projeto). O ambiente de nuvem não alcança servidores `http://` comuns, então o teste com a lista real é no computador do usuário (`npm run dev`)
-- Repositório no GitHub (hoje o código vai no .zip)
+- **Repositório:** https://github.com/xSam10-10/prisma (privado). Downloads em *Releases*; a automação `.github/workflows/release.yml` gera o instalador de Windows e o .ipk da LG (Actions › Release › Run workflow). Numa nova conversa, peça para trabalhar nesse repositório
 
 **Próximo:** passo 3 (guia XMLTV completo e grade por dia), depois passo 4 (VOD + TMDB).
 
