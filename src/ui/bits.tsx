@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { logoCandidates } from '../core/logos';
+import { useSettings } from '../core/settings';
 import type { Channel } from '../core/types';
 
 export function Symbol({ size = 34 }: { size?: number }) {
@@ -39,15 +41,18 @@ export function colorFor(name: string): string {
   return PALETTE[Math.abs(h) % PALETTE.length];
 }
 
-/** Logo do canal; sem logo (ou se a imagem falhar) mostra as iniciais. */
+/** Logo do canal: meus logos › oficiais › da lista (conforme Ajustes) › iniciais. */
 export function ChannelLogo({ ch, size = 40 }: { ch: Channel; size?: number }) {
-  const [broken, setBroken] = useState(false);
-  useEffect(() => setBroken(false), [ch.logo]);
-  const style = { width: size, height: size, background: ch.logo && !broken ? undefined : colorFor(ch.name) };
+  const { settings } = useSettings();
+  const cands = logoCandidates(ch.name, ch.logo, settings.logoSource === 'list');
+  const [failed, setFailed] = useState(0);
+  useEffect(() => setFailed(0), [ch.id, ch.logo, settings.logoSource]);
+  const src = cands[failed];
+  const style = { width: size, height: size, background: src ? undefined : colorFor(ch.name) };
   return (
     <span className="logo-box" style={style}>
-      {ch.logo && !broken ? (
-        <img src={ch.logo} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+      {src ? (
+        <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed((f) => f + 1)} />
       ) : (
         initials(ch.name)
       )}

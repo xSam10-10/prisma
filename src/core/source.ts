@@ -1,4 +1,5 @@
 import { detectXtreamFromUrl, parseM3U } from './m3u';
+import { cleanLabel } from './logos';
 import { fetchText } from './net';
 import { idbDel, idbGet, idbSet } from './storage';
 import { SourceError, type Category, type Channel, type ItemKind, type Playlist, type SourceConfig } from './types';
@@ -8,8 +9,21 @@ const PLAYLIST_KEY = 'playlist';
 
 export type Progress = (msg: string) => void;
 
+/** Tira emojis e símbolos decorativos de categorias e nomes (ex.: "♦ CANAIS | FHD ⭐"). */
+export function tidyPlaylist(p: Playlist): Playlist {
+  for (const it of p.items) {
+    it.group = cleanLabel(it.group);
+    it.name = cleanLabel(it.name);
+  }
+  return p;
+}
+
 /** Carrega a lista de qualquer origem e devolve no modelo único. */
 export async function loadSource(src: SourceConfig, onProgress: Progress = () => {}): Promise<Playlist> {
+  return tidyPlaylist(await loadSourceRaw(src, onProgress));
+}
+
+async function loadSourceRaw(src: SourceConfig, onProgress: Progress = () => {}): Promise<Playlist> {
   if (src.type === 'xtream') {
     onProgress('Entrando na conta…');
     const account = await xtream.login(src);
@@ -25,7 +39,7 @@ export async function loadSource(src: SourceConfig, onProgress: Progress = () =>
     const x = detectXtreamFromUrl(src.url);
     if (x) {
       try {
-        return await loadSource({ type: 'xtream', name: src.name, ...x }, onProgress);
+        return await loadSourceRaw({ type: 'xtream', name: src.name, ...x }, onProgress);
       } catch (e) {
         if (e instanceof SourceError && (e.code === 'auth' || e.code === 'expired')) throw e;
         // Se a API falhar por outro motivo, cai para a leitura M3U normal.
@@ -52,7 +66,8 @@ export async function savePlaylist(p: Playlist): Promise<void> {
 }
 
 export async function loadSavedPlaylist(): Promise<Playlist | undefined> {
-  return idbGet<Playlist>(PLAYLIST_KEY);
+  const p = await idbGet<Playlist>(PLAYLIST_KEY);
+  return p ? tidyPlaylist(p) : p;
 }
 
 export async function clearPlaylist(): Promise<void> {

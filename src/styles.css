@@ -204,6 +204,20 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 .mobile .choice { width: 100%; height: 44px; }
 .wrap-row > * { margin: 0 12px 12px 0; }
 
+/* ---- Coluna de categorias (Ao vivo, TV e computador) ---- */
+.cats { padding: 3px; margin: -3px 12px -3px -3px; }
+.cats > * + * { margin-top: 4px; }
+.cat {
+  width: 100%; min-height: 46px; padding: 8px 12px; border: 0; border-radius: 14px; cursor: pointer; text-align: left;
+  background: transparent; color: #f4f4f8; font-size: 15px; font-weight: 600;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+}
+.cat .cat-name { -webkit-flex-grow: 1; flex-grow: 1; min-width: 0; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cat .cat-count { margin-left: 8px; font-size: 13px; color: #a6a6b8; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.cat.on { background: rgba(255, 255, 255, 0.14); }
+.cat:focus, .cat.on:focus { background: #f4f4f8; color: #0b0b12; }
+.cat:focus .cat-count { color: #4a4a5a; }
+
 /* Espaçamento entre filhos (substitui "gap"; no fim para valer sobre as regras acima) */
 .gx-2 > * + * { margin-left: 2px; }   .gy-2 > * + * { margin-top: 2px; }
 .gx-4 > * + * { margin-left: 4px; }   .gy-4 > * + * { margin-top: 4px; }

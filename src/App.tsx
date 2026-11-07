@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
+import { loadLogoCatalogs } from './core/logos';
 import { prefGet, prefSet } from './core/storage';
 import { SourceError, type Channel, type Playlist, type SourceConfig } from './core/types';
 import { AddList } from './screens/AddList';
@@ -60,7 +61,7 @@ export function App() {
 
   // Abre a lista salva; se não houver, vai para "Adicionar lista".
   useEffect(() => {
-    loadSavedPlaylist().then((p) => {
+    Promise.all([loadSavedPlaylist(), loadLogoCatalogs()]).then(([p]) => {
       if (p?.items?.length) {
         setPlaylist(p);
         setPhase('app');

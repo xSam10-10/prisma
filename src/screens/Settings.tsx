@@ -171,6 +171,13 @@ export function Settings({
           onChange={() => {}}
         />
         <Choice
+          label="Logotipos dos canais"
+          help="Oficiais: usa os logos embutidos no PRISMA (e os que você escolher) antes dos que vieram na lista. Da lista: o contrário."
+          value={st.logoSource}
+          options={[{ v: 'official', label: 'Oficiais primeiro' }, { v: 'list', label: 'Da lista primeiro' }]}
+          onChange={set('logoSource')}
+        />
+        <Choice
           label="Tema"
           help="Prisma é o padrão. O tema Netflix (já desenhado) e outros chegam no passo 5."
           value="prisma"
@@ -216,6 +223,7 @@ export function Settings({
             ['Aparelho', platform],
             ['Tela', `${Math.round(L.realW * L.dpr)} × ${Math.round(L.realH * L.dpr)} pixels (densidade ${L.dpr.toLocaleString('pt-BR')}×)`],
             ['Proporção', proportion(L.realW, L.realH)],
+            ['Logotipos', 'tv-logo/tv-logos (CC BY-SA), uso pessoal'],
             ['Interface', `${L.form === 'tv' ? 'TV e computador' : 'Celular'} · área ${Math.round(L.W)} × ${Math.round(L.H)} · escala ${L.scale.toFixed(2)}×`],
           ]}
         />

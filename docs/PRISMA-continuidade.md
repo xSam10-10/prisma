@@ -210,6 +210,9 @@ Com LG webOS + Roku + Android + computador:
 **Tela adaptável (0.2.0):** `src/ui/layout.ts` — área de desenho acompanha a proporção (ultrawide, 4:3, 4K), forma "celular" com abas embaixo. Testado em 9 tamanhos. Vale para Windows, TV, navegador e para o Android/Google TV futuros (mesmo código).
 **Goldcard funcionando** com Xtream em `http://lvbxsmart.xyz` (07/11).
 
+**Logotipos (0.3.0):** `src/core/logos.ts` + `public/logos/`. Prioridade: logos do usuário (`public/logos/custom/meus-logos.json`, nome do canal → arquivo) › oficiais embutidos (120 logos BR do tv-logo/tv-logos, CC BY-SA, uso pessoal) › logo da lista › iniciais. Nome comparado sem acentos, símbolos e marcas de qualidade (HD, FHD, 4K, H265, [ALT]); um logo vale para todas as versões. Ajustes › Aparência › Logotipos (oficiais primeiro / da lista primeiro).
+**Ao vivo (0.3.0):** categorias em coluna vertical (TV/computador); emojis/símbolos dos nomes de categoria removidos (a estrela amarela vinha do nome da categoria da Goldcard); estrela só nos favoritos.
+
 **Pendências / dúvidas abertas:**
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
 - **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade

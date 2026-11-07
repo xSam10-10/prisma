@@ -20,6 +20,8 @@ export interface Settings {
   liveFormat: 'auto' | 'hls' | 'ts';
   /** Abrir o último canal ao iniciar o app. */
   resumeLast: boolean;
+  /** Logotipos: oficiais do PRISMA primeiro, ou os que vieram na lista. */
+  logoSource: 'official' | 'list';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -31,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   osdSeconds: 5,
   liveFormat: 'auto',
   resumeLast: false,
+  logoSource: 'official',
 };
 
 export function loadSettings(): Settings {

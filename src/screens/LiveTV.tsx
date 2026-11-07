@@ -30,7 +30,9 @@ export function liveGeometry(L: Layout) {
     return { preview, list: { left: pad, top: infoTop + 64, right: pad, bottom: L.bottom }, info: { left: pad, top: infoTop, width: vw }, next: null };
   }
   // TV / computador: lista à esquerda, prévia e "A seguir" à direita.
-  const listW = Math.round(Math.min(560, Math.max(400, L.W * 0.3)));
+  // Painel com duas colunas: categorias (vertical) + canais.
+  const chanW = Math.round(Math.min(500, Math.max(340, L.W * 0.26)));
+  const listW = CAT_W + 12 + chanW + 32;
   const left = L.px + listW + 24;
   const width = L.W - left - L.px;
   const avail = L.H - L.top - L.bottom;
@@ -43,6 +45,8 @@ export function liveGeometry(L: Layout) {
     next: { left, right: L.px, top: L.top + height + 16, bottom: L.bottom },
   };
 }
+
+const CAT_W = 210;
 
 export const FAV = '__fav__';
 export const ALL = '__all__';
@@ -60,7 +64,11 @@ interface Props {
 
 export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPlay, onFull }: Props) {
   const cats = useMemo(() => categoriesOf(live, 'live'), [live]);
-  const [cat, setCat] = useState<string>(() => prefGet('live.cat', favIds.length ? FAV : ALL));
+  const [cat, setCat] = useState<string>(() => {
+    const saved = prefGet<string>('live.cat', favIds.length ? FAV : ALL);
+    // Categoria salva que não existe mais (lista mudou): volta para Todos.
+    return saved === FAV || saved === ALL || cats.some((c) => c.id === saved) ? saved : ALL;
+  });
   const list = useMemo(() => {
     if (cat === FAV) {
       const set = new Set(favIds);
@@ -95,7 +103,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
 
   // Rola os chips para mostrar a categoria escolhida.
   useEffect(() => {
-    const el = chipsRef.current?.querySelector<HTMLElement>('.chip.on');
+    const el = chipsRef.current?.querySelector<HTMLElement>('.chip.on, .cat.on');
     if (el) ensureVisible(el);
   }, [cat]);
 
@@ -125,11 +133,42 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
     <>
       {/* Lista de canais */}
       <div
-        className={mobile ? 'gy-8' : 'glass gy-12'}
+        className={mobile ? '' : 'glass'}
         style={{
           position: 'absolute', ...G.list, padding: mobile ? 0 : 16, borderRadius: T.radiusPanel,
-          display: 'flex', flexDirection: 'column', }}
+          display: 'flex', flexDirection: 'row', }}
       >
+        {!mobile && (
+          // Categorias na vertical (TV e computador). Ao entrar na coluna, o foco vai para a categoria atual.
+          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" role="tablist" aria-label="Categorias" style={{ width: CAT_W, flexShrink: 0, marginRight: 12 }}>
+            {chips.map((c) => (
+              <button
+                key={c.id}
+                className={'cat' + (c.id === cat ? ' on' : '')}
+                data-nav=""
+                data-nav-active={c.id === cat ? '' : undefined}
+                role="tab"
+                aria-selected={c.id === cat}
+                onFocus={() => {
+                  if (c.id !== cat) {
+                    setCat(c.id);
+                    setIndex(0);
+                  }
+                }}
+                onClick={() => {
+                  setCat(c.id);
+                  setIndex(0);
+                  listRef.current?.focus();
+                }}
+              >
+                <span className="cat-name">{c.name}</span>
+                <span className="cat-count">{c.count.toLocaleString('pt-BR')}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className={mobile ? 'gy-8' : 'gy-12'} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
+        {mobile && (
         <div ref={chipsRef} className="scroll-x" role="tablist" aria-label="Categorias">
           {chips.map((c) => (
             <button
@@ -154,6 +193,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
             </button>
           ))}
         </div>
+        )}
         <div className="muted" style={{ fontSize: 14, fontWeight: 600, padding: '0 4px', display: 'flex', justifyContent: 'space-between' }}>
           <span>{chips.find((c) => c.id === cat)?.name ?? ''}</span>
           <span>{list.length ? `${index + 1} de ${list.length}` : ''}</span>
@@ -187,6 +227,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
             </div>
           }
         />
+        </div>
       </div>
 
       {/* Prévia: o vídeo é o Player (desenhado por cima, no mesmo lugar) */}

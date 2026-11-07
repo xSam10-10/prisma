@@ -11,6 +11,10 @@ const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 
 const live = [
   { num: 1, name: 'Globo SP FHD', stream_id: 1, category_id: '10', epg_channel_id: 'globo', dir: 'prisma1' },
+  { num: 443, name: 'GLOBO NEWS 4K', stream_id: 443, category_id: '60', epg_channel_id: '', dir: 'prisma3' },
+  { num: 1125, name: 'SPORTV 2 FHD [H265]', stream_id: 1125, category_id: '60', epg_channel_id: '', dir: 'prisma2' },
+  { num: 1058, name: 'REDETV FHD [H265]', stream_id: 1058, category_id: '60', epg_channel_id: '', dir: 'prisma1' },
+  { num: 802, name: 'Jovem Pan News 4K FHDR', stream_id: 802, category_id: '60', epg_channel_id: '', dir: 'prisma4' },
   { num: 2, name: 'SBT HD', stream_id: 2, category_id: '10', epg_channel_id: 'sbt', dir: 'prisma2' },
   { num: 30, name: 'ESPN HD', stream_id: 30, category_id: '20', epg_channel_id: 'espn', dir: 'prisma2' },
   { num: 31, name: 'SporTV FHD', stream_id: 31, category_id: '20', epg_channel_id: 'sportv', dir: 'prisma3' },
@@ -21,7 +25,7 @@ const live = [
 for (let i = 0; i < 400; i++) live.push({ num: 100 + i, name: `Canal Extra ${i + 1}`, stream_id: 100 + i, category_id: '50', epg_channel_id: '', dir: ['prisma1', 'prisma2', 'prisma3', 'prisma4'][i % 4] });
 
 const cats = [
-  ['10', 'Abertos'], ['20', 'Esportes | Futebol'], ['30', 'Notícias'], ['40', 'Filmes e Séries 24h'], ['50', 'Variedades'],
+  ['10', 'Abertos'], ['20', 'Esportes | Futebol'], ['30', 'Notícias'], ['40', 'Filmes e Séries 24h'], ['50', 'Variedades'], ['60', '\u2666\uFE0F CANAIS | FHD H265 \u2B50'], ['61', '\uD83D\uDD36 REDE RECORD'],
 ].map(([category_id, category_name]) => ({ category_id, category_name, parent_id: 0 }));
 
 function epgFor(id) {

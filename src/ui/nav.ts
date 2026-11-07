@@ -188,6 +188,16 @@ export function pushBack(h: BackHandler): () => void {
   };
 }
 
+/** Sobe na árvore até um [data-nav-group] (sem Element.closest: a TV de 2017 não tem). */
+function groupOf(el: HTMLElement): HTMLElement | null {
+  let p: HTMLElement | null = el;
+  while (p && p !== document.body) {
+    if (p.hasAttribute && p.hasAttribute('data-nav-group')) return p;
+    p = p.parentElement;
+  }
+  return null;
+}
+
 let installed = false;
 
 export function installNavigation(): void {
@@ -226,7 +236,14 @@ export function installNavigation(): void {
       focusFirst(scope);
       return;
     }
-    const next = findNeighbor(cur, d, scope);
+    let next = findNeighbor(cur, d, scope);
+    // Entrando num grupo (ex.: coluna de categorias): vai para o item ativo,
+    // e não para o vizinho mais próximo (que trocaria a categoria sem querer).
+    const grp = next ? groupOf(next) : null;
+    if (grp && !grp.contains(cur)) {
+      const act = grp.querySelector<HTMLElement>('[data-nav-active]');
+      if (act && visible(act)) next = act;
+    }
     if (next) focusEl(next);
   });
 }
