@@ -216,6 +216,8 @@ Com LG webOS + Roku + Android + computador:
 **Nomes curtos (0.4.0):** `src/core/names.ts` — nome do canal até a qualidade (SD/HD/FHD/UHD/4K); o resto ([ALT], [H265], FHDR…) sai. Canais ao vivo com o mesmo nome curto na mesma categoria viram um só, e as versões extras passam a ser fonte 2, 3… (`fullName` guarda o nome original, usado na busca e nos logos). Lista de canais em uma linha (sem a categoria embaixo).
 **Início (0.4.0):** cards 16:9 com logo em destaque (`ChannelTile`), número do canal e selo "Último".
 
+**Carrossel (0.5.0):** regra do Início — toda fileira usa `src/ui/Carousel.tsx`: no máximo 10 itens, só cards inteiros (calcula quantos cabem e estica para preencher), desliza com o foco do controle, setas ‹ › no mouse, arrastar no toque, indicadores de página.
+
 **Pendências / dúvidas abertas:**
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
 - **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade

@@ -249,6 +249,25 @@ html:not(.kbd) .tile:focus .tile-art { box-shadow: inset 0 1px 0 rgba(255, 255, 
 .mobile .tile-name { font-size: 14px; margin-top: 8px; }
 .mobile .tile-ini { font-size: 20px; border-radius: 12px; }
 
+/* ---- Carrossel (Início) ---- */
+.carousel-head { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; height: 40px; }
+.carousel-view { overflow: hidden; position: relative; }
+.carousel-track {
+  display: -webkit-flex; display: flex; -webkit-align-items: flex-start; align-items: flex-start;
+  -webkit-transition: -webkit-transform 0.35s ease; transition: transform 0.35s ease;
+}
+.carousel-item { -webkit-flex-shrink: 0; flex-shrink: 0; }
+.carousel-item .tile { width: 100% !important; }
+.dots { display: -webkit-flex; display: flex; margin-right: 14px; }
+.dots i { width: 7px; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.25); margin-left: 6px; -webkit-transition: width 0.2s; transition: width 0.2s; }
+.dots i.on { width: 20px; background: #f4f4f8; }
+.arrow-btn {
+  width: 40px; height: 40px; margin-left: 8px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.18); cursor: pointer;
+  background: rgba(255, 255, 255, 0.09); color: #f4f4f8; font-size: 24px; line-height: 36px; padding: 0;
+}
+.arrow-btn:hover:not(:disabled) { background: #f4f4f8; color: #0b0b12; }
+.arrow-btn:disabled { opacity: 0.3; cursor: default; }
+
 /* Espaçamento entre filhos (substitui "gap"; no fim para valer sobre as regras acima) */
 .gx-2 > * + * { margin-left: 2px; }   .gy-2 > * + * { margin-top: 2px; }
 .gx-4 > * + * { margin-left: 4px; }   .gy-4 > * + * { margin-top: 4px; }

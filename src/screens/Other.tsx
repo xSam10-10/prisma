@@ -5,6 +5,7 @@ import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol } from '../ui/bits';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 import { focusFirst } from '../ui/nav';
 import { useLayout } from '../ui/layout';
+import { Carousel } from '../ui/Carousel';
 
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -52,21 +53,16 @@ export function Home({
   );
 }
 
+/** Fileira do Início: sempre carrossel, no máximo 10 canais, só cards inteiros. */
 function Shelf({ title, items, empty, onWatch, badgeFor }: { title: string; items: Channel[]; empty: string; onWatch: (c: Channel) => void; badgeFor?: (c: Channel, i: number) => string | undefined }) {
-  const L = useLayout();
   return (
-    <div className="gy-12" style={{ marginTop: L.form === 'mobile' ? 22 : 34, display: 'flex', flexDirection: 'column' }}>
-      <span className="title" style={{ fontSize: L.form === 'mobile' ? 19 : 22, padding: `0 ${L.px}px` }}>{title}</span>
-      {items.length ? (
-        <div className="scroll-x gx-20" style={{ padding: `12px ${L.px}px 18px ${L.px}px`, margin: '-8px 0 -14px 0' }}>
-          {items.slice(0, 20).map((c, i) => (
-            <ChannelTile key={c.id} ch={c} width={L.form === 'mobile' ? 168 : 248} onClick={() => onWatch(c)} badge={badgeFor?.(c, i)} />
-          ))}
-        </div>
-      ) : (
-        <span className="muted" style={{ fontSize: 16, padding: `0 ${L.px}px` }}>{empty}</span>
-      )}
-    </div>
+    <Carousel
+      title={title}
+      items={items}
+      keyOf={(c) => c.id}
+      empty={empty}
+      render={(c, i, w) => <ChannelTile ch={c} width={w} onClick={() => onWatch(c)} badge={badgeFor?.(c, i)} />}
+    />
   );
 }
 
