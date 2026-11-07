@@ -35,13 +35,13 @@ export function Home({
     <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }}>
       <div className="gy-12" style={{ padding: `${mobile ? 4 : 12}px ${L.px}px 0`, maxWidth: 760, display: 'flex', flexDirection: 'column' }}>
         <span className="badge-live" style={{ alignSelf: 'flex-start', fontSize: mobile ? 12 : 14 }}>{last ? 'Continuar assistindo' : 'Ao vivo'}</span>
-        <span className="title" style={{ fontSize: mobile ? 28 : 40, fontWeight: 800, lineHeight: 1.05 }}>{last ? last.name : 'Bem-vindo ao PRISMA'}</span>
+        <span className="title caps" style={{ fontSize: mobile ? 28 : 40, fontWeight: 800, lineHeight: 1.05 }}>{last ? last.name : 'Bem-vindo ao PRISMA'}</span>
         <span className="muted" style={{ fontSize: mobile ? 15 : 18 }}>
           {playlist.source.name} · {live.length.toLocaleString('pt-BR')} canais · {movies.toLocaleString('pt-BR')} filmes · {series.toLocaleString('pt-BR')} séries
         </span>
         <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', marginTop: 14 }}>
           {last && (
-            <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onWatch(last, recents)}>▶ Assistir {last.name}</button>
+            <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onWatch(last, recents)}>▶ Assistir <span className="caps" style={{ marginLeft: 6 }}>{last.name}</span></button>
           )}
           <button className="btn" data-nav="" data-nav-default={last ? undefined : ''} onClick={onGoLive}>Ver todos os canais</button>
         </div>

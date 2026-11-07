@@ -4,7 +4,7 @@ import { loadLogoCatalogs } from './core/logos';
 import { prefGet, prefSet } from './core/storage';
 import { SourceError, type Channel, type Playlist, type SourceConfig } from './core/types';
 import { AddList } from './screens/AddList';
-import { LiveTV, liveGeometry } from './screens/LiveTV';
+import { LiveTV, catColumnWidth, liveGeometry } from './screens/LiveTV';
 import { Home, Search, Soon } from './screens/Other';
 import { Settings } from './screens/Settings';
 import { SettingsContext, loadSettings, saveSettings, type Settings as SettingsT } from './core/settings';
@@ -242,7 +242,7 @@ export function App() {
             zapList={zapList.length ? zapList : live}
             allLive={live}
             mode={mode}
-            rect={liveGeometry(L).preview}
+            rect={liveGeometry(L, catColumnWidth(live)).preview}
             isFav={isFav}
             toggleFav={toggleFav}
             onMode={onPlayerMode}

@@ -220,6 +220,8 @@ Com LG webOS + Roku + Android + computador:
 
 **Categorias (0.6.0):** nomes sem termos de codificação (H265, HEVC, H264) — `simplifyGroups` em `src/core/names.ts`, só se não repetir nome de outra categoria. Coluna de categorias compacta (linhas de 44, uma linha só, contagem em selo, divisória fina), lista de canais com número estreito alinhado à direita.
 
+**Ao vivo (0.7.0):** largura da coluna de categorias medida pelo nome mais longo (`catColumnWidth`, 220–360), coluna de canais nunca menor que 340 (a prévia cede espaço; "A seguir" mostra 2 cards quando a prévia fica estreita). Nomes de canais e categorias em caixa alta (CSS). Campo de busca no topo da lista de canais: filtra todos os canais por nome ou número; Enter vai para a lista; escolher categoria limpa a busca.
+
 **Pendências / dúvidas abertas:**
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
 - **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade

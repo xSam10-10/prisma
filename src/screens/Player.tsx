@@ -226,7 +226,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
           }}
         >
           <span className="badge-live" style={{ background: T.live }}>Canal fora do ar</span>
-          <span className="title" style={{ fontSize: full ? 32 : 22 }}>{channel.name}</span>
+          <span className="title caps" style={{ fontSize: full ? 32 : 22 }}>{channel.name}</span>
           <span className="muted" style={{ fontSize: 16 }}>{errMsg}</span>
           {full && (
             <div className="gx-12" style={{ display: 'flex', marginTop: 22, flexWrap: mobile ? 'wrap' : undefined, justifyContent: 'center' }}>
@@ -249,7 +249,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       {full && channel && status !== 'error' && overlayKind === 'info' && S.osd === 'name' && (
         <div className="gx-10" style={{ position: 'absolute', left: padX, top: padT, display: 'flex', alignItems: 'center', padding: '8px 14px 8px 8px', borderRadius: 16, background: 'rgba(0,0,0,0.55)' }}>
           <ChannelLogo ch={channel} size={mobile ? 32 : 40} />
-          <span style={{ fontSize: mobile ? 15 : 18, fontWeight: 700 }}>{channel.number} · {channel.name}</span>
+          <span className="caps" style={{ fontSize: mobile ? 15 : 18, fontWeight: 700 }}>{channel.number} · {channel.name}</span>
         </div>
       )}
 
@@ -280,7 +280,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
             <div className="gx-14" style={{ display: 'flex', alignItems: 'flex-end', flexGrow: 1, minWidth: 0 }}>
             <ChannelLogo ch={channel} size={mobile ? 48 : 84} />
             <div className="gy-6" style={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: 16, color: '#D6D6E0' }}>
+              <span className="caps" style={{ fontSize: 16, color: '#D6D6E0' }}>
                 {channel.number} · {channel.name}
                 {cur ? ` · ${fmtTime(cur.start)} – ${fmtTime(cur.end)}` : ''}
               </span>

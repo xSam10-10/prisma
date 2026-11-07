@@ -91,6 +91,8 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
   font-size: 15px; font-weight: 600; background: rgba(255, 255, 255, 0.1); color: #f4f4f8; white-space: nowrap;
 }
 .chip.on { background: #f4f4f8; color: #0b0b12; }
+/* Nomes de canais e categorias sempre em caixa alta (as listas misturam). */
+.chip, .caps { text-transform: uppercase; }
 
 .badge-live {
   padding: 5px 10px; border-radius: 999px; background: #ff6b3d; color: #0b0b12;
@@ -125,7 +127,7 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
   -webkit-flex-grow: 1; flex-grow: 1; min-width: 0;
 }
 .row .txt > * + * { margin-top: 3px; }
-.row .name { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .name { text-transform: uppercase; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .sub { font-size: 15px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .playing { width: 10px; height: 10px; border-radius: 5px; background: #ff6b3d; -webkit-flex-shrink: 0; flex-shrink: 0; }
 
@@ -215,7 +217,7 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
   background: transparent; color: #e4e4ee; font-size: 15px; font-weight: 600;
   display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
 }
-.cat .cat-name { -webkit-flex-grow: 1; flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat .cat-name { -webkit-flex-grow: 1; flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
 .cat .cat-count {
   margin-left: 8px; -webkit-flex-shrink: 0; flex-shrink: 0; min-width: 28px; padding: 2px 7px; border-radius: 999px; text-align: center;
   font-size: 12px; font-weight: 700; color: #a6a6b8; background: rgba(255, 255, 255, 0.07);
@@ -224,6 +226,25 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 .cat.on .cat-count { background: #3dd6c4; color: #0b0b12; }
 .cat:focus, .cat.on:focus { background: #f4f4f8; color: #0b0b12; }
 .cat:focus .cat-count { background: rgba(11, 11, 18, 0.12); color: #0b0b12; }
+
+/* ---- Busca na tela Ao vivo ---- */
+.live-search {
+  position: relative; -webkit-flex-shrink: 0; flex-shrink: 0; height: 44px;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+}
+.live-search .ic { position: absolute; left: 14px; top: 12px; color: #a6a6b8; pointer-events: none; }
+.live-search input {
+  width: 100%; height: 44px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06);
+  color: #f4f4f8; font-size: 16px; padding: 0 40px 0 42px; outline: none; -webkit-appearance: none; text-transform: uppercase;
+}
+.live-search input::placeholder { text-transform: none; }
+.live-search input::-webkit-input-placeholder { text-transform: none; }
+.live-search input::-webkit-search-cancel-button { display: none; }
+.live-search input:focus { border-color: #f4f4f8; box-shadow: 0 0 0 3px #f4f4f8; }
+.live-search .clear {
+  position: absolute; right: 8px; top: 8px; width: 28px; height: 28px; border-radius: 14px; border: 0; cursor: pointer;
+  background: rgba(255, 255, 255, 0.14); color: #f4f4f8; font-size: 13px; padding: 0;
+}
 
 /* ---- Cards de canal (Início) ---- */
 .tile {
@@ -249,7 +270,7 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
   position: absolute; right: 10px; top: 10px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;
   background: #ff6b3d; color: #0b0b12; text-transform: uppercase;
 }
-.tile-name { margin-top: 10px; padding: 0 4px; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-name { text-transform: uppercase; margin-top: 10px; padding: 0 4px; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile:focus .tile-art { box-shadow: 0 0 0 3px #f4f4f8, 0 14px 30px rgba(0, 0, 0, 0.5); }
 html:not(.kbd) .tile:focus .tile-art { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.35); }
 .tile:hover .tile-art { border-color: rgba(255, 255, 255, 0.35); }

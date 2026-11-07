@@ -12,7 +12,46 @@ import type { Rect } from './Player';
 import { useLayout, type Layout } from '../ui/layout';
 
 /** Geometria da tela Ao vivo para a tela atual (o Player usa o mesmo retângulo). */
-export function liveGeometry(L: Layout) {
+function normalizeText(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+/** Mede a largura de um texto na fonte da interface (canvas: funciona também na TV de 2017). */
+let measureCtx: CanvasRenderingContext2D | null = null;
+function textWidth(text: string, font: string): number {
+  try {
+    measureCtx = measureCtx ?? document.createElement('canvas').getContext('2d');
+    if (!measureCtx) return text.length * 9;
+    measureCtx.font = font;
+    return measureCtx.measureText(text).width;
+  } catch {
+    return text.length * 9;
+  }
+}
+
+const widthCache = new WeakMap<Channel[], number>();
+/**
+ * Largura da coluna de categorias: o suficiente para o nome mais longo caber
+ * inteiro (em caixa alta), entre 220 e 360.
+ */
+export function catColumnWidth(live: Channel[]): number {
+  const hit = widthCache.get(live);
+  if (hit) return hit;
+  const cats = categoriesOf(live, 'live');
+  let max = Math.max(textWidth('FAVORITOS', '600 15px Inter'), textWidth('TODOS', '600 15px Inter'));
+  let maxCount = String(live.length).length;
+  for (const c of cats) {
+    max = Math.max(max, textWidth(c.name.toUpperCase(), '600 15px Inter'));
+    maxCount = Math.max(maxCount, String(c.count).length);
+  }
+  // nome + selo da contagem + margens internas (14 + 10 + 8) + borda/rolagem (14)
+  const badge = Math.max(28, maxCount * 8 + 14);
+  const w = Math.round(Math.min(360, Math.max(220, max + badge + 14 + 10 + 8 + 14 + 6)));
+  widthCache.set(live, w);
+  return w;
+}
+
+export function liveGeometry(L: Layout, catW = CAT_W) {
   if (L.form === 'mobile') {
     const pad = L.px;
     if (L.landscape) {
@@ -31,8 +70,11 @@ export function liveGeometry(L: Layout) {
   }
   // TV / computador: lista à esquerda, prévia e "A seguir" à direita.
   // Painel com duas colunas: categorias (vertical) + canais.
-  const chanW = Math.round(Math.min(500, Math.max(340, L.W * 0.26)));
-  const listW = CAT_W + 11 + chanW + 28;
+  // A largura total do painel fica a mesma de antes; a coluna de categorias cresce
+  // até caber o nome mais longo e a de canais cede o espaço, sem ficar menor que 320.
+  const total = CAT_W + Math.round(Math.min(500, Math.max(340, L.W * 0.26)));
+  const chanW = Math.max(340, total - catW);
+  const listW = catW + 11 + chanW + 28;
   const left = L.px + listW + 24;
   const width = L.W - left - L.px;
   const avail = L.H - L.top - L.bottom;
@@ -69,14 +111,21 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
     // Categoria salva que não existe mais (lista mudou): volta para Todos.
     return saved === FAV || saved === ALL || cats.some((c) => c.id === saved) ? saved : ALL;
   });
+  // Busca dentro da tela Ao vivo: filtra todos os canais pelo nome (ou número).
+  const [query, setQuery] = useState('');
+  const q = normalizeText(query.trim());
   const list = useMemo(() => {
+    if (q) {
+      const num = /^\d+$/.test(q) ? Number(q) : NaN;
+      return live.filter((c) => c.number === num || normalizeText(c.fullName ?? c.name).includes(q));
+    }
     if (cat === FAV) {
       const set = new Set(favIds);
       return live.filter((c) => set.has(c.id));
     }
     if (cat === ALL) return live;
     return live.filter((c) => c.group === cat);
-  }, [cat, live, favIds]);
+  }, [cat, live, favIds, q]);
 
   const [index, setIndex] = useState(() => {
     const i = playing ? list.findIndex((c) => c.id === playing.id) : -1;
@@ -120,7 +169,8 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
   ];
 
   const L = useLayout();
-  const G = liveGeometry(L);
+  const catW = catColumnWidth(live);
+  const G = liveGeometry(L, catW);
   const P = G.preview;
   const mobile = L.form === 'mobile';
 
@@ -140,7 +190,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
       >
         {!mobile && (
           // Categorias na vertical (TV e computador). Ao entrar na coluna, o foco vai para a categoria atual.
-          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" role="tablist" aria-label="Categorias" style={{ width: CAT_W, flexShrink: 0 }}>
+          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" role="tablist" aria-label="Categorias" style={{ width: catW, flexShrink: 0 }}>
             {chips.map((c) => (
               <button
                 key={c.id}
@@ -153,11 +203,13 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
                   if (c.id !== cat) {
                     setCat(c.id);
                     setIndex(0);
+                    setQuery('');
                   }
                 }}
                 onClick={() => {
                   setCat(c.id);
                   setIndex(0);
+                  setQuery('');
                   listRef.current?.focus();
                 }}
               >
@@ -186,6 +238,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
               onClick={() => {
                 setCat(c.id);
                 setIndex(0);
+                setQuery('');
                 listRef.current?.focus();
               }}
             >
@@ -194,8 +247,37 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
           ))}
         </div>
         )}
+        <div className="live-search">
+          <span className="ic" aria-hidden="true">{Icon.search}</span>
+          <input
+            data-nav=""
+            type="search"
+            placeholder="Buscar canal ou número"
+            aria-label="Buscar canal"
+            value={query}
+            autoCapitalize="characters"
+            autoCorrect="off"
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setIndex(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                listRef.current?.focus();
+              } else if ((e.key === 'Escape' || e.keyCode === 27) && query) {
+                e.preventDefault();
+                e.stopPropagation();
+                setQuery('');
+              }
+            }}
+          />
+          {query && (
+            <button className="clear" tabIndex={-1} aria-label="Limpar busca" onClick={() => setQuery('')}>✕</button>
+          )}
+        </div>
         <div className="muted" style={{ fontSize: 14, fontWeight: 600, padding: '0 4px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>{chips.find((c) => c.id === cat)?.name ?? ''}</span>
+          <span className="caps">{q ? `Busca: “${query.trim()}”` : chips.find((c) => c.id === cat)?.name ?? ''}</span>
           <span>{list.length ? `${index + 1} de ${list.length}` : ''}</span>
         </div>
         <VirtualList
@@ -220,9 +302,9 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
           )}
           empty={
             <div className="gy-10" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
-              <span className="title" style={{ fontSize: 20 }}>{cat === FAV ? 'Nenhum favorito ainda' : 'Nenhum canal aqui'}</span>
+              <span className="title" style={{ fontSize: 20 }}>{q ? 'Nenhum canal encontrado' : cat === FAV ? 'Nenhum favorito ainda' : 'Nenhum canal aqui'}</span>
               <span className="muted" style={{ fontSize: 16 }}>
-                {cat === FAV ? 'Abra um canal em tela cheia e aperte "Favoritar". Ele aparece aqui.' : 'Escolha outra categoria.'}
+                {q ? 'Tente parte do nome (ex.: “SPORTV”) ou o número do canal.' : cat === FAV ? 'Abra um canal em tela cheia e aperte "Favoritar". Ele aparece aqui.' : 'Escolha outra categoria.'}
               </span>
             </div>
           }
@@ -263,7 +345,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
             }
           >
             <div className="gy-4" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
-              <span style={{ fontSize: mobile ? 12 : 15, color: '#D6D6E0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span className="caps" style={{ fontSize: mobile ? 12 : 15, color: '#D6D6E0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {playing.number} · {playing.name}
                 {curPlay ? ` · ${fmtTime(curPlay.start)} – ${fmtTime(curPlay.end)}` : ''}
               </span>
@@ -299,17 +381,17 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
       >
         <div className="gx-18" style={{ display: 'flex', fontSize: 16, fontWeight: 700, alignItems: 'baseline' }}>
           <span>A seguir</span>
-          <span className="muted" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span className="muted caps" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selected ? `${selected.number ?? ''} · ${selected.name}` : ''}
           </span>
         </div>
         {epgSel === null && selected ? (
           <div className="gx-12 cols" style={{ display: 'flex' }}>
-            {[0, 1, 2].map((i) => <div key={i} className="skel" style={{ height: 132 }} />)}
+            {(G.preview.width < 560 ? [0, 1] : [0, 1, 2]).map((i) => <div key={i} className="skel" style={{ height: 132 }} />)}
           </div>
         ) : epgSel && epgSel.length ? (
           <div className="gx-12 cols" style={{ display: 'flex' }}>
-            {epgSel.slice(0, 3).map((e, i) => (
+            {epgSel.slice(0, G.preview.width < 560 ? 2 : 3).map((e, i) => (
               <div className="gy-6" key={i} style={{ height: 132, padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: i === 0 ? T.live : T.warn }}>
                   {i === 0 ? 'Agora · ' : ''}{fmtTime(e.start)} – {fmtTime(e.end)}
