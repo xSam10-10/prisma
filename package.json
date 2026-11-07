@@ -11,7 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "desktop": "npm run build && electron .",
-    "dist:win": "npm run build && electron-builder --win --x64"
+    "dist:win": "npm run build && electron-builder --win --x64 --publish never"
   },
   "dependencies": {
     "hls.js": "1.7.4",
@@ -71,6 +71,14 @@
       "shortcutName": "PRISMA",
       "artifactName": "PRISMA-Setup-${version}.exe",
       "language": "1046"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "xSam10-10",
+        "repo": "prisma",
+        "releaseType": "release"
+      }
+    ]
   }
 }

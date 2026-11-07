@@ -1,0 +1,65 @@
+# Gera o instalador do Windows e o app da TV LG e publica numa Release.
+# Dispara ao enviar uma tag "v*" (ex.: v0.1.0) ou pelo botão "Run workflow"
+# na aba Actions.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: release/PRISMA-Setup-*.exe
+
+  webos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:webos
+      - run: npx --yes es-check@8.0.2 es5 "dist-webos/assets/*.js"
+      - run: npx --yes -p @webos-tools/cli ares-package dist-webos -o .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webos
+          path: com.prisma.iptv_*.ipk
+
+  release:
+    needs: [windows, webos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Publica a Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          case "$TAG" in v*) ;; *) TAG="v$(date +%Y.%m.%d-%H%M)";; esac
+          NOTES="Downloads: PRISMA-Setup (Windows) e com.prisma.iptv (TV LG). No Windows, na primeira vez: Mais informações › Executar assim mesmo."
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "PRISMA $TAG" --notes "$NOTES" --target "$GITHUB_SHA"
+          gh release upload "$TAG" out/* --clobber
