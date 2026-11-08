@@ -127,6 +127,8 @@ export function App() {
   const byId = useMemo(() => new Map(live.map((c) => [c.id, c])), [live]);
   const favs = useMemo(() => favIds.map((id) => byId.get(id)).filter(Boolean) as Channel[], [favIds, byId]);
   const recents = useMemo(() => recentIds.map((id) => byId.get(id)).filter(Boolean) as Channel[], [recentIds, byId]);
+  // "Último canal": o ao vivo assistido antes do atual.
+  const lastChannel = useMemo(() => recents.find((c) => c.kind === 'live' && c.id !== playing?.id), [recents, playing]);
 
   const isFav = useCallback((c: Channel) => favIds.includes(c.id), [favIds]);
   const toggleFav = useCallback((c: Channel) => setFavIds((f) => (f.includes(c.id) ? f.filter((x) => x !== c.id) : [...f, c.id])), []);
@@ -254,7 +256,7 @@ export function App() {
     let screen: React.ReactNode;
     switch (tab) {
       case 'aovivo':
-        screen = <LiveTV playlist={playlist} live={live} favIds={favIds} playing={playing} isFav={isFav} toggleFav={toggleFav} onPlay={play} onFull={() => setFull(true)} onPlayVod={(it) => playVod(it, 0)} />;
+        screen = <LiveTV playlist={playlist} live={live} favIds={favIds} playing={playing} isFav={isFav} toggleFav={toggleFav} onPlay={play} onFull={() => setFull(true)} onPlayVod={(it) => playVod(it, 0)} lastChannel={lastChannel} onLast={() => lastChannel && play(lastChannel, [])} />;
         break;
       case 'inicio':
         screen = <Home playlist={playlist} live={live} favs={favs} recents={recents} onWatch={watchFull} onGoLive={() => setTab('aovivo')} onPlayVod={playVod} />;
@@ -353,6 +355,7 @@ export function App() {
             toggleFav={toggleFav}
             onMode={onPlayerMode}
             onZap={(c) => play(c, [])}
+            lastChannel={lastChannel}
             startAt={startAt}
             nextEp={playing && queue.length ? queue[queue.findIndex((x) => x.id === playing.id) + 1] : undefined}
             onNext={() => {

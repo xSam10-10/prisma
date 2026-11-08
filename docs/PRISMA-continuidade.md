@@ -276,13 +276,17 @@ Com LG webOS + Roku + Android + computador:
 - **Levar dados para outro aparelho** (`src/core/backup.ts`, Ajustes › Dados): exportar arquivo .json (favoritos, seções, Minha lista, histórico, progresso, lembretes, ajustes do perfil; sem senha da lista) e importar com "Juntar" ou "Substituir". No Android, exporta por Compartilhar. Na TV LG não há seletor de arquivos.
 - **Atualização automática do Windows** (`electron-updater`, `desktop/main.mjs`): procura em `https://github.com/xSam10-10/prisma-releases/releases/latest/download` (repositório **público**, só instaladores). Para ligar: criar o repositório público `prisma-releases` e o secret `RELEASES_TOKEN` (token fino com "Contents: read and write" nesse repositório) no repositório `prisma`. Sem isso, o app só não encontra atualização.
 
+## 10e. Versão 0.12.1 (08/11) — item 21
+- **Último canal:** botão ↺ ao lado da estrela (Ao vivo) e na barra da tela cheia; tecla amarela do controle ou **L** no teclado. É o canal ao vivo anterior do histórico (vale até depois de fechar o app).
+- **Zapear por número** também na tela Ao vivo (antes só em tela cheia), com teclado numérico; mostra o nome do canal enquanto digita; **OK** confirma na hora, **Voltar** cancela, sozinho em 2 s.
+
 ## 11. Pendências (07–08/11/2026)
 
 **Precisa de você / testes reais**
 1. Instalar e testar na TV LG OLED B7 (webOS 3.5) — nunca rodou numa B7 de verdade.
 2. Goldcard mostrou "0 filmes": conferir na 0.9.0 (o tempo de espera da lista de filmes subiu para 4 min) e, se continuar, mandar print.
 3. Enviar logos que faltam (ex.: ESPN) — `public/logos/custom/`.
-4. Microfone: funciona no navegador (Chrome/Edge) e no Android; no programa de Windows não (o Electron não tem o serviço de voz do Google); na LG, usar o microfone do teclado da TV.
+4. Microfone: funciona no navegador (Chrome/Edge) e no Chrome do celular — dentro do app Android não (WebView sem reconhecimento de voz; ver sugestão 12); no programa de Windows não (o Electron não tem o serviço de voz do Google); na LG, usar o microfone do teclado da TV.
 
 **Funcionalidades**
 5. ✅ (0.10.0) Guia completo XMLTV (listas M3U) e grade de 7 dias; "voltar na programação" (catch-up) quando a lista oferece.

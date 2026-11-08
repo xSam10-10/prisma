@@ -34,6 +34,8 @@ interface Props {
   toggleFav: (c: Channel) => void;
   onMode: (m: PlayerMode) => void;
   onZap: (c: Channel) => void;
+  /** Canal assistido antes do atual (botão/tecla "Último canal"). */
+  lastChannel?: Channel;
   /** Filme/episódio: começar deste segundo (continuar de onde parou). */
   startAt?: number;
   /** Próximo episódio (série): toca sozinho ao terminar. */
@@ -43,7 +45,7 @@ interface Props {
 
 type Status = 'loading' | 'playing' | 'error';
 
-export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, startAt, nextEp, onNext }: Props) {
+export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, lastChannel, startAt, nextEp, onNext }: Props) {
   const vod = !!channel && channel.kind !== 'live';
   // Reconexão automática
   const okRef = useRef('');
@@ -262,6 +264,63 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     [S.osd, osdMs],
   );
 
+  // ---- Zapear por número e "Último canal" ----
+  const digitsRef = useRef('');
+  const goNumber = useCallback(
+    (nd: string) => {
+      clearTimeout(digitTimer.current);
+      digitsRef.current = '';
+      setDigits('');
+      const target = allLive.find((c) => c.number === parseInt(nd, 10));
+      if (target && target.id !== channel?.id) {
+        onZap(target);
+        if (mode === 'full') showOverlay();
+      }
+    },
+    [allLive, channel, onZap, mode], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const goLast = useCallback(() => {
+    if (!lastChannel) return;
+    onZap(lastChannel);
+    if (mode === 'full') showOverlay();
+  }, [lastChannel, onZap, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Trata números (teclado, controle, teclado numérico), OK/Voltar durante a digitação e a tecla amarela / L. */
+  const zapKey = useCallback(
+    (e: KeyboardEvent): boolean => {
+      if (vod) return false;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return false;
+      const k = e.keyCode;
+      const n = k >= 48 && k <= 57 && !e.shiftKey ? k - 48 : k >= 96 && k <= 105 ? k - 96 : -1;
+      if (n >= 0) {
+        const nd = (digitsRef.current + String(n)).slice(-4);
+        digitsRef.current = nd;
+        setDigits(nd);
+        clearTimeout(digitTimer.current);
+        digitTimer.current = window.setTimeout(() => goNumber(nd), 2000);
+        return true;
+      }
+      if (digitsRef.current) {
+        if (isEnter(e)) {
+          goNumber(digitsRef.current);
+          return true;
+        }
+        if (isBack(e)) {
+          clearTimeout(digitTimer.current);
+          digitsRef.current = '';
+          setDigits('');
+          return true;
+        }
+      }
+      if (k === KEY.YELLOW || (k === 76 && !e.ctrlKey && !e.metaKey && !e.altKey)) {
+        goLast();
+        return true;
+      }
+      return false;
+    },
+    [vod, goNumber, goLast],
+  );
+
   const zap = useCallback(
     (delta: number) => {
       if (!channel || !zapList.length) return;
@@ -336,25 +395,17 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         }
         return;
       }
+      if (zapKey(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (isBack(e)) {
         if (overlayKind === 'controls' && status !== 'error') setOverlay(false);
         else onMode('preview');
       } else if (k === KEY.CH_UP || d === 'up') zap(-1);
       else if (k === KEY.CH_DOWN || d === 'down') zap(1);
-      else if (k >= 48 && k <= 57) {
-        const nd = (digits + String(k - 48)).slice(-4);
-        setDigits(nd);
-        clearTimeout(digitTimer.current);
-        digitTimer.current = window.setTimeout(() => {
-          const n = parseInt(nd, 10);
-          const target = allLive.find((c) => c.number === n);
-          if (target) {
-            onZap(target);
-            showOverlay();
-          }
-          setDigits('');
-        }, 1500);
-      } else if (!interactive && (d || isEnter(e))) showOverlay(true);
+      else if (!interactive && (d || isEnter(e))) showOverlay(true);
       else if (interactive) {
         showOverlay(); // reinicia o tempo; deixa a navegação dos botões agir
         handled = false;
@@ -366,7 +417,21 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [mode, overlay, overlayKind, status, digits, vod, nextIn, zap, allLive, onMode, onZap, showOverlay]);
+  }, [mode, overlay, overlayKind, status, vod, nextIn, zap, zapKey, onMode, showOverlay]);
+
+  // Na tela Ao vivo (vídeo pequeno): números e "Último canal" também valem.
+  useEffect(() => {
+    if (mode !== 'preview') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (document.querySelector('.modal-back')) return;
+      if (zapKey(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [mode, zapKey]);
 
   useEffect(() => {
     if (mode === 'full' && overlay) requestAnimationFrame(() => {
@@ -520,7 +585,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
                 <span className="muted" style={{ fontSize: 16 }}>Ao vivo · este canal não tem guia de programação</span>
               )}
               {next && <span className="muted" style={{ fontSize: 16 }}>A seguir · {fmtTime(next.start)} {next.title}</span>}
-              {!mobile && <span className="muted" style={{ fontSize: 14, marginTop: 10 }}>▲▼ trocar de canal · números para ir direto · Voltar sai da tela cheia</span>}
+              {!mobile && <span className="muted" style={{ fontSize: 14, marginTop: 10 }}>▲▼ trocar de canal · números para ir direto · amarelo (ou L) volta ao último canal · Voltar sai da tela cheia</span>}
             </div>
             </div>
             <div className="gx-10" style={{ display: 'flex', flexShrink: 0, justifyContent: 'flex-end' }}>
@@ -529,6 +594,11 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
                   <button className="btn icon" data-nav="" aria-label="Canal anterior" style={{ width: 46, padding: 0, justifyContent: 'center' }} onClick={() => zap(-1)}>▲</button>
                   <button className="btn icon" data-nav="" aria-label="Próximo canal" style={{ width: 46, padding: 0, justifyContent: 'center' }} onClick={() => zap(1)}>▼</button>
                 </>
+              )}
+              {lastChannel && (
+                <button className="btn" data-nav="" aria-label={`Último canal: ${lastChannel.name}`} onClick={goLast}>
+                  ↺ {mobile ? null : <span className="caps">{lastChannel.name}</span>}
+                </button>
               )}
               <button className="btn" data-nav="" onClick={() => toggleFav(channel)} aria-pressed={fav}>
                 {Icon.star(fav)} {mobile ? null : fav ? 'Favorito' : 'Favoritar'}
@@ -583,9 +653,15 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         </div>
       )}
 
-      {full && digits && (
-        <div className="title" style={{ position: 'absolute', right: padX, top: padT + 44, fontSize: 64, textShadow: '0 2px 12px #000' }}>{digits}</div>
-      )}
+      {digits && mode !== 'off' && (() => {
+        const hit = allLive.find((c) => c.number === parseInt(digits, 10));
+        return (
+          <div className="zap-num" style={full ? { right: padX, top: padT + 44 } : { right: 14, top: 14 }} role="status">
+            <span className="title" style={{ fontSize: full ? 64 : 34, lineHeight: 1 }}>{digits}</span>
+            <span className="caps" style={{ fontSize: full ? 18 : 13, fontWeight: 700, opacity: hit ? 1 : 0.6 }}>{hit ? hit.name : 'Canal não encontrado'}</span>
+          </div>
+        );
+      })()}
     </div>
   );
 }

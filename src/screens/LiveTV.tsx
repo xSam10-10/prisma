@@ -107,10 +107,12 @@ interface Props {
   toggleFav: (c: Channel) => void;
   onPlay: (c: Channel, list: Channel[]) => void;
   onFull: () => void;
+  lastChannel?: Channel;
+  onLast?: () => void;
   onPlayVod: (item: Channel) => void;
 }
 
-export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPlay, onFull, onPlayVod }: Props) {
+export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPlay, onFull, onPlayVod, lastChannel, onLast }: Props) {
   const [guide, setGuide] = useState(false);
   const native = useMemo(() => categoriesOf(live, 'live'), [live]);
   const { data: secData, set: setSecData } = useSections();
@@ -385,6 +387,11 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
               </span>
               <div className="progress"><div style={{ width: curPlay ? `${progressOf(curPlay, now) * 100}%` : '100%' }} /></div>
             </div>
+            {lastChannel && onLast && (
+              <button className="btn icon" data-nav="" aria-label={`Último canal: ${lastChannel.name}`} title={`Último canal: ${lastChannel.name}`} style={{ width: 46, padding: 0, justifyContent: 'center', fontSize: 20 }} onClick={onLast}>
+                ↺
+              </button>
+            )}
             <button
               className="btn icon"
               data-nav=""
