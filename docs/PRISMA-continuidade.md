@@ -256,6 +256,13 @@ Com LG webOS + Roku + Android + computador:
 **Filmes · Séries · Anime (0.9.0):** `src/screens/Vod.tsx`, `src/core/vod.ts`, `src/ui/VirtualGrid.tsx`. Streamings detectados pelo nome das categorias (Netflix, HBO Max, Disney+, Prime Video, Apple TV, Globoplay, Paramount+, Star+, Hulu, Crunchyroll, Discovery+) com arte própria; categorias; grade virtual de capas; busca + voz; ordenar Recentes/A–Z/Nota; detalhe (sinopse, elenco, direção, nota — via get_vod_info/get_series_info); séries com temporadas e episódios; player de filme (barra de tempo, ◀▶ 10 s, OK pausa, teclas de mídia), progresso salvo e "Continuar"; Minha lista; Início com "Filmes e séries em andamento" e "Minha lista". Anime = categorias com "anime"/Crunchyroll.
 **Jogos (0.9.0):** `src/screens/Games.tsx`, `src/core/games.ts`. Partidas tiradas do guia (Xtream, 12 próximos programas) de até 80 canais de esporte; filtros Ao vivo/Hoje/Amanhã/Todos e por liga; onde assistir (todos os canais); lembrete com aviso na tela.
 
+## 10b. Versão 0.10.0 (08/11)
+- Player: reconexão automática (3 tentativas: 2 s, 4 s, 8 s; zera após 15 s estável), Áudio e legendas (hls.js e nativo), próximo episódio automático (aviso de 10 s).
+- Séries de listas M3U agrupadas (S01E02, T1E2, 1x02) — `parseEpisodeName`; busca geral com canais, filmes e séries (filtros).
+- Guia completo XMLTV (`src/core/xmltv.ts`, gzip via fflate; M3U url-tvg ou Xtream xmltv.php; 12 h de cache em IndexedDB; janela −3/+7 dias, na LG −1/+2) e grade (`src/screens/Guide.tsx`, botão "Guia de 7 dias" no Ao vivo).
+- Voltar na programação (`src/core/catchup.ts`): Xtream timeshift no fuso do servidor; M3U catchup-source/append/shift.
+- Placar ao vivo (`src/core/scores.ts`): placar público da ESPN (sem chave) cruzado pelos times; lista e painel dos Jogos.
+
 ## 11. Pendências (07–08/11/2026)
 
 **Precisa de você / testes reais**

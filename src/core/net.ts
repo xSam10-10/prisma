@@ -60,3 +60,21 @@ export async function fetchJson<T>(url: string, timeoutMs?: number): Promise<T> 
     throw new SourceError('format', 'O servidor não respondeu no formato esperado (Xtream).');
   }
 }
+
+/** Baixa dados binários (ex.: guia .xml.gz). Mesmo caminho do fetchText (proxy no computador). */
+export function fetchBytes(url: string, timeoutMs = 180000): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', proxify(url), true);
+    xhr.responseType = 'arraybuffer';
+    xhr.timeout = timeoutMs;
+    xhr.ontimeout = () => reject(new SourceError('network', 'O guia demorou demais para baixar.'));
+    xhr.onerror = () => reject(new SourceError('network', 'Não foi possível baixar o guia.'));
+    xhr.onload = () => {
+      const ok = (xhr.status >= 200 && xhr.status < 300) || (xhr.status === 0 && /^file:/i.test(url));
+      if (!ok) return reject(new SourceError('network', `O guia respondeu com erro ${xhr.status}.`));
+      resolve(new Uint8Array(xhr.response as ArrayBuffer));
+    };
+    xhr.send();
+  });
+}

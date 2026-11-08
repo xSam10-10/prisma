@@ -2,6 +2,7 @@
 // Uso: node test/fake-xtream.mjs   (porta 8090, usuário "teste", senha "1234")
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +11,7 @@ const PORT = Number(process.env.PORT || 8090);
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 
 const live = [
+  { num: 9, name: 'CANAL MULTIÁUDIO HD', stream_id: 9, category_id: '10', epg_channel_id: '', dir: 'MULTI' },
   { num: 1, name: 'Globo SP FHD', stream_id: 1, category_id: '10', epg_channel_id: 'globo', dir: 'prisma1' },
   { num: 443, name: 'GLOBO NEWS 4K', stream_id: 5443, category_id: '60', epg_channel_id: '', dir: 'prisma3' },
   { num: 1125, name: 'SPORTV 2 FHD [H265]', stream_id: 6125, category_id: '60', epg_channel_id: '', dir: 'prisma2' },
@@ -52,11 +54,29 @@ function poster(id) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="#0B0B12"/></linearGradient></defs><rect width="300" height="450" fill="url(#g)"/><circle cx="230" cy="110" r="90" fill="#ffffff22"/><text x="20" y="380" font-family="sans-serif" font-size="30" font-weight="800" fill="#fff">${name.replace(/ \(.*\)/, '').toUpperCase().slice(0, 16)}</text><text x="20" y="415" font-family="sans-serif" font-size="18" fill="#ffffffaa">${id[0] === 'm' ? 'FILME' : 'SÉRIE'}</text></svg>`;
 }
 
+// Canais que guardam gravações (voltar na programação)
+for (const c of live) if ([1, 30, 50].includes(c.stream_id)) { c.tv_archive = 1; c.tv_archive_duration = 3; }
+
+function xmltv() {
+  const base = Math.floor(Date.now() / 3600000) * 3600000;
+  const fmt = (ms) => { const d = new Date(ms); const z = (n) => String(n).padStart(2, '0'); return `${d.getUTCFullYear()}${z(d.getUTCMonth() + 1)}${z(d.getUTCDate())}${z(d.getUTCHours())}${z(d.getUTCMinutes())}00 +0000`; };
+  const shows = ['Jornal da Manhã', 'Mais Você', 'Sessão da Tarde', 'Vale a Pena Ver de Novo', 'Jornal Hoje', 'Novela das Seis', 'Jornal Nacional', 'Novela das Nove', 'Futebol: Flamengo x Palmeiras', 'Jornal da Noite', 'Corujão', 'Programa &amp; Cia'];
+  let out = '<?xml version="1.0" encoding="UTF-8"?>\n<tv generator-info-name="falso">\n';
+  const chans = live.filter((c) => c.epg_channel_id);
+  for (const c of chans) out += `<channel id="${c.epg_channel_id}"><display-name>${c.name}</display-name></channel>\n`;
+  for (const c of chans) for (let h = -72; h < 168; h++) {
+    const st = base + h * 3600000;
+    out += `<programme start="${fmt(st)}" stop="${fmt(st + 3600000)}" channel="${c.epg_channel_id}"><title lang="pt">${shows[(h + 300 + c.stream_id) % shows.length]}</title><desc>Descrição de teste do programa.</desc></programme>\n`;
+  }
+  return out + '</tv>';
+}
+
 const cats = [
   ['10', 'Abertos'], ['20', 'Esportes | Futebol'], ['30', 'Notícias'], ['40', 'Filmes e Séries 24h'], ['50', 'Variedades'], ['60', '\u2666\uFE0F CANAIS | FHD H265 \u2B50'], ['61', '\uD83D\uDD36 REDE RECORD'], ['70', '\u2666\uFE0F REDE BANDEIRANTES'], ['71', '\u2666\uFE0F CANAIS | UHD 4K \u2B50'], ['72', '\u2666\uFE0F GLOBO | CAPITAIS'], ['73', '\u2666\uFE0F A FAZENDA 2026 \u2B50'], ['74', 'PPV | AMAZON PRIME'], ['76', 'CANAIS 24H | DESENHOS'], ['77', 'CANAIS 24H | PREMIERE'], ['78', 'EVENTOS EM DESTAQUE'], ['79', 'CANAIS 24H | SERIES'], ['80', 'CANAIS 24H | LIVE SHOWS'], ['75', 'FILMES E SÉRIES'],
 ].map(([category_id, category_name]) => ({ category_id, category_name, parent_id: 0 }));
 
 let limitG = 4;
+let lastTimeshift = '';
 function epgFor(id) {
   const now = Math.floor(Date.now() / 1000);
   const start = now - (now % 1800) - 900;
@@ -81,9 +101,10 @@ createServer((req, res) => {
   if (u.pathname === '/player_api.php') {
     if (u.searchParams.get('username') !== 'teste' || u.searchParams.get('password') !== '1234') return send({ user_info: { auth: 0 } });
     const a = u.searchParams.get('action');
-    if (!a) return send({ user_info: { auth: 1, status: 'Active', exp_date: String(Math.floor(Date.now() / 1000) + 86400 * 40), max_connections: '2', active_cons: '0' }, server_info: {} });
+    if (!a) return send({ user_info: { auth: 1, status: 'Active', exp_date: String(Math.floor(Date.now() / 1000) + 86400 * 40), max_connections: '2', active_cons: '0' }, server_info: { timezone: 'America/Sao_Paulo' } });
     if (a === 'get_live_categories') return send(cats);
     if (a === 'get_live_streams') return send(live.map(({ dir, ...s }) => s));
+    if (!a || a === '') {}
     if (a === 'get_vod_categories') return send(VOD_CATS.map(([category_id, category_name]) => ({ category_id, category_name })));
     if (a === 'get_vod_streams') return send(vods);
     if (a === 'get_series_categories') return send(SER_CATS.map(([category_id, category_name]) => ({ category_id, category_name })));
@@ -100,6 +121,29 @@ createServer((req, res) => {
     }
     if (a === 'get_short_epg') { limitG = u.searchParams.get('limit'); return send({ epg_listings: epgFor(u.searchParams.get('stream_id')) }); }
     return send([]);
+  }
+  if (u.pathname.startsWith('/espn/')) {
+    const now = Date.now();
+    const start = new Date(now - (now % 1800000) - 900000).toISOString();
+    const ev = (h, a, hs, as, state, short) => ({ date: start, status: { type: { state, shortDetail: short } }, competitions: [{ competitors: [{ homeAway: 'home', score: hs, team: { displayName: h } }, { homeAway: 'away', score: as, team: { displayName: a } }] }] });
+    const events = u.pathname.includes('bra.1') ? [ev('Flamengo', 'Palmeiras', '2', '1', 'in', "67'"), ev('Corinthians', 'São Paulo', '0', '0', 'pre', '21:30')]
+      : u.pathname.includes('libertadores') ? [ev('River Plate', 'Grêmio', '1', '1', 'in', 'HT')] : [];
+    return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }).end(JSON.stringify({ events }));
+  }
+  if (u.pathname === '/xmltv.php') {
+    return res.writeHead(200, { 'content-type': 'application/octet-stream' }).end(gzipSync(xmltv()));
+  }
+  if (/^\/timeshift\/teste\/1234\//.test(u.pathname)) {
+    lastTimeshift = u.pathname;
+    res.writeHead(200, { 'content-type': 'video/mp2t' });
+    return createReadStream(join(demo, 'canal-ts.ts')).pipe(res);
+  }
+  if (u.pathname === '/ultimo-timeshift') return res.writeHead(200).end(lastTimeshift);
+  if (u.pathname.startsWith('/multi/')) {
+    const f = fileURLToPath(new URL('.' + u.pathname, import.meta.url));
+    if (!existsSync(f)) return res.writeHead(404).end();
+    res.writeHead(200, { 'content-type': f.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : f.endsWith('.vtt') ? 'text/vtt' : 'video/mp2t' });
+    return createReadStream(f).pipe(res);
   }
   if (u.pathname.startsWith('/poster/')) {
     return res.writeHead(200, { 'content-type': 'image/svg+xml' }).end(poster(u.pathname.slice(8).replace('.svg', '')));
@@ -123,11 +167,19 @@ createServer((req, res) => {
   if (m) {
     const ch = live.find((c) => c.stream_id === Number(m[1]));
     if (!ch || !ch.dir) return res.writeHead(404).end();
+    if (m[2] === 'm3u8' && ch.dir === 'MULTI') return res.writeHead(302, { location: '/multi/master.m3u8' }).end();
     if (m[2] === 'm3u8') {
       // Redireciona como muitos servidores reais fazem
       return res.writeHead(302, { location: `/live/teste/1234/${ch.stream_id}/index.m3u8` }).end();
     }
     if (m[2] === 'ts') return res.writeHead(200, { 'content-type': 'video/mp2t' }) && createReadStream(join(demo, 'canal-ts.ts')).pipe(res);
+    // Playlist ao vivo (janela deslizante): repete os 5 pedaços de 4 s em loop.
+    if (m[3] === 'index.m3u8') {
+      const seq = Math.floor(Date.now() / 4000);
+      let out = `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:4\n#EXT-X-MEDIA-SEQUENCE:${seq}\n#EXT-X-DISCONTINUITY-SEQUENCE:${seq}\n`;
+      for (let k = 0; k < 3; k++) out += `#EXT-X-DISCONTINUITY\n#EXTINF:4.000000,\ns0${(seq + k) % 5}.ts\n`;
+      return res.writeHead(200, { 'content-type': 'application/vnd.apple.mpegurl', 'cache-control': 'no-cache' }).end(out);
+    }
     const f = join(demo, ch.dir, m[3]);
     if (!existsSync(f)) return res.writeHead(404).end();
     res.writeHead(200, { 'content-type': f.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp2t' });

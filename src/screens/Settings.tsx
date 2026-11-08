@@ -8,6 +8,7 @@ import { T } from '../ui/tokens';
 import { VERSION } from '../version';
 import { ConfirmButton } from '../ui/Dialog';
 import { clearEpgCache } from '../core/epg';
+import { clearXmltv } from '../core/xmltv';
 
 // Ajustes do PRISMA: Tela · Player · Aparência · Lista · Sobre.
 // Cada opção é um seletor: OK (ou clique) avança; ◀ ▶ no controle trocam.
@@ -257,7 +258,7 @@ export function Settings({
           <ConfirmButton label="Limpar progresso" onConfirm={data.clearProgress} done="Progresso limpo" />
         </Row>
         <Row label="Limpar guia de programação" help="Apaga o guia guardado na memória. Ele é baixado de novo quando você abrir um canal.">
-          <ConfirmButton label="Limpar guia" onConfirm={() => clearEpgCache()} done="Guia limpo" />
+          <ConfirmButton label="Limpar guia" onConfirm={() => { clearEpgCache(); clearXmltv(); }} done="Guia limpo" />
         </Row>
         <Row label="Restaurar ajustes" help="Volta Tela, Player e Aparência para o padrão.">
           <ConfirmButton label="Restaurar ajustes" onConfirm={() => update(DEFAULT_SETTINGS)} done="Ajustes restaurados" />

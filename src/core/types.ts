@@ -16,12 +16,17 @@ export interface Channel {
   altUrls?: string[];    // "fonte 2": mesma emissora em outra URL
   headers?: { userAgent?: string; referrer?: string };
   catchupDays?: number;
+  /** M3U: modelo de endereço para voltar na programação (catchup-source). */
+  catchupSource?: string;
+  catchupType?: string;
   /** Filmes/séries: nota (0–10), ano e data em que entrou na lista (ms). */
   rating?: number;
   year?: number;
   added?: number;
   /** Episódio: id da série a que pertence. */
   seriesId?: string;
+  /** Série montada de uma lista M3U: episódios já conhecidos. */
+  episodes?: EpisodeRef[];
 }
 
 export interface Category {
@@ -44,6 +49,8 @@ export interface AccountInfo {
   expiresAt?: number;       // ms
   maxConnections?: number;
   activeConnections?: number;
+  /** Fuso do servidor Xtream (para voltar na programação). */
+  timezone?: string;
 }
 
 export type SourceConfig =
@@ -66,4 +73,13 @@ export class SourceError extends Error {
     super(message);
     this.name = 'SourceError';
   }
+}
+
+export interface EpisodeRef {
+  id: string;
+  season: number;
+  number: number;
+  title: string;
+  url: string;
+  cover?: string;
 }

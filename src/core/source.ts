@@ -1,6 +1,6 @@
 import { detectXtreamFromUrl, parseM3U } from './m3u';
 import { cleanLabel } from './logos';
-import { simplifyGroups, simplifyName } from './names';
+import { parseEpisodeName, simplifyGroups, simplifyName } from './names';
 import { fetchText } from './net';
 import { idbDel, idbGet, idbSet } from './storage';
 import { SourceError, type Category, type Channel, type ItemKind, type Playlist, type SourceConfig } from './types';
@@ -41,8 +41,37 @@ export function tidyPlaylist(p: Playlist): Playlist {
     }
     out.push(it);
   }
-  p.items = out;
+  p.items = groupM3uSeries(out);
   return p;
+}
+
+/** Listas M3U mandam cada episódio solto: junta em séries com temporadas. */
+function groupM3uSeries(items: Channel[]): Channel[] {
+  const shows = new Map<string, Channel>();
+  const out: Channel[] = [];
+  for (const it of items) {
+    const ep = it.kind === 'series' && it.url ? parseEpisodeName(it.fullName ?? it.name) : null;
+    if (!ep) {
+      out.push(it);
+      continue;
+    }
+    const key = it.group + '|' + ep.show.toLowerCase();
+    let show = shows.get(key);
+    if (!show) {
+      show = { id: 'ms' + key.length.toString(36) + '_' + hashKey(key), kind: 'series', name: ep.show, fullName: ep.show, group: it.group, logo: it.logo, url: '', episodes: [] };
+      shows.set(key, show);
+      out.push(show);
+    }
+    show.episodes!.push({ id: it.id, season: ep.season, number: ep.number, title: ep.title || `Episódio ${ep.number}`, url: it.url, cover: it.logo });
+  }
+  for (const s of shows.values()) s.episodes!.sort((a, b) => a.season - b.season || a.number - b.number);
+  return out;
+}
+
+function hashKey(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
 }
 
 /** Carrega a lista de qualquer origem e devolve no modelo único. */

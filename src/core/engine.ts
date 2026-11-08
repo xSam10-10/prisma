@@ -21,7 +21,28 @@ export type EngineEvent =
   | { type: 'playing' }
   | { type: 'waiting' }
   | { type: 'error'; message: string }
-  | { type: 'levels'; height?: number };
+  | { type: 'levels'; height?: number }
+  | { type: 'tracks' };
+
+export interface Track {
+  id: number;
+  label: string;
+}
+export interface Tracks {
+  audio: Track[];
+  text: Track[];
+  audioId: number;
+  /** -1 = legendas desligadas */
+  textId: number;
+}
+
+const LANG: Record<string, string> = { por: 'Português', pt: 'Português', 'pt-br': 'Português', eng: 'Inglês', en: 'Inglês', spa: 'Espanhol', es: 'Espanhol', fre: 'Francês', fra: 'Francês', fr: 'Francês', ita: 'Italiano', it: 'Italiano', deu: 'Alemão', ger: 'Alemão', de: 'Alemão', jpn: 'Japonês', ja: 'Japonês' };
+function trackLabel(name?: string, lang?: string, i = 0): string {
+  const l = (lang || '').toLowerCase();
+  const nice = LANG[l] || LANG[l.slice(0, 2)];
+  if (name && !/^(audio|track|und|subtitles?|sub|faixa)[\s_-]*\d*$/i.test(name)) return nice && !name.toLowerCase().includes(nice.toLowerCase()) ? `${name} (${nice})` : name;
+  return nice || (lang ? lang.toUpperCase() : `Faixa ${i + 1}`);
+}
 
 type Kind = 'hls' | 'ts' | 'native';
 
@@ -120,6 +141,8 @@ export class Engine {
       hls.on(Hls.Events.LEVEL_SWITCHED, (_e, d) => {
         this.onEvent({ type: 'levels', height: hls.levels[d.level]?.height });
       });
+      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => this.onEvent({ type: 'tracks' }));
+      hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => this.onEvent({ type: 'tracks' }));
       hls.loadSource(src);
       hls.attachMedia(v);
       safePlay(v);
@@ -128,7 +151,7 @@ export class Engine {
 
     if (!native && k === 'ts' && mpegts.getFeatureList().mseLivePlayback) {
       const p = mpegts.createPlayer(
-        { type: 'mpegts', isLive: true, url: new URL(src, location.href).href },
+        { type: 'mpegts', isLive: !ch || ch.kind === 'live', url: new URL(src, location.href).href },
         { enableWorker: !LITE, liveBufferLatencyChasing: true, lazyLoad: false },
       );
       this.ts = p;
@@ -159,6 +182,56 @@ export class Engine {
       v.addEventListener('loadedmetadata', seek);
     }
     safePlay(v);
+  }
+
+  /** Trilhas de áudio e legendas disponíveis (hls.js ou player nativo). */
+  tracks(): Tracks {
+    const h = this.hls;
+    if (h) {
+      return {
+        audio: h.audioTracks.map((t, i) => ({ id: i, label: trackLabel(t.name, t.lang, i) })),
+        text: h.subtitleTracks.map((t, i) => ({ id: i, label: trackLabel(t.name, t.lang, i) })),
+        audioId: h.audioTrack,
+        textId: h.subtitleDisplay ? h.subtitleTrack : -1,
+      };
+    }
+    const v = this.video as HTMLVideoElement & { audioTracks?: ArrayLike<{ label: string; language: string; enabled: boolean }> };
+    const audio: Track[] = [];
+    let audioId = 0;
+    if (v.audioTracks) {
+      for (let i = 0; i < v.audioTracks.length; i++) {
+        audio.push({ id: i, label: trackLabel(v.audioTracks[i].label, v.audioTracks[i].language, i) });
+        if (v.audioTracks[i].enabled) audioId = i;
+      }
+    }
+    const text: Track[] = [];
+    let textId = -1;
+    for (let i = 0; i < v.textTracks.length; i++) {
+      const t = v.textTracks[i];
+      if (t.kind !== 'subtitles' && t.kind !== 'captions') continue;
+      text.push({ id: i, label: trackLabel(t.label, t.language, i) });
+      if (t.mode === 'showing') textId = i;
+    }
+    return { audio, text, audioId, textId };
+  }
+
+  setAudio(id: number): void {
+    if (this.hls) {
+      this.hls.audioTrack = id;
+      return;
+    }
+    const at = (this.video as HTMLVideoElement & { audioTracks?: ArrayLike<{ enabled: boolean }> }).audioTracks;
+    if (at) for (let i = 0; i < at.length; i++) at[i].enabled = i === id;
+  }
+
+  setText(id: number): void {
+    if (this.hls) {
+      this.hls.subtitleDisplay = id >= 0;
+      this.hls.subtitleTrack = id;
+      return;
+    }
+    const tt = this.video.textTracks;
+    for (let i = 0; i < tt.length; i++) tt[i].mode = i === id ? 'showing' : 'disabled';
   }
 
   stop(): void {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { hasReminder, isSportsChannel, loadGames, matchOf, toggleReminder, type Game } from '../core/games';
 import type { Channel, Playlist } from '../core/types';
+import { loadScores, orderedScore, scoreFor, type Score } from '../core/scores';
 import { ChannelLogo, fmtTime } from '../ui/bits';
 import { Modal } from '../ui/Dialog';
 import { useLayout } from '../ui/layout';
@@ -31,6 +32,18 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
   const [, force] = useState(0);
   const [open, setOpen] = useState<Game | null>(null);
   const listRef = useRef<VirtualListHandle>(null);
+  // Placar ao vivo (ESPN): atualiza a cada minuto enquanto a tela está aberta.
+  const [scores, setScores] = useState<Score[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const tick = () => loadScores().then((s) => alive && setScores(s));
+    tick();
+    const t = setInterval(tick, 60000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
   const now = Date.now();
   const sports = useMemo(() => playlist.items.filter(isSportsChannel), [playlist]);
 
@@ -82,7 +95,7 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
     ['todos', 'Todos', games.length],
   ];
 
-  const detail = (g: Game) => <GameDetail g={g} now={now} onWatch={(c) => onWatch(c, g.channels)} onReminder={() => { toggleReminder(g); force((x) => x + 1); }} />;
+  const detail = (g: Game) => <GameDetail g={g} score={scoreFor(g, scores)} now={now} onWatch={(c) => onWatch(c, g.channels)} onReminder={() => { toggleReminder(g); force((x) => x + 1); }} />;
 
   const listW = mobile ? L.W - L.px * 2 : Math.round(Math.min(620, Math.max(440, L.W * 0.42)));
 
@@ -122,6 +135,17 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
                   <span className="name" style={{ textTransform: 'none' }}>{matchOf(g.title)}</span>
                   <span className="sub caps" style={{ fontSize: 13 }}>{g.league} · {g.channels.length} {g.channels.length > 1 ? 'canais' : 'canal'}</span>
                 </div>
+                {(() => {
+                  const sc = scoreFor(g, scores);
+                  if (!sc || sc.state === 'pre') return null;
+                  const [a, b] = orderedScore(g, sc);
+                  return (
+                    <span className={'score-pill' + (sc.state === 'in' ? ' live' : '')}>
+                      {a} × {b}
+                      <small>{sc.detail}</small>
+                    </span>
+                  );
+                })()}
                 {hasReminder(g.key) && <span title="Lembrete" style={{ color: T.warn }}>⏰</span>}
               </>
             );
@@ -149,7 +173,8 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
   );
 }
 
-function GameDetail({ g, now, onWatch, onReminder }: { g: Game; now: number; onWatch: (c: Channel) => void; onReminder: () => void }) {
+function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: Score; now: number; onWatch: (c: Channel) => void; onReminder: () => void }) {
+  const sc = score && score.state !== 'pre' ? orderedScore(g, score) : null;
   const st = status(g, now);
   const teams = matchOf(g.title).split(/\s+(?:x|vs\.?|versus|×)\s+/i);
   const pct = Math.max(0, Math.min(1, (now - g.start) / Math.max(1, g.end - g.start)));
@@ -160,7 +185,14 @@ function GameDetail({ g, now, onWatch, onReminder }: { g: Game; now: number; onW
       {teams.length === 2 ? (
         <div className="game-teams">
           <span>{teams[0]}</span>
-          <i>×</i>
+          {sc ? (
+            <b className={'big-score' + (score!.state === 'in' ? ' live' : '')}>
+              <span className="nums">{sc[0]}<i>×</i>{sc[1]}</span>
+              <small>{score!.detail}</small>
+            </b>
+          ) : (
+            <i>×</i>
+          )}
           <span>{teams[1]}</span>
         </div>
       ) : (
@@ -173,9 +205,11 @@ function GameDetail({ g, now, onWatch, onReminder }: { g: Game; now: number; onW
         </span>
       </div>
       {st === 'live' && <div className="progress" style={{ maxWidth: 520 }}><div style={{ width: `${pct * 100}%` }} /></div>}
-      <span className="muted" style={{ fontSize: 14 }}>Placar ao vivo e estatísticas: em breve (precisa de um serviço de dados esportivos).</span>
+      <span className="muted" style={{ fontSize: 13 }}>
+        {score ? `Placar: ESPN · atualiza a cada minuto${score.state === 'pre' ? ' (ainda não começou)' : ''}` : 'Placar indisponível para este jogo (a fonte cobre as principais ligas de futebol, NBA, NFL e UFC).'}
+      </span>
       <span className="title" style={{ fontSize: 19, marginTop: 4 }}>Onde assistir</span>
-      <div className="gy-8 scroll-y" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, maxHeight: 230 }}>
+      <div className="gy-8 scroll-y" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flexGrow: 1, flexShrink: 1 }}>
         {g.channels.map((c) => (
           <button key={c.id} className="where-row" data-nav="" onClick={() => onWatch(c)}>
             <ChannelLogo ch={c} size={40} />
@@ -184,7 +218,7 @@ function GameDetail({ g, now, onWatch, onReminder }: { g: Game; now: number; onW
           </button>
         ))}
       </div>
-      <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', marginTop: 'auto' }}>
+      <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', flexShrink: 0, marginBottom: -12 }}>
         <button className="btn primary" data-nav="" onClick={() => g.channels[0] && onWatch(g.channels[0])}>▶ {st === 'live' ? 'Assistir agora' : 'Ir para o canal'}</button>
         {st !== 'live' && (
           <button className="btn" data-nav="" onClick={onReminder} style={rem ? { color: T.warn } : undefined}>

@@ -14,6 +14,7 @@ import { orderedSections, sectionChannels, useSections, createSection } from '..
 import { NameDialog } from '../ui/Dialog';
 import { VoiceButton, voiceSupported } from '../ui/Voice';
 import { OrganizeSections } from './Sections';
+import { Guide } from './Guide';
 
 /** Geometria da tela Ao vivo para a tela atual (o Player usa o mesmo retângulo). */
 function normalizeText(s: string): string {
@@ -106,9 +107,11 @@ interface Props {
   toggleFav: (c: Channel) => void;
   onPlay: (c: Channel, list: Channel[]) => void;
   onFull: () => void;
+  onPlayVod: (item: Channel) => void;
 }
 
-export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPlay, onFull }: Props) {
+export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPlay, onFull, onPlayVod }: Props) {
+  const [guide, setGuide] = useState(false);
   const native = useMemo(() => categoriesOf(live, 'live'), [live]);
   const { data: secData, set: setSecData } = useSections();
   const cats = useMemo(() => orderedSections(native, secData, live), [native, secData, live]);
@@ -244,6 +247,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
         <div ref={chipsRef} className="scroll-x" role="tablist" aria-label="Categorias">
           <button className="chip" data-nav="" style={{ color: '#3DD6C4' }} onClick={() => setDialog('new')}>+ Nova</button>
           <button className="chip" data-nav="" onClick={() => setDialog('organize')}>⇅</button>
+          <button className="chip" data-nav="" onClick={() => setGuide(true)}>▦ Guia</button>
           {chips.map((c) => (
             <button
               key={c.id}
@@ -406,8 +410,9 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
           position: 'absolute', ...G.next, padding: '14px 18px', borderRadius: 26,
           display: 'flex', flexDirection: 'column', overflow: 'hidden', }}
       >
-        <div className="gx-18" style={{ display: 'flex', fontSize: 16, fontWeight: 700, alignItems: 'baseline' }}>
+        <div className="gx-18" style={{ display: 'flex', fontSize: 16, fontWeight: 700, alignItems: 'center' }}>
           <span>A seguir</span>
+          <button className="chip" data-nav="" onClick={() => setGuide(true)} style={{ height: 32, flexShrink: 0 }}>▦ Guia de 7 dias</button>
           <span className="muted caps" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selected ? `${selected.number ?? ''} · ${selected.name}` : ''}
           </span>
@@ -464,6 +469,26 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
         />
       )}
       {dialog === 'organize' && <OrganizeSections views={cats} onClose={() => setDialog(null)} />}
+      {guide && (
+        <Guide
+          playlist={playlist}
+          channels={list.length ? list : live}
+          startIndex={index}
+          onClose={() => {
+            setGuide(false);
+            requestAnimationFrame(() => listRef.current?.focus());
+          }}
+          onWatch={(c) => {
+            setGuide(false);
+            onPlay(c, list);
+            requestAnimationFrame(onFull);
+          }}
+          onPlayVod={(it) => {
+            setGuide(false);
+            onPlayVod(it);
+          }}
+        />
+      )}
     </>
   );
 }

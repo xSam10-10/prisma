@@ -143,7 +143,9 @@ export function parseM3U(text: string, baseUrl?: string): ParsedM3U {
         epgId: attrs['tvg-id'] || undefined,
         url,
         headers,
-        catchupDays: attrs['catchup-days'] ? parseInt(attrs['catchup-days'], 10) : undefined,
+        catchupDays: attrs['catchup-days'] ? parseInt(attrs['catchup-days'], 10) : attrs['tvg-rec'] ? parseInt(attrs['tvg-rec'], 10) : undefined,
+        catchupSource: attrs['catchup-source'] || undefined,
+        catchupType: attrs['catchup'] || undefined,
       });
     }
     pending = null;

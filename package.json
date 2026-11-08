@@ -1,7 +1,7 @@
 {
   "name": "prisma-app",
   "private": true,
-  "version": "0.9.1",
+  "version": "0.10.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,6 +14,7 @@
     "dist:win": "npm run build && electron-builder --win --x64 --publish never"
   },
   "dependencies": {
+    "fflate": "0.8.3",
     "hls.js": "1.7.4",
     "mpegts.js": "1.8.2",
     "react": "18.3.1",

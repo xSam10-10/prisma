@@ -161,7 +161,9 @@ function Shelf({ title, items, empty, onWatch, badgeFor }: { title: string; item
 }
 
 // ---------------------------------------------------------------- Busca
-export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: Channel, list: Channel[]) => void }) {
+export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; onWatch: (c: Channel, list: Channel[]) => void; onPlayVod: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
+  const [detail, setDetail] = useState<Channel | null>(null);
+  const [kind, setKind] = useState<'all' | 'live' | 'movie' | 'series'>('all');
   const [q, setQ] = useState('');
   const [index, setIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -173,7 +175,10 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
     return playlist.items.filter((i) => normalize(i.fullName ?? i.name).includes(n)).slice(0, 500);
   }, [q, playlist]);
   const live = results.filter((r) => r.kind === 'live');
-  const vod = results.length - live.length;
+  const movies = results.filter((r) => r.kind === 'movie');
+  const series = results.filter((r) => r.kind === 'series');
+  // Canais primeiro, depois filmes e séries.
+  const shown = kind === 'live' ? live : kind === 'movie' ? movies : kind === 'series' ? series : [...live, ...movies, ...series];
   const L = useLayout();
   const mobile = L.form === 'mobile';
   return (
@@ -189,7 +194,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
             setIndex(0);
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && live.length) {
+            if (e.key === 'Enter' && shown.length) {
               e.preventDefault();
               listRef.current?.focus();
             }
@@ -198,26 +203,37 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
         />
         <span style={{ marginLeft: 12 }}><VoiceButton size={mobile ? 46 : 56} onText={(t) => { setQ(t); setIndex(0); }} /></span>
       </div>
-      <span className="muted" style={{ fontSize: 16 }}>
-        {q.trim().length < 2
-          ? 'Digite pelo menos 2 letras. Na TV, o teclado do aparelho aparece ao apertar OK no campo.'
-          : `${live.length} canais${vod ? ` · ${vod} filmes/séries (busque nas abas Filmes, Séries ou Anime)` : ''}`}
-      </span>
+      {q.trim().length < 2 ? (
+        <span className="muted" style={{ fontSize: 16 }}>Digite pelo menos 2 letras. Procura em canais, filmes e séries. Na TV, o teclado do aparelho aparece ao apertar OK no campo.</span>
+      ) : (
+        <div className="scroll-x" style={{ flexShrink: 0 }}>
+          {([['all', 'Tudo', results.length], ['live', 'Canais', live.length], ['movie', 'Filmes', movies.length], ['series', 'Séries', series.length]] as const).map(([id, label, n]) => (
+            <button key={id} className={'chip' + (kind === id ? ' on' : '')} data-nav="" onClick={() => { setKind(id); setIndex(0); }}>{label} · {n}</button>
+          ))}
+        </div>
+      )}
       <div className={mobile ? '' : 'glass'} style={{ flexGrow: 1, borderRadius: T.radiusPanel, padding: mobile ? 0 : 16, display: 'flex', minHeight: 0 }}>
         <VirtualList
           ref={listRef}
-          items={live}
+          items={shown}
           index={index}
           onIndex={setIndex}
-          onPick={(c) => onWatch(c, live)}
+          onPick={(c) => (c.kind === 'live' ? onWatch(c, live) : setDetail(c))}
           label="Resultados"
-          rowHeight={54}
+          rowHeight={60}
           render={(c) => (
             <>
-              <span className="num">{c.number ?? ''}</span>
-              <ChannelLogo ch={c} />
+              <span className="num">{c.kind === 'live' ? c.number ?? '' : ''}</span>
+              {c.kind === 'live' ? (
+                <ChannelLogo ch={c} />
+              ) : (
+                <span className="mini-poster">{c.logo ? <img src={c.logo} alt="" loading="lazy" referrerPolicy="no-referrer" /> : null}</span>
+              )}
               <div className="txt">
                 <span className="name">{c.name}</span>
+                <span className="sub caps" style={{ fontSize: 13 }}>
+                  {c.kind === 'live' ? 'Canal' : c.kind === 'movie' ? 'Filme' : 'Série'}{c.year ? ` · ${c.year}` : ''} · {c.group}
+                </span>
               </div>
             </>
           )}
@@ -231,6 +247,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
           }
         />
       </div>
+      {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => { setDetail(null); requestAnimationFrame(() => listRef.current?.focus()); }} />}
     </div>
   );
 }

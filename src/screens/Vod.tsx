@@ -43,7 +43,7 @@ export function PosterCard({ item, w, selected }: { item: Channel; w: number; se
 
 type Sort = 'recent' | 'az' | 'rating';
 
-export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: VodTab; onPlay: (item: Channel, startAt?: number) => void }) {
+export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: VodTab; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const all = useMemo(() => {
@@ -210,7 +210,7 @@ function countCats(items: Channel[]): { name: string; count: number }[] {
 
 // ---------------------------------------------------------------- Detalhe
 
-export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playlist; item: Channel; onClose: () => void; onPlay: (item: Channel, startAt?: number) => void }) {
+export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playlist; item: Channel; onClose: () => void; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const [info, setInfo] = useState<VodDetails | SeriesDetails | null>(null);
@@ -226,6 +226,13 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
     let alive = true;
     setInfo(null);
     setFailed(false);
+    // Série de lista M3U: os episódios já vieram na lista.
+    if (item.episodes) {
+      const eps = item.episodes.map((e) => ({ ...e, plot: undefined, duration: undefined }));
+      setInfo({ seasons: [...new Set(eps.map((e) => e.season))], episodes: eps });
+      setSeason(eps[0]?.season ?? 1);
+      return;
+    }
     if (!xt) {
       setFailed(true);
       return;
@@ -300,7 +307,7 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
               </>
             )}
             {isSeries && resumeEp && (
-              <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onPlay(asChannel(resumeEp), getProgress(resumeEp.id)?.pos)}>
+              <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onPlay(asChannel(resumeEp), getProgress(resumeEp.id)?.pos, allEps.map(asChannel))}>
                 ▶ {getProgress(resumeEp.id) ? 'Continuar' : 'Assistir'} T{resumeEp.season} E{resumeEp.number}
               </button>
             )}
@@ -324,7 +331,7 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
                   onIndex={setEpIndex}
                   rowHeight={58}
                   label="Episódios"
-                  onPick={(e) => onPlay(asChannel(e), getProgress(e.id)?.pos)}
+                  onPick={(e) => onPlay(asChannel(e), getProgress(e.id)?.pos, allEps.map(asChannel))}
                   render={(e) => {
                     const p = getProgress(e.id);
                     return (
@@ -354,7 +361,7 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
 
 // ---------------------------------------------------------------- Minha lista
 
-export function MyList({ playlist, onPlay }: { playlist: Playlist; onPlay: (item: Channel, startAt?: number) => void }) {
+export function MyList({ playlist, onPlay }: { playlist: Playlist; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const [items, setItems] = useState<Channel[]>(myList);

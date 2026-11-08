@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cleanLabel, logoKey } from '../src/core/logos';
-import { simplifyGroup, simplifyGroups, simplifyName } from '../src/core/names';
+import { parseEpisodeName, simplifyGroup, simplifyGroups, simplifyName } from '../src/core/names';
 
 describe('nomes de canais e categorias', () => {
   it('limpa emojis e símbolos das categorias', () => {
@@ -45,5 +45,15 @@ describe('nome curto da categoria', () => {
     expect(m.get('CANAIS | FHD H265')).toBe('CANAIS | FHD');
     const c = simplifyGroups(['CANAIS | FHD', 'CANAIS | FHD H265']);
     expect(c.get('CANAIS | FHD H265')).toBe('CANAIS | FHD H265');
+  });
+});
+
+describe('episódios de lista M3U', () => {
+  it('reconhece os formatos comuns', () => {
+    expect(parseEpisodeName('The Office S02 E05')).toEqual({ show: 'The Office', season: 2, number: 5, title: '' });
+    expect(parseEpisodeName('Chaves S01E10 - O Festival')).toEqual({ show: 'Chaves', season: 1, number: 10, title: 'O Festival' });
+    expect(parseEpisodeName('Naruto T3E21')).toMatchObject({ show: 'Naruto', season: 3, number: 21 });
+    expect(parseEpisodeName('Friends 4x07')).toMatchObject({ show: 'Friends', season: 4, number: 7 });
+    expect(parseEpisodeName('Filme Qualquer (2020)')).toBeNull();
   });
 });

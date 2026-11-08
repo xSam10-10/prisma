@@ -5,6 +5,8 @@ import { IS_WEBOS } from '../core/platform';
 import { useSettings } from '../core/settings';
 import { SectionPicker } from './Sections';
 import { fmtDuration, saveProgress } from '../core/vod';
+import type { Tracks } from '../core/engine';
+import { Modal } from '../ui/Dialog';
 import { useLayout } from '../ui/layout';
 import { progressOf } from '../core/epg';
 import type { Channel, Playlist } from '../core/types';
@@ -34,12 +36,28 @@ interface Props {
   onZap: (c: Channel) => void;
   /** Filme/episódio: começar deste segundo (continuar de onde parou). */
   startAt?: number;
+  /** Próximo episódio (série): toca sozinho ao terminar. */
+  nextEp?: Channel;
+  onNext?: () => void;
 }
 
 type Status = 'loading' | 'playing' | 'error';
 
-export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, startAt }: Props) {
+export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, startAt, nextEp, onNext }: Props) {
   const vod = !!channel && channel.kind !== 'live';
+  // Reconexão automática
+  const okRef = useRef('');
+  const channelIdRef = useRef('');
+  const reconnRef = useRef(0);
+  const reconnTimer = useRef<number>();
+  const stableTimer = useRef<number>();
+  const [reconnecting, setReconnecting] = useState(0);
+  // Áudio e legendas
+  const [tracks, setTracks] = useState<Tracks | null>(null);
+  const [trackDlg, setTrackDlg] = useState(false);
+  const hasTracks = !!tracks && (tracks.audio.length > 1 || tracks.text.length > 0);
+  // Próximo episódio
+  const [nextIn, setNextIn] = useState<number | null>(null);
   const [time, setTime] = useState({ cur: 0, dur: 0, paused: false });
   const lastSave = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -88,9 +106,17 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   useEffect(() => {
     const v = videoRef.current!;
     engine.current = new Engine(v, (e) => {
-      if (e.type === 'playing') setStatus('playing');
-      else if (e.type === 'waiting') setStatus((s) => (s === 'error' ? s : 'loading'));
+      if (e.type === 'playing') {
+        setStatus('playing');
+        setReconnecting(0);
+        // 15 s tocando sem cair: zera as tentativas (cada nova queda ganha 3 tentativas de novo).
+        clearTimeout(stableTimer.current);
+        stableTimer.current = window.setTimeout(() => (reconnRef.current = 0), 15000);
+        okRef.current = channelIdRef.current;
+        setTracks(engine.current?.tracks() ?? null);
+      } else if (e.type === 'waiting') setStatus((s) => (s === 'error' ? s : 'loading'));
       else if (e.type === 'levels') setHeight(e.height);
+      else if (e.type === 'tracks') setTracks(engine.current?.tracks() ?? null);
       else if (e.type === 'error') onErrorRef.current(e.message);
     });
     return () => engine.current?.destroy();
@@ -100,6 +126,18 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const onErrorRef = useRef<(m: string) => void>(() => {});
   onErrorRef.current = (message: string) => {
     const id = channel?.id ?? '';
+    // Canal que já estava tocando e caiu: reconecta sozinho (2 s, 4 s, 8 s) antes de trocar de fonte.
+    if (okRef.current === id && reconnRef.current < 3) {
+      clearTimeout(stableTimer.current);
+      reconnRef.current++;
+      const n = reconnRef.current;
+      setReconnecting(n);
+      setStatus('loading');
+      clearTimeout(reconnTimer.current);
+      reconnTimer.current = window.setTimeout(() => setAttempt((a) => a + 1), 1000 * 2 ** n);
+      return;
+    }
+    okRef.current = '';
     if (autoRef.current.ch !== id) autoRef.current = { ch: id, tried: 0 };
     if (autoRef.current.tried < sources.length - 1) {
       autoRef.current.tried++;
@@ -110,7 +148,14 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     setErrMsg(message);
   };
 
-  useEffect(() => setHeight(undefined), [channel?.id]);
+  useEffect(() => {
+    setHeight(undefined);
+    setTracks(null);
+    setReconnecting(0);
+    reconnRef.current = 0;
+    channelIdRef.current = channel?.id ?? '';
+    clearTimeout(reconnTimer.current);
+  }, [channel?.id]);
 
   // Filme/episódio: tempo, pausa e progresso salvo a cada 10 s.
   useEffect(() => {
@@ -134,15 +179,35 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     v.addEventListener('timeupdate', onTime);
     v.addEventListener('pause', onPause);
     v.addEventListener('play', onPause);
-    v.addEventListener('ended', save);
+    const onEnded = () => {
+      save();
+      if (nextEp) setNextIn(10);
+    };
+    v.addEventListener('ended', onEnded);
     return () => {
       save();
       v.removeEventListener('timeupdate', onTime);
       v.removeEventListener('pause', onPause);
       v.removeEventListener('play', onPause);
-      v.removeEventListener('ended', save);
+      v.removeEventListener('ended', onEnded);
     };
-  }, [channel?.id, vod]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [channel?.id, vod, nextEp?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Contagem do próximo episódio
+  useEffect(() => {
+    if (nextIn === null) return;
+    if (nextIn <= 0) {
+      setNextIn(null);
+      onNext?.();
+      return;
+    }
+    const t = setTimeout(() => setNextIn((n) => (n === null ? n : n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [nextIn]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => setNextIn(null), [channel?.id]);
+  useEffect(() => {
+    if (nextIn === 10) requestAnimationFrame(() => focusFirst(document.querySelector<HTMLElement>('.next-ep')));
+  }, [nextIn]);
 
   const seek = (delta: number) => {
     const v = videoRef.current;
@@ -228,6 +293,15 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       let handled = true;
       const interactive = overlayKind === 'controls' || status === 'error';
       // ---- Filme/episódio ----
+      if (vod && nextIn !== null) {
+        // Aviso de próximo episódio: as setas/OK andam nos botões dele; Voltar cancela.
+        if (isBack(e)) {
+          setNextIn(null);
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
       if (vod) {
         let h = true;
         if (isBack(e)) {
@@ -290,7 +364,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [mode, overlay, overlayKind, status, digits, vod, zap, allLive, onMode, onZap, showOverlay]);
+  }, [mode, overlay, overlayKind, status, digits, vod, nextIn, zap, allLive, onMode, onZap, showOverlay]);
 
   useEffect(() => {
     if (mode === 'full' && overlay) requestAnimationFrame(() => {
@@ -329,8 +403,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       />
 
       {status === 'loading' && mode !== 'off' && (
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        <div className="gy-12" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
           <div className="spinner" />
+          {reconnecting > 0 && <span className="reconn">Sinal caiu · reconectando ({reconnecting}/3)…</span>}
         </div>
       )}
 
@@ -390,6 +465,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
                 <button className="btn" data-nav="" aria-label="Avançar 10 segundos" onClick={() => seek(10)}>10s ⟳</button>
                 <div style={{ flexGrow: 1 }} />
                 {!mobile && <span className="muted" style={{ fontSize: 14, marginRight: 12 }}>◀ ▶ voltar/avançar · OK pausa · Voltar sai</span>}
+                {hasTracks && <button className="btn" data-nav="" onClick={() => setTrackDlg(true)}>Áudio e legendas</button>}
                 <button className="btn" data-nav="" onClick={() => onMode('preview')}>Sair</button>
               </div>
             ) : null}
@@ -425,8 +501,8 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
           <div style={{ position: 'absolute', right: padX, top: padT, fontSize: 18, fontWeight: 700 }}>{fmtTime(now)}</div>
 
           <div
-            className={mobile ? 'gy-12' : 'gx-22'}
-            style={{ position: 'absolute', left: padX, right: padX, bottom: padB, display: 'flex', flexDirection: mobile ? 'column' : 'row', alignItems: mobile ? 'stretch' : 'flex-end' }}
+            className="gy-14"
+            style={{ position: 'absolute', left: padX, right: padX, bottom: padB, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
           >
             <div className="gx-14" style={{ display: 'flex', alignItems: 'flex-end', flexGrow: 1, minWidth: 0 }}>
             <ChannelLogo ch={channel} size={mobile ? 48 : 84} />
@@ -445,7 +521,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
               {!mobile && <span className="muted" style={{ fontSize: 14, marginTop: 10 }}>▲▼ trocar de canal · números para ir direto · Voltar sai da tela cheia</span>}
             </div>
             </div>
-            <div className="gx-10" style={{ display: 'flex', flexShrink: 0, justifyContent: mobile ? 'flex-end' : undefined }}>
+            <div className="gx-10" style={{ display: 'flex', flexShrink: 0, justifyContent: 'flex-end' }}>
               {mobile && (
                 <>
                   <button className="btn icon" data-nav="" aria-label="Canal anterior" style={{ width: 46, padding: 0, justifyContent: 'center' }} onClick={() => zap(-1)}>▲</button>
@@ -455,6 +531,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
               <button className="btn" data-nav="" onClick={() => toggleFav(channel)} aria-pressed={fav}>
                 {Icon.star(fav)} {mobile ? null : fav ? 'Favorito' : 'Favoritar'}
               </button>
+              {hasTracks && (
+                <button className="btn" data-nav="" onClick={() => setTrackDlg(true)} aria-label="Áudio e legendas">{mobile ? 'Áudio' : 'Áudio e legendas'}</button>
+              )}
               <button className="btn" data-nav="" onClick={() => setPicker(true)} aria-label="Adicionar a uma seção">
                 {Icon.folder} {mobile ? null : 'Seção'}
               </button>
@@ -468,6 +547,39 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       )}
 
       {picker && channel && <SectionPicker ch={channel} live={allLive} onClose={() => { setPicker(false); showOverlay(true); }} />}
+
+      {trackDlg && tracks && (
+        <Modal title="Áudio e legendas" onClose={() => { setTrackDlg(false); showOverlay(true); }} width={560}>
+          {tracks.audio.length > 0 && <span className="muted" style={{ fontSize: 15, fontWeight: 700 }}>ÁUDIO</span>}
+          {tracks.audio.map((t) => (
+            <button key={'a' + t.id} className={'pick-row' + (t.id === tracks.audioId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setAudio(t.id); setTracks(engine.current?.tracks() ?? null); }}>
+              <span className="pick-check">{t.id === tracks.audioId ? '✓' : ''}</span>
+              <span className="sec-name">{t.label}</span>
+            </button>
+          ))}
+          <span className="muted" style={{ fontSize: 15, fontWeight: 700 }}>LEGENDAS</span>
+          {[{ id: -1, label: 'Desligadas' }, ...tracks.text].map((t) => (
+            <button key={'t' + t.id} className={'pick-row' + (t.id === tracks.textId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setText(t.id); setTracks(engine.current?.tracks() ?? null); }}>
+              <span className="pick-check">{t.id === tracks.textId ? '✓' : ''}</span>
+              <span className="sec-name">{t.label}</span>
+            </button>
+          ))}
+          <div className="wrap-row" style={{ display: 'flex' }}>
+            <button className="btn primary" data-nav="" onClick={() => { setTrackDlg(false); showOverlay(true); }}>Concluir</button>
+          </div>
+        </Modal>
+      )}
+
+      {full && vod && nextEp && nextIn !== null && (
+        <div className="next-ep">
+          <span className="muted" style={{ fontSize: 14, fontWeight: 700 }}>PRÓXIMO EPISÓDIO EM {nextIn}s</span>
+          <span className="caps" style={{ fontSize: 18, fontWeight: 800 }}>{nextEp.name}</span>
+          <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+            <button className="btn primary" data-nav="" data-nav-default="" onClick={() => { setNextIn(null); onNext?.(); }}>▶ Assistir agora</button>
+            <button className="btn" data-nav="" onClick={() => setNextIn(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
 
       {full && digits && (
         <div className="title" style={{ position: 'absolute', right: padX, top: padT + 44, fontSize: 64, textShadow: '0 2px 12px #000' }}>{digits}</div>

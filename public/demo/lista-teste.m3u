@@ -13,3 +13,9 @@ http://127.0.0.1:9/fora-do-ar.m3u8
 ./canal-ts.ts
 #EXTINF:-1 tvg-chno="106" group-title="Abertos",Canal Fora do Ar
 http://127.0.0.1:9/canal-fora.m3u8
+#EXTINF:-1 group-title="Séries | Demo",Série Demo S01 E01 - Piloto
+./episodio.mp4
+#EXTINF:-1 group-title="Séries | Demo",Série Demo S01 E02 - O Retorno
+./episodio.mp4?e=2
+#EXTINF:-1 group-title="Séries | Demo",Série Demo S02E01
+./episodio.mp4?e=3

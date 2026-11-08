@@ -18,7 +18,7 @@ interface XUserInfo {
 }
 interface XLogin {
   user_info?: XUserInfo;
-  server_info?: { url?: string; port?: string; server_protocol?: string };
+  server_info?: { url?: string; port?: string; server_protocol?: string; timezone?: string };
 }
 interface XCategory {
   category_id: string;
@@ -93,6 +93,7 @@ export async function login(c: XtreamCreds): Promise<AccountInfo> {
     expiresAt,
     maxConnections: u.max_connections ? parseInt(u.max_connections, 10) : undefined,
     activeConnections: u.active_cons ? parseInt(u.active_cons, 10) : undefined,
+    timezone: r.server_info?.timezone || undefined,
   };
 }
 

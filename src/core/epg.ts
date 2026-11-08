@@ -1,5 +1,6 @@
 import type { Channel, EpgEntry, Playlist } from './types';
 import { shortEpg } from './xtream';
+import { programmesOf } from './xmltv';
 
 // Guia de programação. Fase 1 · passo 2: "agora / a seguir" pela API Xtream.
 // O guia completo em XMLTV (listas M3U com url-tvg) entra no passo 3.
@@ -8,7 +9,11 @@ const cache = new Map<string, { at: number; list: EpgEntry[] }>();
 const TTL = 5 * 60 * 1000;
 
 export async function nowNext(pl: Playlist | undefined, ch: Channel): Promise<EpgEntry[]> {
-  if (!pl || ch.kind !== 'live' || pl.source.type !== 'xtream') return [];
+  if (!pl || ch.kind !== 'live') return [];
+  // Guia completo (XMLTV) primeiro; se o canal não estiver nele, o "agora/a seguir" do Xtream.
+  const full = programmesOf(ch).filter((e) => e.end > Date.now());
+  if (full.length) return full.slice(0, 6);
+  if (pl.source.type !== 'xtream') return [];
   const key = ch.id;
   const hit = cache.get(key);
   const now = Date.now();

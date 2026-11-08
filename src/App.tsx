@@ -5,6 +5,7 @@ import { dueReminders, type Reminder } from './core/games';
 import { pushVodRecent } from './core/vod';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
 import { loadLogoCatalogs } from './core/logos';
+import { loadXmltv } from './core/xmltv';
 import { prefGet, prefSet } from './core/storage';
 import { SourceError, type Channel, type Playlist, type SourceConfig } from './core/types';
 import { AddList } from './screens/AddList';
@@ -63,6 +64,13 @@ export function App() {
   const [favIds, setFavIds] = useState<string[]>(() => prefGet('favs', []));
   const [recentIds, setRecentIds] = useState<string[]>(() => prefGet('recents', []));
   const [reloading, setReloading] = useState(false);
+  // Guia completo (XMLTV): baixa em segundo plano depois de abrir (guardado por 12 h).
+  useEffect(() => {
+    if (!playlist) return;
+    const t = setTimeout(() => loadXmltv(playlist), 3000);
+    return () => clearTimeout(t);
+  }, [playlist]);
+
   // Lembretes de jogos: confere a cada 30 s e avisa na tela.
   const [toast, setToast] = useState<Reminder | null>(null);
   useEffect(() => {
@@ -127,7 +135,10 @@ export function App() {
   const [startAt, setStartAt] = useState<number | undefined>();
   const playingRef = useRef<Channel>();
   playingRef.current = playing;
-  const playVod = useCallback((item: Channel, from?: number) => {
+  const [queue, setQueue] = useState<Channel[]>([]);
+  const playVod = useCallback((item: Channel, from?: number, q?: Channel[]) => {
+    if (q) setQueue(q);
+    else setQueue((cur) => (cur.some((x) => x.id === item.id) ? cur : []));
     setStartAt(from);
     setPlaying(item);
     setFull(true);
@@ -212,13 +223,13 @@ export function App() {
     let screen: React.ReactNode;
     switch (tab) {
       case 'aovivo':
-        screen = <LiveTV playlist={playlist} live={live} favIds={favIds} playing={playing} isFav={isFav} toggleFav={toggleFav} onPlay={play} onFull={() => setFull(true)} />;
+        screen = <LiveTV playlist={playlist} live={live} favIds={favIds} playing={playing} isFav={isFav} toggleFav={toggleFav} onPlay={play} onFull={() => setFull(true)} onPlayVod={(it) => playVod(it, 0)} />;
         break;
       case 'inicio':
         screen = <Home playlist={playlist} live={live} favs={favs} recents={recents} onWatch={watchFull} onGoLive={() => setTab('aovivo')} onPlayVod={playVod} />;
         break;
       case 'busca':
-        screen = <Search playlist={playlist} onWatch={watchFull} />;
+        screen = <Search playlist={playlist} onWatch={watchFull} onPlayVod={playVod} />;
         break;
       case 'ajustes':
       case 'lista':
@@ -298,6 +309,11 @@ export function App() {
             onMode={onPlayerMode}
             onZap={(c) => play(c, [])}
             startAt={startAt}
+            nextEp={playing && queue.length ? queue[queue.findIndex((x) => x.id === playing.id) + 1] : undefined}
+            onNext={() => {
+              const i = playing ? queue.findIndex((x) => x.id === playing.id) : -1;
+              if (i >= 0 && queue[i + 1]) playVod(queue[i + 1], 0);
+            }}
           />
         )}
         {toast && (
