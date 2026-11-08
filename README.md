@@ -49,7 +49,7 @@ Ajustes › Tela permite forçar a forma, mudar o tamanho da interface (80–130
 
 ## Programa para Windows
 
-Instalador pronto: `PRISMA-Setup-0.1.0.exe` (Electron, com o proxy das listas embutido — não precisa de Node.js nem de terminal).
+Instalador pronto: `PRISMA-Setup-<versão>.exe` na Release (Electron, com o proxy das listas embutido — não precisa de Node.js nem de terminal).
 
 - Na primeira vez o Windows mostra **"O Windows protegeu o computador"** (o programa não tem assinatura digital paga): clique em **Mais informações › Executar assim mesmo**.
 - Atalhos: **F11** tela cheia · **Esc** voltar · **setas + Enter** navegam como no controle · **Ctrl+R** recarrega · **F12** diagnóstico.
@@ -61,7 +61,20 @@ Gerar de novo o instalador (em Linux precisa do Wine com 32 bits; no Windows nã
 npm run dist:win     # cria release/PRISMA-Setup-<versão>.exe
 ```
 
-> O electron-builder termina com o aviso `Cannot read properties of null (reading 'channel')` ao criar o arquivo de atualização automática (que não usamos). O instalador já está completo nesse ponto.
+Atualização automática: o programa procura versões novas em `xSam10-10/prisma-releases` (repositório público só com os instaladores). Ver `docs/PRISMA-continuidade.md`, seção 10d.
+
+## Android (celular) e Google TV
+
+APK pronto: `PRISMA-Android-<versão>.apk` na Release.
+
+- **Celular:** baixe o APK no celular e abra. Na primeira vez o Android pede para permitir "instalar apps desta fonte".
+- **Google TV / Android TV:** instale o app **Downloader** (Play Store da TV), ative em Configurações › Sistema › Desenvolvedor (ou Apps › Segurança) a permissão "Fontes desconhecidas" para o Downloader e baixe o APK pelo link da Release (ou envie com o app "Send Files to TV"). O PRISMA aparece na fileira de apps.
+- Versões novas instalam por cima, sem perder os dados.
+
+```bash
+npm run build:android                  # gera dist-android/ e copia para android/
+cd android && ./gradlew assembleRelease  # precisa do Android SDK e JDK 21
+```
 
 ## Instalar na TV LG (webOS)
 
@@ -115,4 +128,4 @@ webos/        appinfo.json + ícones da LG
 3. Guia XMLTV completo (listas M3U com `url-tvg`) e grade por dia
 4. Filmes / Séries / Anime + TMDB + mapeamento de streamings + Minha lista
 5. Estruturas B e C, temas Prisma/Netflix, Ajustes › Aparência, perfis
-6. Android / Android TV (Capacitor), depois Roku
+6. ✅ Android / Google TV (Capacitor); Roku depois

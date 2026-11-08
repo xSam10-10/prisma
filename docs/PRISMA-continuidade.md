@@ -269,6 +269,13 @@ Com LG webOS + Roku + Android + computador:
 - Estruturas: A Vidro Líquido (barra em pílula), B Cinema (abas em texto, destaque maior), C Hub (menu lateral de 96 px). No celular é sempre A. Ajustes › Aparência.
 - Perfis (`src/core/profiles.ts`, `src/screens/Profiles.tsx`): "Quem está assistindo?" ao abrir; cada perfil com favoritos, histórico, seções, Minha lista, progresso, lembretes, estrutura e tema. O 1º perfil usa as chaves antigas (nada se perde). Ajustes › Perfis.
 
+## 10d. Versão 0.12.0 (08/11)
+- **Android e Google TV** (Capacitor 8, pasta `android/`, `capacitor.config.json`, `src/core/native.ts`). Build: `npm run build:android` e, no GitHub Actions, job `android` (APK `PRISMA-Android-<versão>.apk` na Release; workflow `android.yml` só testa o build). Listas, guia e TMDB pela rede nativa (CapacitorHttp, sem CORS, UA do VLC); HLS e filmes no player do aparelho (`<video>` nativo), MPEG-TS com mpegts.js; tecla Voltar do controle passa pela pilha `pushBack` (sem nada a voltar, minimiza). Google TV: `LEANBACK_LAUNCHER`, banner 320×180, sem exigir toque. Ícones, banner e splash: `python3 scripts/android-icons.py`.
+- Assinatura do APK: chave de depuração fixa `android/app/prisma-debug.keystore` (senha pública "android"), para as atualizações instalarem por cima. Para usar chave própria: secrets `ANDROID_KEYSTORE_B64` e `ANDROID_KEYSTORE_PASSWORD` (alias `prisma`).
+- **Lembretes com o app fechado** (Android): `@capacitor/local-notifications`, agendados 1 min antes; tocar na notificação abre o aviso com "Assistir".
+- **Levar dados para outro aparelho** (`src/core/backup.ts`, Ajustes › Dados): exportar arquivo .json (favoritos, seções, Minha lista, histórico, progresso, lembretes, ajustes do perfil; sem senha da lista) e importar com "Juntar" ou "Substituir". No Android, exporta por Compartilhar. Na TV LG não há seletor de arquivos.
+- **Atualização automática do Windows** (`electron-updater`, `desktop/main.mjs`): procura em `https://github.com/xSam10-10/prisma-releases/releases/latest/download` (repositório **público**, só instaladores). Para ligar: criar o repositório público `prisma-releases` e o secret `RELEASES_TOKEN` (token fino com "Contents: read and write" nesse repositório) no repositório `prisma`. Sem isso, o app só não encontra atualização.
+
 ## 11. Pendências (07–08/11/2026)
 
 **Precisa de você / testes reais**
@@ -285,10 +292,13 @@ Com LG webOS + Roku + Android + computador:
 9. Controle parental: esconder categorias adultas com PIN (a Goldcard tem "ADULTOS +18").
 10. ✅ (0.10.0, exceto qualidade) Player: próximo episódio automático, escolha de áudio/legenda e qualidade; reconectar sozinho quando o canal cai.
 11. ✅ (0.10.0) Séries em listas M3U (agrupar episódios soltos por nome) e busca geral incluindo filmes/séries.
-12. Lembretes de jogos só avisam com o app aberto (notificação do sistema virá com o app Android).
-13. Sincronizar favoritos/seções/Minha lista entre aparelhos (hoje ficam em cada aparelho).
+12. ✅ (0.12.0, Android) Lembretes de jogos só avisam com o app aberto (notificação do sistema virá com o app Android).
+13. ◐ (0.12.0: exportar/importar arquivo) Sincronizar favoritos/seções/Minha lista entre aparelhos (hoje ficam em cada aparelho).
 
 **Plataformas e distribuição**
-14. Android (celular) e Google TV / Android TV com Capacitor (voz e notificações nativas); Roku depois.
-15. Assinatura digital do instalador de Windows (tira o aviso "O Windows protegeu…") e atualização automática.
+14. ✅ (0.12.0; Roku pendente) Android (celular) e Google TV / Android TV com Capacitor (voz e notificações nativas); Roku depois.
+15. Assinatura digital do instalador de Windows (tira o aviso "O Windows protegeu…"): precisa de certificado pago (Azure Trusted Signing ~US$ 10/mês, ou certificado OV ~US$ 200/ano). Atualização automática: ✅ código pronto na 0.12.0, falta o repositório público + `RELEASES_TOKEN`.
 16. Etiquetas de versão (tags) no GitHub: esta sessão não consegue criar; as Releases saem com a data no nome.
+17. Sincronização automática de verdade (sem arquivo): precisa de um serviço na nuvem com login (ex.: Supabase ou Firebase, grátis para uso pessoal) — decidir qual.
+18. Android: player nativo é o `<video>` do WebView (sem escolha de áudio/legenda). Se algum canal travar no celular, trocar por ExoPlayer (plugin nativo).
+19. Roku: app à parte em BrightScript/SceneGraph (não reaproveita o código web).

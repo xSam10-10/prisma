@@ -18,7 +18,10 @@
     "@capacitor/android": "8.6.0",
     "@capacitor/app": "8.1.2",
     "@capacitor/core": "8.6.0",
+    "@capacitor/filesystem": "8.1.5",
     "@capacitor/local-notifications": "8.3.1",
+    "@capacitor/share": "8.0.3",
+    "electron-updater": "6.8.11",
     "fflate": "0.8.3",
     "hls.js": "1.7.4",
     "mpegts.js": "1.8.2",
@@ -81,10 +84,8 @@
     },
     "publish": [
       {
-        "provider": "github",
-        "owner": "xSam10-10",
-        "repo": "prisma",
-        "releaseType": "release"
+        "provider": "generic",
+        "url": "https://github.com/xSam10-10/prisma-releases/releases/latest/download"
       }
     ]
   }

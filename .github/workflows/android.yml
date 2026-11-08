@@ -31,6 +31,11 @@ jobs:
           echo "PRISMA_KEYSTORE=$RUNNER_TEMP/prisma.jks" >> "$GITHUB_ENV"
           echo "PRISMA_KEYSTORE_PASSWORD=$KSPW" >> "$GITHUB_ENV"
       - run: cd android && chmod +x gradlew && ./gradlew --no-daemon assembleRelease
+      - name: Confere o APK (Google TV, versão, assinatura)
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/aapt" dump badging android/app/build/outputs/apk/release/app-release.apk | grep -E "package:|leanback|application:|uses-feature" | head
+          "$BT/apksigner" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | head -3
       - run: |
           V=$(node -p "require('./package.json').version")
           cp android/app/build/outputs/apk/release/app-release.apk "PRISMA-Android-$V.apk"

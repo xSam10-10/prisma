@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { IS_WEBOS } from '../core/platform';
+import { IS_WEBOS, IS_ANDROID } from '../core/platform';
 import { DEFAULT_SETTINGS, useSettings, type Settings as S } from '../core/settings';
 import type { Channel, Playlist } from '../core/types';
 import { useLayout } from '../ui/layout';
@@ -11,6 +11,7 @@ import { ProfilesPanel } from './Profiles';
 import { clearTmdbCache, testKey, tmdbKey } from '../core/tmdb';
 import { prefSet } from '../core/storage';
 import { ConfirmButton } from '../ui/Dialog';
+import { applyBackup, exportBackup, pickBackupFile } from '../core/backup';
 import { clearEpgCache } from '../core/epg';
 import { clearXmltv } from '../core/xmltv';
 
@@ -262,6 +263,7 @@ export function Settings({
     );
     panel = (
       <>
+        <BackupRows Row={Row} />
         <Row label="Limpar histórico" help={`Esvazia “Vistos por último” e o “Continuar assistindo” do Início. ${n.recents} canais no histórico.`}>
           <ConfirmButton label="Limpar histórico" onConfirm={data.clearRecents} done="Histórico limpo" />
         </Row>
@@ -289,7 +291,7 @@ export function Settings({
       </>
     );
   } else {
-    const platform = IS_WEBOS ? 'TV LG (webOS)' : /electron/i.test(navigator.userAgent) ? 'Programa para Windows' : 'Navegador';
+    const platform = IS_WEBOS ? 'TV LG (webOS)' : IS_ANDROID ? 'Android' : /electron/i.test(navigator.userAgent) ? 'Programa para Windows' : 'Navegador';
     panel = (
       <>
         <Info
@@ -403,6 +405,49 @@ function Services() {
           Automático, sem chave: placares públicos da ESPN (Brasileirão, Libertadores, Copa do Brasil, Champions, ligas europeias, NBA, NFL, UFC), cruzados com os jogos do guia.
         </span>
       </div>
+    </>
+  );
+}
+
+/** Ajustes › Dados: levar favoritos, seções e Minha lista para outro aparelho. */
+function BackupRows({ Row }: { Row: (p: { label: string; help: string; children: React.ReactNode }) => React.ReactElement }) {
+  const [msg, setMsg] = useState('');
+  const [pending, setPending] = useState<string | null>(null);
+  if (IS_WEBOS)
+    return (
+      <Row label="Levar para outro aparelho" help="Na TV LG não dá para escolher arquivos. Exporte no computador ou no celular; os dados deste perfil continuam aqui.">
+        <span />
+      </Row>
+    );
+  const importText = (text: string, mode: 'merge' | 'replace') => {
+    try {
+      setMsg(applyBackup(text, mode) + ' Reabrindo…');
+      setTimeout(() => location.reload(), 1200);
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  };
+  return (
+    <>
+      <Row label="Exportar meus dados" help="Gera um arquivo com favoritos, seções, Minha lista, histórico, progresso, lembretes e ajustes deste perfil. A senha da lista não vai no arquivo.">
+        <button className="btn primary" data-nav="" onClick={() => exportBackup().then(setMsg, (e: Error) => setMsg('Não deu para exportar: ' + e.message))}>
+          Exportar
+        </button>
+      </Row>
+      <Row label="Importar de outro aparelho" help="Escolha o arquivo exportado. “Juntar” soma ao que já existe aqui; “Substituir” troca tudo pelo do arquivo.">
+        {pending ? (
+          <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+            <button className="btn primary" data-nav="" onClick={() => importText(pending, 'merge')}>Juntar</button>
+            <button className="btn" data-nav="" onClick={() => importText(pending, 'replace')}>Substituir</button>
+            <button className="btn" data-nav="" onClick={() => setPending(null)}>Cancelar</button>
+          </div>
+        ) : (
+          <button className="btn" data-nav="" onClick={() => pickBackupFile().then((t) => t && setPending(t))}>
+            Escolher arquivo
+          </button>
+        )}
+      </Row>
+      {msg && <span className="muted" role="status" style={{ fontSize: 15 }}>{msg}</span>}
     </>
   );
 }

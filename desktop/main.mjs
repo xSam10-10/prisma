@@ -3,7 +3,8 @@
 // (app + proxy das listas) e abre uma janela própria apontando para ele.
 // Porta fixa (47815) para que favoritos e a lista salva não se percam.
 
-import { app, BrowserWindow, Menu, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, Menu, session, shell } from 'electron';
+import updaterPkg from 'electron-updater';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromiumFetch } from './netfetch.mjs';
@@ -83,5 +84,37 @@ async function createWindow() {
 
 // Vídeo começa a tocar sem precisar de clique.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  await createWindow();
+  checkUpdates();
+});
+
+// Atualização automática: procura uma versão nova nas Releases públicas
+// (repositório xSam10-10/prisma-releases, só com os instaladores). Baixa em
+// segundo plano e pergunta se pode reiniciar. Sem internet ou sem o
+// repositório público, não faz nada.
+const FEED = 'https://github.com/xSam10-10/prisma-releases/releases/latest/download';
+function checkUpdates() {
+  if (!app.isPackaged) return;
+  const { autoUpdater } = updaterPkg;
+  autoUpdater.setFeedURL({ provider: 'generic', url: FEED });
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('error', () => {});
+  autoUpdater.on('update-downloaded', async (info) => {
+    const r = await dialog.showMessageBox(win ?? undefined, {
+      type: 'info',
+      title: 'PRISMA',
+      message: `A versão ${info.version} do PRISMA está pronta.`,
+      detail: 'Reiniciar agora para atualizar? Se preferir, ela é instalada quando você fechar o app.',
+      buttons: ['Reiniciar agora', 'Depois'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (r.response === 0) autoUpdater.quitAndInstall();
+  });
+  autoUpdater.checkForUpdates().catch(() => {});
+  // E de novo a cada 6 horas, para quem deixa o app aberto.
+  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 3600 * 1000);
+}
 app.on('window-all-closed', () => app.quit());

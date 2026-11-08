@@ -26,7 +26,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: release/PRISMA-Setup-*.exe
+          path: |
+            release/PRISMA-Setup-*.exe
+            release/PRISMA-Setup-*.exe.blockmap
+            release/latest.yml
 
   webos:
     runs-on: ubuntu-latest
@@ -71,6 +74,11 @@ jobs:
           echo "PRISMA_KEYSTORE=$RUNNER_TEMP/prisma.jks" >> "$GITHUB_ENV"
           echo "PRISMA_KEYSTORE_PASSWORD=$KSPW" >> "$GITHUB_ENV"
       - run: cd android && chmod +x gradlew && ./gradlew --no-daemon assembleRelease
+      - name: Confere o APK (Google TV, versão, assinatura)
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/aapt" dump badging android/app/build/outputs/apk/release/app-release.apk | grep -E "package:|leanback|application:|uses-feature" | head
+          "$BT/apksigner" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | head -3
       - run: |
           V=$(node -p "require('./package.json').version")
           cp android/app/build/outputs/apk/release/app-release.apk "PRISMA-Android-$V.apk"
@@ -82,6 +90,8 @@ jobs:
   release:
     needs: [windows, webos, android]
     runs-on: ubuntu-latest
+    env:
+      HAS_RT: ${{ secrets.RELEASES_TOKEN != '' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -97,3 +107,13 @@ jobs:
           NOTES="Downloads: PRISMA-Setup (Windows), com.prisma.iptv (TV LG) e PRISMA-Android (celular e Google TV). No Windows, na primeira vez: Mais informações › Executar assim mesmo."
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "PRISMA $TAG" --notes "$NOTES" --target "$GITHUB_SHA"
           gh release upload "$TAG" out/* --clobber
+      # Atualização automática do Windows: copia os instaladores para o
+      # repositório público xSam10-10/prisma-releases (só binários, sem código).
+      # Precisa do secret RELEASES_TOKEN (token com acesso a esse repositório).
+      - name: Publica para a atualização automática
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        if: env.HAS_RT == 'true'
+        run: |
+          V=$(ls out/PRISMA-Setup-*.exe | sed -E 's/.*Setup-(.*)\.exe/\1/')
+          gh release create "v$V" --repo xSam10-10/prisma-releases --title "PRISMA $V" --notes "Instaladores do PRISMA $V." out/* || gh release upload "v$V" --repo xSam10-10/prisma-releases out/* --clobber
