@@ -25,3 +25,10 @@ export async function nowNext(pl: Playlist | undefined, ch: Channel): Promise<Ep
 export function progressOf(e: EpgEntry, now = Date.now()): number {
   return Math.max(0, Math.min(1, (now - e.start) / Math.max(1, e.end - e.start)));
 }
+
+/** Ajustes › Dados: esvazia o guia guardado em memória (é baixado de novo quando preciso). */
+export function clearEpgCache(): number {
+  const n = cache.size;
+  cache.clear();
+  return n;
+}

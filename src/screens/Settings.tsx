@@ -6,17 +6,20 @@ import { useLayout } from '../ui/layout';
 import { dirOf, focusFirst } from '../ui/nav';
 import { T } from '../ui/tokens';
 import { VERSION } from '../version';
+import { ConfirmButton } from '../ui/Dialog';
+import { clearEpgCache } from '../core/epg';
 
 // Ajustes do PRISMA: Tela · Player · Aparência · Lista · Sobre.
 // Cada opção é um seletor: OK (ou clique) avança; ◀ ▶ no controle trocam.
 
-type Section = 'tela' | 'player' | 'aparencia' | 'lista' | 'sobre';
+type Section = 'tela' | 'player' | 'aparencia' | 'lista' | 'dados' | 'sobre';
 
 const SECTIONS: { id: Section; label: string; hint: string }[] = [
   { id: 'tela', label: 'Tela', hint: 'Tamanho, margens e formato da interface' },
   { id: 'player', label: 'Player', hint: 'Vídeo e informações na tela cheia' },
   { id: 'aparencia', label: 'Aparência', hint: 'Estrutura e tema' },
   { id: 'lista', label: 'Lista', hint: 'Sua assinatura IPTV' },
+  { id: 'dados', label: 'Dados e limpeza', hint: 'Histórico, favoritos e cache' },
   { id: 'sobre', label: 'Sobre', hint: 'Versão e diagnóstico da tela' },
 ];
 
@@ -73,14 +76,26 @@ function Info({ rows }: { rows: [string, string][] }) {
   );
 }
 
+/** Ações de limpeza (o App é quem guarda esses dados). */
+export interface DataActions {
+  counts: { recents: number; favs: number; sections: number; sectionLinks: number; progress: number };
+  clearRecents: () => void;
+  clearFavs: () => void;
+  clearSections: () => void;
+  clearSectionOrder: () => void;
+  clearProgress: () => void;
+  clearAll: () => void;
+}
+
 export function Settings({
-  playlist, onReload, onChange, onRemove, reloading,
+  playlist, onReload, onChange, onRemove, reloading, data,
 }: {
   playlist: Playlist;
   onReload: () => void;
   onChange: () => void;
   onRemove: () => void;
   reloading: boolean;
+  data: DataActions;
 }) {
   const [sec, setSec] = useState<Section>('tela');
   const { settings: st, update } = useSettings();
@@ -211,6 +226,45 @@ export function Settings({
           <button className="btn" data-nav="" onClick={onChange}>Trocar lista</button>
           <button className="btn" data-nav="" onClick={onRemove}>Remover lista</button>
         </div>
+      </>
+    );
+  } else if (sec === 'dados') {
+    const n = data.counts;
+    const Row = ({ label, help, children }: { label: string; help: string; children: React.ReactNode }) => (
+      <div className="opt-row" style={{ display: 'flex', alignItems: mobile ? 'stretch' : 'center', flexDirection: mobile ? 'column' : 'row' }}>
+        <div className="gy-4" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, marginRight: mobile ? 0 : 20, marginBottom: mobile ? 10 : 0 }}>
+          <span style={{ fontSize: mobile ? 16 : 18, fontWeight: 700 }}>{label}</span>
+          <span className="muted" style={{ fontSize: mobile ? 14 : 15, lineHeight: 1.35 }}>{help}</span>
+        </div>
+        {children}
+      </div>
+    );
+    panel = (
+      <>
+        <Row label="Limpar histórico" help={`Esvazia “Vistos por último” e o “Continuar assistindo” do Início. ${n.recents} canais no histórico.`}>
+          <ConfirmButton label="Limpar histórico" onConfirm={data.clearRecents} done="Histórico limpo" />
+        </Row>
+        <Row label="Limpar favoritos" help={`Remove todos os canais favoritos (estrela). ${n.favs} favoritos.`}>
+          <ConfirmButton label="Limpar favoritos" onConfirm={data.clearFavs} done="Favoritos limpos" />
+        </Row>
+        <Row label="Apagar seções criadas" help={`Remove as ${n.sections} seções que você criou e os ${n.sectionLinks} canais acrescentados às seções.`}>
+          <ConfirmButton label="Apagar seções" onConfirm={data.clearSections} done="Seções apagadas" />
+        </Row>
+        <Row label="Restaurar ordem das seções" help="Volta as seções para a ordem original da lista (mantém as criadas).">
+          <ConfirmButton label="Restaurar ordem" onConfirm={data.clearSectionOrder} done="Ordem restaurada" />
+        </Row>
+        <Row label="Limpar progresso de filmes e séries" help={`Esquece onde você parou em filmes e episódios. ${n.progress} itens com progresso.`}>
+          <ConfirmButton label="Limpar progresso" onConfirm={data.clearProgress} done="Progresso limpo" />
+        </Row>
+        <Row label="Limpar guia de programação" help="Apaga o guia guardado na memória. Ele é baixado de novo quando você abrir um canal.">
+          <ConfirmButton label="Limpar guia" onConfirm={() => clearEpgCache()} done="Guia limpo" />
+        </Row>
+        <Row label="Restaurar ajustes" help="Volta Tela, Player e Aparência para o padrão.">
+          <ConfirmButton label="Restaurar ajustes" onConfirm={() => update(DEFAULT_SETTINGS)} done="Ajustes restaurados" />
+        </Row>
+        <Row label="Apagar tudo deste aparelho" help="Remove a lista, histórico, favoritos, seções, progresso e ajustes. O app volta como novo; a sua assinatura não é afetada.">
+          <ConfirmButton label="Apagar tudo" confirmLabel="Tem certeza? Toque de novo" onConfirm={data.clearAll} />
+        </Row>
       </>
     );
   } else {

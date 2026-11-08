@@ -9,6 +9,7 @@ import { Home, Search, Soon } from './screens/Other';
 import { Settings } from './screens/Settings';
 import { SettingsContext, loadSettings, saveSettings, type Settings as SettingsT } from './core/settings';
 import { LayoutContext, useViewportLayout, type Layout } from './ui/layout';
+import { EMPTY_SECTIONS, SectionsContext, type SectionsData } from './core/sections';
 import { Player, type PlayerMode } from './screens/Player';
 import { Ambient, Brand, Icon, Symbol } from './ui/bits';
 import { focusEl, pushBack } from './ui/nav';
@@ -58,6 +59,9 @@ export function App() {
   const [favIds, setFavIds] = useState<string[]>(() => prefGet('favs', []));
   const [recentIds, setRecentIds] = useState<string[]>(() => prefGet('recents', []));
   const [reloading, setReloading] = useState(false);
+  const [secData, setSecData] = useState<SectionsData>(() => ({ ...EMPTY_SECTIONS, ...prefGet<Partial<SectionsData>>('sections', {}) }));
+  useEffect(() => prefSet('sections', secData), [secData]);
+  const sectionsApi = useMemo(() => ({ data: secData, set: (fn: (d: SectionsData) => SectionsData) => setSecData(fn) }), [secData]);
 
   // Abre a lista salva; se não houver, vai para "Adicionar lista".
   useEffect(() => {
@@ -189,6 +193,29 @@ export function App() {
         screen =
           tab === 'ajustes' ? (
             <Settings
+              data={{
+                counts: {
+                  recents: recentIds.length,
+                  favs: favIds.length,
+                  sections: secData.custom.length,
+                  sectionLinks: Object.values(secData.members).reduce((n, a) => n + a.length, 0),
+                  progress: Object.keys(prefGet<Record<string, unknown>>('progress', {})).length,
+                },
+                clearRecents: () => setRecentIds([]),
+                clearFavs: () => setFavIds([]),
+                clearSections: () => setSecData((d) => ({ ...d, custom: [], members: {}, order: d.order.filter((id) => !id.startsWith('c:')) })),
+                clearSectionOrder: () => setSecData((d) => ({ ...d, order: [], sort: 'priority' })),
+                clearProgress: () => prefSet('progress', {}),
+                clearAll: async () => {
+                  await clearPlaylist();
+                  try {
+                    Object.keys(localStorage).filter((k) => k.startsWith('prisma.')).forEach((k) => localStorage.removeItem(k));
+                  } catch {
+                    /* ignora */
+                  }
+                  location.reload();
+                },
+              }}
               playlist={playlist}
               reloading={reloading}
               onReload={reload}
@@ -231,6 +258,7 @@ export function App() {
 
   return (
     <SettingsContext.Provider value={settingsApi}>
+    <SectionsContext.Provider value={sectionsApi}>
     <LayoutContext.Provider value={L}>
     <div className="viewport">
       <div className="stage" style={{ width: L.W, height: L.H, transform: `scale(${scale})`, WebkitTransform: `scale(${scale})` }}>
@@ -252,6 +280,7 @@ export function App() {
       </div>
     </div>
     </LayoutContext.Provider>
+    </SectionsContext.Provider>
     </SettingsContext.Provider>
   );
 }

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Engine } from '../core/engine';
 import { IS_WEBOS } from '../core/platform';
 import { useSettings } from '../core/settings';
+import { SectionPicker } from './Sections';
 import { useLayout } from '../ui/layout';
 import { progressOf } from '../core/epg';
 import type { Channel, Playlist } from '../core/types';
@@ -58,7 +59,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const padT = (mobile ? 14 : 36) + L.safeY;
   const padB = (mobile ? 16 : 36) + L.safeY;
   const [digits, setDigits] = useState('');
+  const [picker, setPicker] = useState(false);
   const hideTimer = useRef<number>();
+  const lastMouse = useRef<{ x: number; y: number } | null>(null);
   const digitTimer = useRef<number>();
   const epg = useEpg(playlist, channel, 200);
   const now = useClock();
@@ -145,11 +148,23 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     [channel, zapList, onZap, showOverlay],
   );
 
+  // Ao entrar em tela cheia: mostra as informações uma vez (somem no tempo dos Ajustes).
+  // Fica separado do efeito das teclas: antes ele rodava de novo quando as
+  // informações sumiam e as fazia voltar — por isso não desapareciam.
+  useEffect(() => {
+    if (mode === 'full') showOverlay(false);
+    else {
+      clearTimeout(hideTimer.current);
+      setOverlayKind(false);
+    }
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Teclas no modo tela cheia
   useEffect(() => {
     if (mode !== 'full') return;
-    showOverlay(false);
     const onKey = (e: KeyboardEvent) => {
+      // Janela aberta (ex.: escolher seção): ela trata as teclas.
+      if (document.querySelector('.modal-back')) return;
       const k = e.keyCode;
       const d = dirOf(e);
       let handled = true;
@@ -203,7 +218,16 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       className={'player' + (full ? ' full' : '') + (mode === 'off' ? ' hidden' : '')}
       style={style}
       data-nav-scope={full ? '' : undefined}
-      onMouseMove={full ? () => showOverlay(true) : undefined}
+      onMouseMove={
+        full
+          ? (e) => {
+              // Só movimento real do mouse (alguns aparelhos disparam o evento sem mexer).
+              const m = lastMouse.current;
+              lastMouse.current = { x: e.clientX, y: e.clientY };
+              if (m && Math.abs(m.x - e.clientX) + Math.abs(m.y - e.clientY) > 4) showOverlay(true);
+            }
+          : undefined
+      }
     >
       <video
         ref={videoRef}
@@ -304,6 +328,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
               <button className="btn" data-nav="" onClick={() => toggleFav(channel)} aria-pressed={fav}>
                 {Icon.star(fav)} {mobile ? null : fav ? 'Favorito' : 'Favoritar'}
               </button>
+              <button className="btn" data-nav="" onClick={() => setPicker(true)} aria-label="Adicionar a uma seção">
+                {Icon.folder} {mobile ? null : 'Seção'}
+              </button>
               {sources.length > 1 && (
                 <button className="btn" data-nav="" onClick={() => setSrcIdx((i) => (i + 1) % sources.length)}>{mobile ? 'Fonte' : 'Trocar fonte'}</button>
               )}
@@ -312,6 +339,8 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
           </div>
         </div>
       )}
+
+      {picker && channel && <SectionPicker ch={channel} live={allLive} onClose={() => { setPicker(false); showOverlay(true); }} />}
 
       {full && digits && (
         <div className="title" style={{ position: 'absolute', right: padX, top: padT + 44, fontSize: 64, textShadow: '0 2px 12px #000' }}>{digits}</div>

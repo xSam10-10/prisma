@@ -10,6 +10,10 @@ import { ensureVisible } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
 import type { Rect } from './Player';
 import { useLayout, type Layout } from '../ui/layout';
+import { orderedSections, sectionChannels, useSections, createSection } from '../core/sections';
+import { NameDialog } from '../ui/Dialog';
+import { VoiceButton, voiceSupported } from '../ui/Voice';
+import { OrganizeSections } from './Sections';
 
 /** Geometria da tela Ao vivo para a tela atual (o Player usa o mesmo retângulo). */
 function normalizeText(s: string): string {
@@ -32,7 +36,7 @@ function textWidth(text: string, font: string): number {
 const widthCache = new WeakMap<Channel[], number>();
 /**
  * Largura da coluna de categorias: o suficiente para o nome mais longo caber
- * inteiro (em caixa alta), entre 220 e 360.
+ * inteiro (em caixa alta) com o número de prioridade, entre 240 e 380.
  */
 export function catColumnWidth(live: Channel[]): number {
   const hit = widthCache.get(live);
@@ -46,7 +50,7 @@ export function catColumnWidth(live: Channel[]): number {
   }
   // nome + selo da contagem + margens internas (14 + 10 + 8) + borda/rolagem (14)
   const badge = Math.max(28, maxCount * 8 + 14);
-  const w = Math.round(Math.min(360, Math.max(220, max + badge + 14 + 10 + 8 + 14 + 6)));
+  const w = Math.round(Math.min(380, Math.max(240, max + badge + 22 + 14 + 10 + 8 + 14 + 6)));
   widthCache.set(live, w);
   return w;
 }
@@ -105,12 +109,19 @@ interface Props {
 }
 
 export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPlay, onFull }: Props) {
-  const cats = useMemo(() => categoriesOf(live, 'live'), [live]);
+  const native = useMemo(() => categoriesOf(live, 'live'), [live]);
+  const { data: secData, set: setSecData } = useSections();
+  const cats = useMemo(() => orderedSections(native, secData, live), [native, secData, live]);
+  const [dialog, setDialog] = useState<null | 'new' | 'organize'>(null);
   const [cat, setCat] = useState<string>(() => {
     const saved = prefGet<string>('live.cat', favIds.length ? FAV : ALL);
     // Categoria salva que não existe mais (lista mudou): volta para Todos.
     return saved === FAV || saved === ALL || cats.some((c) => c.id === saved) ? saved : ALL;
   });
+  // Seção apagada enquanto aberta: volta para Todos.
+  useEffect(() => {
+    if (cat !== FAV && cat !== ALL && !cats.some((c) => c.id === cat)) setCat(ALL);
+  }, [cats, cat]);
   // Busca dentro da tela Ao vivo: filtra todos os canais pelo nome (ou número).
   const [query, setQuery] = useState('');
   const q = normalizeText(query.trim());
@@ -124,8 +135,8 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
       return live.filter((c) => set.has(c.id));
     }
     if (cat === ALL) return live;
-    return live.filter((c) => c.group === cat);
-  }, [cat, live, favIds, q]);
+    return sectionChannels(cat, live, secData);
+  }, [cat, live, favIds, q, secData]);
 
   const [index, setIndex] = useState(() => {
     const i = playing ? list.findIndex((c) => c.id === playing.id) : -1;
@@ -162,10 +173,12 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
   const now = useClock();
   const curPlay = epgPlay?.[0];
 
-  const chips = [
+  // Números de prioridade aparecem na coluna quando a ordem é por prioridade.
+  const showNums = secData.sort === 'priority' && secData.order.length > 0;
+  const chips: { id: string; name: string; count: number; priority?: number }[] = [
     { id: FAV, name: 'Favoritos', count: favIds.length },
     { id: ALL, name: 'Todos', count: live.length },
-    ...cats.map((c) => ({ id: c.id, name: c.name, count: c.count })),
+    ...cats.map((c) => ({ id: c.id, name: c.name, count: c.count, priority: c.priority as number | undefined })),
   ];
 
   const L = useLayout();
@@ -190,7 +203,12 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
       >
         {!mobile && (
           // Categorias na vertical (TV e computador). Ao entrar na coluna, o foco vai para a categoria atual.
-          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" role="tablist" aria-label="Categorias" style={{ width: catW, flexShrink: 0 }}>
+          <div className="cats-col" style={{ width: catW }}>
+          <div className="cats-tools">
+            <button className="tool" data-nav="" onClick={() => setDialog('new')} aria-label="Criar nova seção">+ Nova seção</button>
+            <button className="tool" data-nav="" onClick={() => setDialog('organize')} aria-label="Organizar e ordenar seções">⇅ Organizar</button>
+          </div>
+          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" role="tablist" aria-label="Categorias">
             {chips.map((c) => (
               <button
                 key={c.id}
@@ -213,15 +231,19 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
                   listRef.current?.focus();
                 }}
               >
+                {showNums && c.priority ? <span className="cat-pri">{c.priority}</span> : null}
                 <span className="cat-name" title={c.name}>{c.name}</span>
                 <span className="cat-count">{c.count.toLocaleString('pt-BR')}</span>
               </button>
             ))}
           </div>
+          </div>
         )}
         <div className={mobile ? 'gy-8' : 'gy-12'} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
         {mobile && (
         <div ref={chipsRef} className="scroll-x" role="tablist" aria-label="Categorias">
+          <button className="chip" data-nav="" style={{ color: '#3DD6C4' }} onClick={() => setDialog('new')}>+ Nova</button>
+          <button className="chip" data-nav="" onClick={() => setDialog('organize')}>⇅</button>
           {chips.map((c) => (
             <button
               key={c.id}
@@ -273,7 +295,12 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
             }}
           />
           {query && (
-            <button className="clear" tabIndex={-1} aria-label="Limpar busca" onClick={() => setQuery('')}>✕</button>
+            <button className="clear" tabIndex={-1} aria-label="Limpar busca" onClick={() => setQuery('')} style={voiceSupported() ? { right: 50 } : undefined}>✕</button>
+          )}
+          {voiceSupported() && (
+            <span className="live-voice">
+              <VoiceButton size={36} onText={(t) => { setQuery(t); setIndex(0); }} />
+            </span>
           )}
         </div>
         <div className="muted" style={{ fontSize: 14, fontWeight: 600, padding: '0 4px', display: 'flex', justifyContent: 'space-between' }}>
@@ -414,6 +441,29 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
         )}
       </div>
       )}
+      {dialog === 'new' && (
+        <NameDialog
+          title="Nova seção"
+          placeholder="Ex.: Futebol, Meus canais 24h"
+          onClose={() => setDialog(null)}
+          onSave={(name) => {
+            let newId = '';
+            setSecData((d) => {
+              const [nd, id] = createSection(d, name);
+              newId = id;
+              return nd;
+            });
+            setDialog(null);
+            requestAnimationFrame(() => {
+              if (newId) {
+                setCat(newId);
+                setIndex(0);
+              }
+            });
+          }}
+        />
+      )}
+      {dialog === 'organize' && <OrganizeSections views={cats} onClose={() => setDialog(null)} />}
     </>
   );
 }

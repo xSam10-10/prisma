@@ -17,7 +17,7 @@ export function Brand({ size = 34 }: { size?: number }) {
   return (
     <div className="brand">
       <Symbol size={size} />
-      <span style={{ fontSize: (size * 26) / 34 }}>prisma</span>
+      <span style={{ fontSize: (size * 23) / 34 }}>PRISMA</span>
     </div>
   );
 }
@@ -56,13 +56,23 @@ export function useLogo(ch: Channel): { src?: string; onError: () => void } {
   return { src: cands[failed], onError: () => setFailed((f) => f + 1) };
 }
 
-/** Logo pequeno (listas): imagem ou iniciais. */
+/** Logo pequeno (listas, player): fundo escuro com brilho na cor do canal, logo com sombra. */
 export function ChannelLogo({ ch, size = 40 }: { ch: Channel; size?: number }) {
   const { src, onError } = useLogo(ch);
-  const style = { width: size, height: size, background: src ? undefined : colorFor(ch.name) };
+  const c = colorFor(ch.name);
+  const style = {
+    width: size,
+    height: size,
+    borderRadius: Math.round(size * 0.28),
+    background: `radial-gradient(circle at 50% 35%, ${rgba(c, 0.55)} 0%, ${rgba(c, 0.18)} 55%, rgba(0,0,0,0) 80%), linear-gradient(160deg, #2A2A3A 0%, #17171F 100%)`,
+  };
   return (
-    <span className="logo-box" style={style}>
-      {src ? <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={onError} /> : initials(ch.name)}
+    <span className="logo-box glow" style={style}>
+      {src ? (
+        <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={onError} />
+      ) : (
+        <span className="ini" style={{ fontSize: Math.round(size * 0.34) }}>{initials(ch.name)}</span>
+      )}
     </span>
   );
 }
@@ -141,6 +151,12 @@ export const Icon = {
   star: (filled: boolean) => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
+    </svg>
+  ),
+  folder: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true">
+      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <path d="M12 11v5M9.5 13.5h5" />
     </svg>
   ),
   expand: (

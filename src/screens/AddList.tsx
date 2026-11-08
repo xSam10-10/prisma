@@ -5,6 +5,7 @@ import { Ambient, Brand } from '../ui/bits';
 import { focusFirst } from '../ui/nav';
 import { VERSION } from '../version';
 import { useLayout } from '../ui/layout';
+import { VoiceButton } from '../ui/Voice';
 
 type Mode = 'm3u' | 'xtream' | 'file' | 'demo';
 
@@ -127,7 +128,10 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
         {mode !== 'demo' && mode !== 'file' && (
           <div className="field">
             <label htmlFor="f-name">Nome da lista</label>
-            <input id="f-name" data-nav="" value={name} onChange={(e) => setName(e.target.value)} />
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <input id="f-name" data-nav="" value={name} onChange={(e) => setName(e.target.value)} style={{ flexGrow: 1 }} />
+              <span style={{ marginLeft: 10 }}><VoiceButton size={48} onText={setName} /></span>
+            </div>
           </div>
         )}
         {mode === 'xtream' && (

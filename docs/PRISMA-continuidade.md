@@ -222,6 +222,9 @@ Com LG webOS + Roku + Android + computador:
 
 **Ao vivo (0.7.0):** largura da coluna de categorias medida pelo nome mais longo (`catColumnWidth`, 220–360), coluna de canais nunca menor que 340 (a prévia cede espaço; "A seguir" mostra 2 cards quando a prévia fica estreita). Nomes de canais e categorias em caixa alta (CSS). Campo de busca no topo da lista de canais: filtra todos os canais por nome ou número; Enter vai para a lista; escolher categoria limpa a busca.
 
+**Seções (0.8.0):** `src/core/sections.ts` + `src/screens/Sections.tsx`. Criar seção (coluna › "+ Nova seção"), adicionar canal a qualquer seção nativa ou criada (player › botão "Seção"), Organizar (prioridade numerada 1,2,3… com ▲▼/Topo, ou alfabética), renomear/apagar criadas. Salvo em `prisma.sections`.
+**0.8.0 também:** informações da tela cheia somem no tempo certo (bug corrigido); logotipo PRISMA em caixa alta; logos com brilho na lista e no player; novo "Continuar assistindo" (logo/capa grande + programa atual); microfone (Web Speech API) nas buscas e campos — não funciona no programa de Windows (Electron não tem o serviço) nem na LG (usar o microfone do teclado da TV); Ajustes › Dados e limpeza (histórico, favoritos, seções, ordem, progresso, guia, ajustes, apagar tudo).
+
 **Pendências / dúvidas abertas:**
 - Dados da **Goldcard** (link M3U ou Xtream) para testar com a lista real
 - **TV do usuário: LG OLED55B7P (2017) = webOS 3.5, Chromium 38.** O build `npm run build:webos` já foi adaptado (ES5 via Babel, CSS sem variáveis/gap/grid/inset, sem blur, player nativo da TV como última tentativa). Falta instalar na TV de verdade
