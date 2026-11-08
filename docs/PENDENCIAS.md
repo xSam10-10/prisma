@@ -1,4 +1,4 @@
-# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 08/11/2026, versão 0.17.0)
+# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 08/11/2026, versão 0.18.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -7,7 +7,8 @@ Já feito desde a lista original (não repetir): 8 qualidade (ícone HD), 21 úl
 24 Agora na TV, 25 destaques do dia, 30 meus times, 32 tabela/próximos jogos, 10 estatísticas/escalações,
 33 aviso de gol (app aberto), 42 guia extra, 45 guias públicos sugeridos, grupo Gravações,
 PIP (1 janela, Desl/Lig + Trocar), barra clássica, lista em tela cheia com menu e programação por dia,
-atualização dentro do app, logotipos dos streamings (coloridos + brancos), bloquear canal com senha.
+atualização dentro do app, logotipos dos streamings (coloridos + brancos), bloquear canal com senha,
+48 fileiras automáticas (parcial: Tops por streaming/gênero/especiais, 0.18.0), Top 10 canais agora.
 
 ## 1. TV ao vivo (lista de canais, guia e jogos)
 - **7 · Controle parental completo** [1º] — PIN para abrir categorias "ADULTOS +18" e perfil infantil. *(Parcial: bloquear um canal com senha já existe.)*
@@ -33,7 +34,7 @@ atualização dentro do app, logotipos dos streamings (coloridos + brancos), blo
 - **71 · Informações durante a pausa** [Talvez] · **66 · "Ainda está assistindo?"** [Talvez].
 
 ## 3. Filmes e Séries
-- **48 · Fileiras automáticas** (Lançamentos, Bem avaliados, Sagas…) [1º]
+- **48 · Fileiras automáticas** — falta só Sagas/coleções (Lançamentos, Aclamados e gêneros já vêm nos Tops da 0.18.0) [1º]
 - **53 · Logotipo do título sobre o fundo** no detalhe [1º]
 - **54 · Classificação indicativa e selos** 4K, Dublado, Legendado [1º]
 - **57 · Versões dublada/legendada/4K/HD num só card** [1º]
@@ -57,7 +58,9 @@ atualização dentro do app, logotipos dos streamings (coloridos + brancos), blo
 - **9 · Sincronização automática pela nuvem** (hoje por arquivo) · **14 · App para Roku** · **13 · Assinatura digital do instalador Windows (paga)** [Grande]
 
 ## Depende do Samuel
-- **Repositório `xSam10-10/prisma` ainda PRIVADO** (conferido em 08/11 19:04). A atualização dentro do app lê as Releases dele e só funciona público: Settings › General › Danger Zone › Change visibility › Public (confirmar até aparecer a etiqueta "Public"). Depois instalar a 0.17.0+ manualmente uma vez em cada aparelho.
+- **Secret `TMDB_KEY`** no repositório (Settings › Secrets and variables › Actions › New repository secret, valor = chave v3 do TMDB). Sem ele, os Tops trazem só o ranking oficial da Netflix (títulos em inglês, que casam pouco com a lista) e o ranking de canais. Depois rodar Actions › Tops › Run workflow.
+- **Jogos vazios com a Goldcard**: na 0.18.0, se continuar sem jogos, a tela mostra um diagnóstico (canais consultados, com guia, exemplos de programas) — mandar print.
+- **Repositório `xSam10-10/prisma` ainda PRIVADO** (conferido em 08/11 22h; esta sessão não consegue mudar a visibilidade — o proxy bloqueia). A atualização dentro do app lê as Releases dele e só funciona público: Settings › General › Danger Zone › Change visibility › Public (confirmar até aparecer a etiqueta "Public"). Depois instalar a 0.17.0+ manualmente uma vez em cada aparelho.
 - Testar na TV LG OLED B7 (webOS 3.5) e no celular/Google TV com a Goldcard: vídeo, PIP com 2 telas, atualização, placar/tabela da ESPN, guias públicos.
 - Conferir o "0 filmes" da Goldcard.
 - Logos de canais que faltam (ex.: ESPN) em `public/logos/custom/`.

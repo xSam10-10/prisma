@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (08/11/2026, 19h · versão 0.17.0)
+## 0. ESTADO ATUAL — leia primeiro (08/11/2026, 23h · versão 0.18.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -18,11 +18,13 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Atualização dentro do app:** lê `https://github.com/xSam10-10/prisma/releases/latest/download/` — só funciona com o repositório **público** (em 08/11 19h ainda estava PRIVADO). Ver 10i e 10r.
 
-**Verificações antes de publicar:** `npx tsc --noEmit` · `npx vitest run` (34 testes) · `npm run build:webos` + `npx es-check@8.0.2 es5 "dist-webos/assets/*.js"` (TV de 2017: sem CSS gap/variáveis/grid; flex com prefixos -webkit-; nada de sintaxe nova no JS final).
+**Verificações antes de publicar:** `npx tsc --noEmit` · `npx vitest run` (46 testes) · `npm run build:webos` + `npx es-check@8.0.2 es5 "dist-webos/assets/*.js"` (TV de 2017: sem CSS gap/variáveis/grid; flex com prefixos -webkit-; nada de sintaxe nova no JS final).
 **Testes de tela:** `node test/fake-xtream.mjs` (servidor Xtream falso na porta 8090, usuário `teste` / senha `1234`; também ESPN falsa em `/espn/...`, TMDB falso em `/tmdb/...`, `/updates/` com `UPDATE_DIR`) + `npx vite --port 5173` + roteiros Playwright. O Chromium do ambiente não decodifica H.264: nos testes, segurar as requisições de vídeo (`page.route(... /live/ ..., () => {})`).
 **Limites do ambiente de desenvolvimento:** ESPN, TMDB, guias públicos e o servidor da Goldcard não são acessíveis de lá — testar com o servidor falso e pedir ao Samuel o teste real.
 
-**Histórico de versões:** seções 10b–10s (0.10.0 → 0.17.0). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
+
+**Histórico de versões:** seções 10b–10t (0.10.0 → 0.18.0). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Referências do app usado pelo Samuel (vídeos que ele mandou):** barra do canal estilo receptor + PIP (10f), programação do canal por dia (10h), lista de canais por cima da tela cheia com menu lateral e grupos (10j).
 
@@ -382,6 +384,15 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - **42 Guia extra** (`xmltv.ts`: `extraGuides`, pref global `epgExtra`): Ajustes › Lista › "Guia de programação extra"; o guia da lista tem prioridade, os extras só completam canais sem guia (por id/nome); status por guia ("N canais da sua lista no guia · M novos" ou "não respondeu").
 - **45 Guias públicos sugeridos** (`PUBLIC_GUIDES`): epgshare01 Brasil 1 e 2, Pluto TV Brasil (i.mjh.nz) — botões de 1 clique. **Não testados daqui** (o ambiente bloqueia esses endereços).
 - Fonte esportiva: ESPN (sem chave). Também não acessível daqui; tudo testado com o servidor falso (`/espn/...`, `/espn/gol` soma um gol para testar o aviso).
+
+## 10t. Versão 0.18.0 (08/11) — Tops e recomendações, Jogos, Aparência
+- **Fonte dos tops** (`scripts/tops/build-tops.mjs`, roda no GitHub Actions — o ambiente de desenvolvimento não alcança essas fontes): Netflix = ranking **oficial** semanal do Brasil (TSV aberto de top10.netflix.com, títulos em inglês traduzidos pelo TMDB); demais streamings = mais populares no TMDB com `watch_region=BR` e o provedor (HBO Max, Disney+, Apple TV, Prime Video, Paramount+, Globoplay, Crunchyroll, Discovery+, Claro, DirecTV GO, Lionsgate); Em alta na semana; Chegaram ao streaming / Séries novas; Mais aclamados; 12 gêneros de filme e 10 de série; especiais (doramas = coreano, novelas turcas, animes, nacionais). HBO/Disney/Prime não publicam ranking oficial: o rótulo diz "Mais populares no X (TMDB)". Nada de raspar sites (FlixPatrol etc.).
+- **Canais**: `scripts/tops/canais.json` (ordem de popularidade + expressão comparada com `logoKey`). Editável no GitHub; também vai embutido no app (reserva offline). No aparelho (`topChannels`): + jogo/filme/grande programa passando agora (XMLTV), favoritos e vistos por último; escolhe a versão do canal vista por último › favorita › FHD/4K.
+- **Publicação**: workflow `tops.yml` (cron `23 2,8,14,20 * * *`, também ao mudar `scripts/tops/**`) → Release `tops` (pré-lançamento, nunca vira "latest", então não atrapalha a atualização do app). Reativa o próprio agendamento a cada execução (o GitHub desliga agendamentos após 60 dias sem commits).
+- **App** (`src/core/tops.ts`, `src/ui/useTops.ts`): baixa 12 s após abrir, guarda no IndexedDB, renova a cada 6 h (confere a cada 30 min). Sem o arquivo e com chave TMDB no aparelho: "Em alta na semana" calculado localmente. Cruzamento com a lista: nome em português, original ou inglês (sem acentos/ano/qualidade); filmes com ano ±1.
+- **Filmes/Séries**: botão "🔥 Top" na fileira de streamings → coluna com as listas agrupadas (Streamings, Em alta, Especiais, Por gênero), grade com a posição original do ranking. Ao escolher um streaming, "🔥 Top 10 <streaming>" no alto das categorias. **Início**: "Top 10 canais agora" (card com posição, motivo e "Agora: programa"), "Top 10 da semana" e um Top por streaming (até 6), filmes e séries alternados. Ajustes › Serviços › "Tops e recomendações" (situação + Atualizar agora).
+- **Jogos** (`loadGames`): guia rápido do Xtream de até 120 canais de esporte — primeiro os com `epg_channel_id` e marcas conhecidas (antes: os 80 primeiros da lista, o que deixava a Goldcard sem jogos) — + guia completo XMLTV de todos (também vale para M3U) + placar do dia da ESPN para jogos fora do guia, com "canais prováveis" por competição (`LIKELY`). Títulos com futebol/brasileiro/rodada/partida contam como jogo. Sem jogos: diagnóstico na tela (`gamesStats`).
+- **Aparência**: Estrutura só "Menu Horizontal" (A) e "Menu Vertical" (C); B · Cinema removida (quem usava vira A). Tema padrão **Apple TV**; migração única (`settings.v18`) passa quem estava no Prisma para o Apple TV.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

@@ -10,7 +10,9 @@ import { VirtualGrid, type VirtualGridHandle } from '../ui/VirtualGrid';
 import { VirtualList } from '../ui/VirtualList';
 import { VoiceButton, voiceSupported } from '../ui/Voice';
 import { useTmdb } from '../ui/useTmdb';
-import { trailerOf, weeklyTop, tmdbKey } from '../core/tmdb';
+import { trailerOf } from '../core/tmdb';
+import { matchedLists, type MatchedList } from '../core/tops';
+import { useTops } from '../ui/useTops';
 import { Modal } from '../ui/Dialog';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
@@ -49,7 +51,10 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
 }
 
 type Sort = 'recent' | 'az' | 'rating';
-const TOP = '__top10__';
+/** Botão "Top" na fileira de streamings; categorias "top:<id>" = uma lista de tops. */
+const TOPS = '__top__';
+const TOPCAT = 'top:';
+const GROUP_LABEL: Record<string, string> = { streaming: 'Streamings', geral: 'Em alta', especial: 'Especiais', genero: 'Por gênero' };
 
 export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: VodTab; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const L = useLayout();
@@ -70,29 +75,32 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const [detail, setDetail] = useState<Channel | null>(null);
   const gridRef = useRef<VirtualGridHandle>(null);
   const st: Streaming | undefined = STREAMINGS.find((s) => s.id === stream);
+  const topMode = stream === TOPS;
 
   const inStream = useMemo(() => (st ? all.filter((i) => st.match.test(i.group)) : all), [all, st]);
-  // Top 10 da semana (TMDB), só com títulos da lista
-  const [top10, setTop10] = useState<Channel[]>([]);
-  useEffect(() => {
-    let alive = true;
-    setTop10([]);
-    if (!tmdbKey() || tab === 'anime') return;
-    weeklyTop(playlist.items, tab === 'filmes' ? 'movie' : 'series').then((r) => alive && setTop10(r.map((x) => x.item)));
-    return () => {
-      alive = false;
-    };
-  }, [playlist, tab]);
+  // Tops (Netflix oficial, mais populares de cada streaming, gêneros…), só com títulos da lista
+  const tops = useTops(playlist);
+  const topLists = useMemo<MatchedList[]>(() => (tab === 'anime' ? [] : matchedLists(tops, playlist.items, tab === 'filmes' ? 'movie' : 'tv')), [tops, playlist, tab]);
+  const curTop = cat.startsWith(TOPCAT) ? topLists.find((l) => l.id === cat.slice(TOPCAT.length)) : undefined;
+  // Top do streaming escolhido (ex.: "Top 10 Netflix" no alto das categorias da Netflix)
+  const stTop = st ? topLists.find((l) => l.sid === st.id) : undefined;
   const cats = useMemo(() => countCats(inStream), [inStream]);
   const q = norm(query.trim());
   const list = useMemo(() => {
-    if (!q && cat === TOP) return top10;
+    if (!q && curTop) return curTop.items.map((r) => r.item);
+    if (!q && topMode) return [];
     let l = q ? all.filter((i) => norm(i.fullName ?? i.name).includes(q)) : cat ? inStream.filter((i) => i.group === cat) : inStream;
     if (sort === 'az') l = [...l].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     else if (sort === 'rating') l = [...l].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else l = [...l].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
     return l;
-  }, [all, inStream, cat, q, sort, top10]);
+  }, [all, inStream, cat, q, sort, curTop, topMode]);
+  const ranks = !q && curTop ? curTop.items.map((r) => r.rank) : null;
+  const openTop = () => {
+    setStream(TOPS);
+    setCat(topLists[0] ? TOPCAT + topLists[0].id : '');
+    setQuery('');
+  };
 
   useEffect(() => setIndex(0), [stream, cat, q, sort]);
   useEffect(() => {
@@ -116,7 +124,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   }
 
   const top = L.top;
-  const streamRowH = streamings.length ? (mobile ? 46 : 54) : 0;
+  const streamRowH = streamings.length || topLists.length ? (mobile ? 46 : 54) : 0;
   const catW = mobile ? 0 : 250;
 
   return (
@@ -124,9 +132,14 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
       {st && (
         <div aria-hidden="true" className="stream-art" style={{ background: `radial-gradient(ellipse 60% 70% at 85% 10%, ${rgba(st.accent, 0.45)} 0%, rgba(0,0,0,0) 70%), radial-gradient(ellipse 50% 60% at 10% 90%, ${rgba(st.accent2, 0.35)} 0%, rgba(0,0,0,0) 70%), ${st.bg}` }} />
       )}
-      {streamings.length > 0 && (
+      {(streamings.length > 0 || topLists.length > 0) && (
         <StreamCarousel style={{ position: 'absolute', left: L.px, right: L.px, top, height: streamRowH }}>
           <button className={'stream-chip' + (!stream ? ' on' : '')} data-nav="" onClick={() => { setStream(''); setCat(''); }}>Todos</button>
+          {topLists.length > 0 && (
+            <button className={'stream-chip topchip' + (topMode ? ' on' : '')} data-nav="" aria-label="Top: listas de recomendações" onClick={openTop}>
+              🔥 Top
+            </button>
+          )}
           {streamings.map((s) => (
             <button
               key={s.id}
@@ -153,14 +166,29 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
 
       {!mobile && (
         <div className="scroll-y cats" data-nav-group="" style={{ position: 'absolute', left: L.px, top: top + streamRowH + 12, bottom: L.bottom, width: catW, padding: '3px 10px 3px 3px' }}>
+          {topMode ? (
+            topLists.map((l, i) => {
+              const id = TOPCAT + l.id;
+              return (
+                <div key={l.id}>
+                  {(i === 0 || topLists[i - 1].group !== l.group) && <span className="cat-head">{GROUP_LABEL[l.group] ?? 'Outras'}</span>}
+                  <button className={'cat' + (cat === id ? ' on' : '')} data-nav="" data-nav-active={cat === id ? '' : undefined} onClick={() => { setCat(id); setQuery(''); gridRef.current?.focus(); }}>
+                    <span className="cat-name" title={l.src}>{l.title}</span>
+                    <span className="cat-count">{l.items.length}</span>
+                  </button>
+                </div>
+              );
+            })
+          ) : (
+            <>
           <button className={'cat' + (!cat ? ' on' : '')} data-nav="" data-nav-active={!cat ? '' : undefined} onClick={() => { setCat(''); setQuery(''); }}>
             <span className="cat-name">{st ? st.name : 'Todos'}</span>
             <span className="cat-count">{inStream.length.toLocaleString('pt-BR')}</span>
           </button>
-          {top10.length > 0 && !st && (
-            <button className={'cat' + (cat === TOP ? ' on' : '')} data-nav="" data-nav-active={cat === TOP ? '' : undefined} onClick={() => { setCat(TOP); setQuery(''); gridRef.current?.focus(); }}>
-              <span className="cat-name">🔥 Top 10 da semana</span>
-              <span className="cat-count">{top10.length}</span>
+          {stTop && (
+            <button className={'cat' + (cat === TOPCAT + stTop.id ? ' on' : '')} data-nav="" data-nav-active={cat === TOPCAT + stTop.id ? '' : undefined} onClick={() => { setCat(TOPCAT + stTop.id); setQuery(''); gridRef.current?.focus(); }}>
+              <span className="cat-name" title={stTop.src}>🔥 {stTop.title}</span>
+              <span className="cat-count">{stTop.items.length}</span>
             </button>
           )}
           {cats.map((c) => (
@@ -169,6 +197,8 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
               <span className="cat-count">{c.count.toLocaleString('pt-BR')}</span>
             </button>
           ))}
+            </>
+          )}
         </div>
       )}
 
@@ -193,7 +223,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
             />
             {voiceSupported() && <span className="live-voice"><VoiceButton size={36} onText={setQuery} /></span>}
           </div>
-          {!mobile && (
+          {!mobile && !curTop && (
             <div className="gx-6" style={{ display: 'flex', marginLeft: 12 }}>
               {(['recent', 'az', 'rating'] as Sort[]).map((s) => (
                 <button key={s} className={'chip' + (sort === s ? ' on' : '')} data-nav="" onClick={() => setSort(s)}>
@@ -204,11 +234,21 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
           )}
         </div>
         <div className="muted caps" style={{ fontSize: 14, fontWeight: 600, margin: '10px 4px 0', display: 'flex', justifyContent: 'space-between' }}>
-          <span>{q ? `Busca: “${query.trim()}”` : cat === TOP ? 'Top 10 da semana (TMDB) — disponíveis na sua lista' : cat || (st ? st.name : `Todos os ${kindLabel}`)}</span>
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {q ? `Busca: “${query.trim()}”` : curTop ? `${curTop.title} · ${curTop.src}` : topMode ? 'Top' : cat || (st ? st.name : `Todos os ${kindLabel}`)}
+          </span>
           <span>{list.length.toLocaleString('pt-BR')} {kindLabel}</span>
         </div>
-        {mobile && cats.length > 0 && (
+        {mobile && topMode && topLists.length > 0 && (
           <div className="scroll-x" style={{ marginTop: 8 }}>
+            {topLists.map((l) => (
+              <button key={l.id} className={'chip' + (cat === TOPCAT + l.id ? ' on' : '')} data-nav="" onClick={() => setCat(TOPCAT + l.id)}>{l.title}</button>
+            ))}
+          </div>
+        )}
+        {mobile && !topMode && cats.length > 0 && (
+          <div className="scroll-x" style={{ marginTop: 8 }}>
+            {stTop && <button className={'chip' + (cat === TOPCAT + stTop.id ? ' on' : '')} data-nav="" onClick={() => setCat(TOPCAT + stTop.id)}>🔥 {stTop.title}</button>}
             <button className={'chip' + (!cat ? ' on' : '')} data-nav="" onClick={() => setCat('')}>Todos</button>
             {cats.map((c) => (
               <button key={c.name} className={'chip' + (cat === c.name ? ' on' : '')} data-nav="" onClick={() => setCat(c.name)}>{c.name}</button>
@@ -227,8 +267,12 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
             extraH={mobile ? 58 : 56}
             gap={mobile ? 10 : 18}
             label={title}
-            render={(it, i, sel, w) => <PosterCard item={it} w={w} selected={sel} rank={cat === TOP && !q ? i + 1 : undefined} />}
-            empty={<div className="muted" style={{ padding: 20, fontSize: 16 }}>Nada encontrado. Tente outra palavra ou outra categoria.</div>}
+            render={(it, i, sel, w) => <PosterCard item={it} w={w} selected={sel} rank={ranks ? ranks[i] : undefined} />}
+            empty={
+              <div className="muted" style={{ padding: 20, fontSize: 16 }}>
+                {topMode && !q ? 'Escolha uma lista à esquerda.' : 'Nada encontrado. Tente outra palavra ou outra categoria.'}
+              </div>
+            }
           />
         </div>
       </div>

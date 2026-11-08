@@ -1,7 +1,9 @@
 import { prefGet, prefSet } from './storage';
 import { syncNativeReminders } from './native';
-import type { Channel, Playlist } from './types';
+import type { Channel, EpgEntry, Playlist } from './types';
 import { shortEpg } from './xtream';
+import { loadXmltv, programmesOf } from './xmltv';
+import { loadScores, scoreFor } from './scores';
 
 // Jogos: partidas encontradas no guia dos canais de esporte da lista.
 // (Placar ao vivo precisa de um serviço esportivo externo — ver pendências.)
@@ -17,6 +19,7 @@ export function isSportsChannel(c: Channel): boolean {
 export function looksLikeGame(title: string): boolean {
   return (
     /\S\s+(x|vs\.?|versus|×)\s+\S/i.test(title) ||
+    /\b(futebol|brasileiro|rodada|partida)\b/i.test(title) ||
     /\b(ufc|nba|nfl|nhl|mlb|f[oó]rmula ?1|\bf1\b|gp |grande pr[eê]mio|brasileir[aã]o|libertadores|sul-?americana|champions|copa do (brasil|mundo|nordeste)|premier league|la liga|serie a|bundesliga|paulist[aã]o|carioca|mineiro|ga[uú]cho|t[eê]nis|wta|atp|v[oô]lei|basquete|boxe|luta)\b/i.test(title)
   );
 }
@@ -41,41 +44,146 @@ export interface Game {
   start: number;
   end: number;
   channels: Channel[];
+  /** Jogo vindo só do placar da ESPN: os canais são os prováveis da competição. */
+  likely?: boolean;
 }
 
 let cache: { at: number; games: Game[] } | null = null;
 
-/** Busca o guia (agora e próximas horas) dos canais de esporte e monta a lista de jogos. */
+/** O que a última busca encontrou (aparece na tela quando não há jogos). */
+export interface GamesStats {
+  sports: number;
+  asked: number;
+  withGuide: number;
+  fromXmltv: number;
+  programmes: number;
+  espn: number;
+  samples: string[];
+}
+let stats: GamesStats | null = null;
+export function gamesStats(): GamesStats | null {
+  return stats;
+}
+
+const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * Canais que costumam passar cada competição (quando o jogo vem só do placar da
+ * ESPN e não aparece no guia). É só uma sugestão: a tela mostra "canais prováveis".
+ */
+const LIKELY: [RegExp, RegExp][] = [
+  [/brasileir|copa do brasil/i, /premiere|sportv|^globo|caz[eé]|record/i],
+  [/libertadores/i, /espn|globo|sportv|paramount|caz[eé]/i],
+  [/sul-?americana/i, /espn|sbt|paramount|caz[eé]/i],
+  [/champions/i, /tnt|space|sbt|hbo|max/i],
+  [/premier league|la liga|serie a/i, /espn|disney/i],
+  [/bundesliga/i, /sportv|caz[eé]|onefootball/i],
+  [/nba/i, /espn|sportv|band ?sports|prime/i],
+  [/nfl/i, /espn|disney|prime/i],
+  [/ufc/i, /combate|band/i],
+];
+
+function likelyChannels(league: string, sports: Channel[]): Channel[] {
+  const rule = LIKELY.find(([l]) => l.test(league));
+  if (!rule) return [];
+  const seen = new Set<string>();
+  const out: Channel[] = [];
+  for (const c of sports) {
+    if (!rule[1].test(c.name)) continue;
+    const k = norm(c.name).replace(/\b(hd|fhd|uhd|sd|4k|h265)\b/g, '').trim();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(c);
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
+const BRANDS = /sportv|premiere|espn|band ?sports|tnt|combate|globo|sbt|record|caz[eé]|dazn|paramount|disney/i;
+
+/**
+ * Monta a lista de jogos juntando três fontes:
+ *  1. guia completo (XMLTV) de todos os canais de esporte, se já baixado;
+ *  2. guia curto do Xtream dos canais de esporte — primeiro os que têm guia
+ *     (epg_channel_id) e as marcas conhecidas, até 120 canais;
+ *  3. placar do dia da ESPN: jogos que não apareceram no guia entram com os
+ *     canais prováveis da competição.
+ */
 export async function loadGames(pl: Playlist, onProgress?: (done: number, total: number) => void): Promise<Game[]> {
   if (cache && Date.now() - cache.at < 10 * 60 * 1000) return cache.games;
-  if (pl.source.type !== 'xtream') return [];
-  const src = pl.source;
-  const sports = pl.items.filter(isSportsChannel).slice(0, 80);
+  const sports = pl.items.filter(isSportsChannel);
   const byKey = new Map<string, Game>();
-  let done = 0;
-  // 6 pedidos por vez, para não pesar no servidor.
-  const queue = [...sports];
-  const worker = async () => {
-    while (queue.length) {
-      const ch = queue.shift()!;
-      try {
-        const list = await shortEpg(src, ch.id, 12);
-        for (const e of list) {
-          if (!looksLikeGame(e.title) || e.end < Date.now()) continue;
-          const title = e.title.replace(/\s+/g, ' ').trim();
-          const key = matchOf(title).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() + '|' + Math.round(e.start / 600000);
-          const g = byKey.get(key);
-          if (g) {
-            if (!g.channels.some((c) => c.id === ch.id)) g.channels.push(ch);
-          } else byKey.set(key, { key, title, league: leagueOf(title), start: e.start, end: e.end, channels: [ch] });
-        }
-      } catch {
-        /* canal sem guia: ignora */
-      }
-      onProgress?.(++done, sports.length);
-    }
+  const st: GamesStats = { sports: sports.length, asked: 0, withGuide: 0, fromXmltv: 0, programmes: 0, espn: 0, samples: [] };
+  const now = Date.now();
+  const until = now + 3 * 86400000;
+  const add = (ch: Channel, e: EpgEntry) => {
+    st.programmes++;
+    if (st.samples.length < 6 && e.title && !st.samples.includes(e.title)) st.samples.push(e.title);
+    if (!looksLikeGame(e.title) || e.end < now || e.start > until) return;
+    const title = e.title.replace(/\s+/g, ' ').trim();
+    const key = norm(matchOf(title)) + '|' + Math.round(e.start / 600000);
+    const g = byKey.get(key);
+    if (g) {
+      if (!g.channels.some((c) => c.id === ch.id)) g.channels.push(ch);
+    } else byKey.set(key, { key, title, league: leagueOf(title), start: e.start, end: e.end, channels: [ch] });
   };
-  await Promise.all(Array.from({ length: 6 }, worker));
+
+  // 1) Guia completo (XMLTV), em paralelo; espera no máximo 40 s no total.
+  const xmlP = Promise.race([loadXmltv(pl).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 40000))]);
+
+  // 2) Guia curto do Xtream
+  if (pl.source.type === 'xtream') {
+    const src = pl.source;
+    const score = (c: Channel) => (c.epgId ? 2 : 0) + (BRANDS.test(c.name) ? 1 : 0);
+    const ask = sports
+      .slice()
+      .sort((a, b) => score(b) - score(a))
+      .slice(0, 120);
+    st.asked = ask.length;
+    let done = 0;
+    const queue = [...ask];
+    const worker = async () => {
+      while (queue.length) {
+        const ch = queue.shift()!;
+        try {
+          const list = await shortEpg(src, ch.id, 12);
+          if (list.length) st.withGuide++;
+          for (const e of list) add(ch, e);
+        } catch {
+          /* canal sem guia: ignora */
+        }
+        onProgress?.(++done, ask.length);
+      }
+    };
+    // 6 pedidos por vez, para não pesar no servidor.
+    await Promise.all(Array.from({ length: 6 }, worker));
+  }
+  if (await xmlP) {
+    for (const ch of sports) {
+      const progs = programmesOf(ch);
+      if (!progs.length) continue;
+      st.fromXmltv++;
+      for (const e of progs) add(ch, e);
+    }
+  }
+
+  // 3) Placar da ESPN: jogos de hoje que o guia não trouxe
+  try {
+    const scores = await loadScores();
+    const fromGuide = [...byKey.values()];
+    for (const s of scores) {
+      if (s.state === 'post' || !s.home || !s.away || !Number.isFinite(s.start)) continue;
+      const title = `${s.league}: ${s.home} x ${s.away}`;
+      if (fromGuide.some((g) => scoreFor(g, [s]))) continue;
+      st.espn++;
+      const key = 'espn|' + (s.id ?? norm(title));
+      byKey.set(key, { key, title, league: s.league, start: s.start, end: s.start + 2 * 3600000, channels: likelyChannels(s.league, sports), likely: true });
+    }
+  } catch {
+    /* sem placar: segue só com o guia */
+  }
+
+  stats = st;
   const games = [...byKey.values()].sort((a, b) => a.start - b.start);
   cache = { at: Date.now(), games };
   return games;

@@ -1,0 +1,54 @@
+# Tops e recomendações: gera prisma-tops.json (Top 10 oficial da Netflix no
+# Brasil, mais populares de cada streaming, gêneros, especiais e ranking de
+# canais) e publica na Release "tops". Os apps (TV LG, Android, Windows) baixam
+# de https://github.com/<repo>/releases/download/tops/prisma-tops.json.
+#
+# Secret opcional (recomendado): TMDB_KEY = chave v3 do themoviedb.org. Sem ele,
+# sai só o ranking da Netflix (títulos em inglês) e o de canais.
+name: Tops
+
+on:
+  schedule:
+    - cron: '23 2,8,14,20 * * *' # 4x por dia (UTC)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['scripts/tops/**', '.github/workflows/tops.yml']
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: tops
+  cancel-in-progress: false
+
+jobs:
+  tops:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Gera os tops
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+        run: node scripts/tops/build-tops.mjs out/prisma-tops.json
+      - name: Avisos
+        run: |
+          node -e "const d=require('./out/prisma-tops.json'); console.log(d.lists.map(l=>l.id+': '+l.items.length).join('\n')); for (const w of d.warn||[]) console.log('::warning title=Tops::'+w)"
+      - name: Publica na Release "tops"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Pré-lançamento: nunca vira a "latest" (a atualização do app lê a latest).
+          gh release view tops >/dev/null 2>&1 || gh release create tops --prerelease --latest=false --title "Dados · Tops e recomendações" --notes "Arquivo de dados atualizado automaticamente várias vezes por dia (workflow Tops). Não é uma versão do app." --target "$GITHUB_SHA"
+          gh release upload tops out/prisma-tops.json --clobber
+      # O GitHub desliga agendamentos de repositórios sem commits por 60 dias.
+      # Reativar o próprio workflow a cada execução mantém o agendamento vivo.
+      - name: Mantém o agendamento ligado
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/tops.yml/enable" || true

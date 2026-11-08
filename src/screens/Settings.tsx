@@ -14,6 +14,7 @@ import { applyBackup, exportBackup, pickBackupFile } from '../core/backup';
 import { clearScheduleCache, guideCoverage } from '../core/schedule';
 import { PUBLIC_GUIDES, extraGuides, extraStatus, loadXmltv, setExtraGuides } from '../core/xmltv';
 import { runningVersion } from '../core/updater';
+import { loadTops, onTops, topsStatus } from '../core/tops';
 import { UpdatePanel } from './UpdatePanel';
 import { clearEpgCache } from '../core/epg';
 import { clearXmltv } from '../core/xmltv';
@@ -29,7 +30,7 @@ const SECTIONS: { id: Section; label: string; hint: string }[] = [
   { id: 'aparencia', label: 'Aparência', hint: 'Estrutura e tema' },
   { id: 'perfis', label: 'Perfis', hint: 'Quem está assistindo' },
   { id: 'lista', label: 'Lista', hint: 'Sua assinatura IPTV' },
-  { id: 'servicos', label: 'Serviços', hint: 'TMDB (capas, trailers, Top 10) e placar' },
+  { id: 'servicos', label: 'Serviços', hint: 'TMDB, tops e recomendações, placar' },
   { id: 'dados', label: 'Dados e limpeza', hint: 'Histórico, favoritos e cache' },
   { id: 'sobre', label: 'Sobre', hint: 'Versão e diagnóstico da tela' },
 ];
@@ -200,9 +201,9 @@ export function Settings({
       <>
         <Choice
           label="Estrutura"
-          help="A · Vidro Líquido: menu em pílula no topo. B · Cinema: abas de texto com destaque grande. C · Hub: menu lateral de ícones. No celular é sempre a A."
-          value={st.structure}
-          options={[{ v: 'A', label: 'A · Vidro Líquido' }, { v: 'B', label: 'B · Cinema' }, { v: 'C', label: 'C · Hub' }]}
+          help="Menu Horizontal: menu em pílula no topo. Menu Vertical: menu lateral de ícones. No celular é sempre o Menu Horizontal."
+          value={st.structure === 'C' ? 'C' : 'A'}
+          options={[{ v: 'A', label: 'Menu Horizontal' }, { v: 'C', label: 'Menu Vertical' }]}
           onChange={set('structure')}
         />
         <Choice
@@ -422,6 +423,7 @@ function Services() {
         {state === 'ok' && <span style={{ color: T.primary, fontWeight: 700, fontSize: 15 }}>✓ TMDB ligado: capas, trailers e Top 10 ativados.</span>}
         {state === 'bad' && <span style={{ color: T.live, fontWeight: 700, fontSize: 15 }}>Chave recusada pelo TMDB (ou sem internet). Confira se é a “Chave da API (v3)”.</span>}
       </div>
+      <TopsRow mobile={mobile} />
       <div className="opt-row gy-6" style={{ display: 'flex', flexDirection: 'column' }}>
         <span style={{ fontSize: mobile ? 16 : 18, fontWeight: 700 }}>Placar ao vivo</span>
         <span className="muted" style={{ fontSize: 15, lineHeight: 1.45 }}>
@@ -429,6 +431,48 @@ function Services() {
         </span>
       </div>
     </>
+  );
+}
+
+/** Ajustes › Serviços: situação dos tops (Top 10 dos streamings, gêneros e canais). */
+function TopsRow({ mobile }: { mobile: boolean }) {
+  const [, force] = useState(0);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => onTops(() => force((x) => x + 1)), []);
+  useEffect(() => {
+    loadTops().then(() => force((x) => x + 1));
+  }, []);
+  const { data, error } = topsStatus();
+  const fmt = (t: number | string) => new Date(t).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return (
+    <div className="opt-row gy-10" style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ fontSize: mobile ? 16 : 18, fontWeight: 700 }}>Tops e recomendações</span>
+      <span className="muted" style={{ fontSize: 15, lineHeight: 1.45 }}>
+        Top 10 oficial da Netflix no Brasil, mais populares de cada streaming, gêneros (terror, comédia…), lançamentos, doramas, animes e o ranking de canais. Atualizados automaticamente várias vezes por dia, sem chave; aparecem em Filmes e Séries (botão 🔥 Top) e no Início, só com o que está na sua lista.
+      </span>
+      <span style={{ fontSize: 15, fontWeight: 600 }}>
+        {data
+          ? `${data.lists.length} listas · geradas em ${fmt(data.updated)} · baixadas neste aparelho em ${fmt(data.at)}`
+          : busy
+            ? 'Baixando…'
+            : `Ainda não baixadas${error ? ` (${error})` : ''}.`}
+      </span>
+      {data && error && <span style={{ color: T.live, fontSize: 14 }}>Última tentativa falhou ({error}); usando as listas já baixadas.</span>}
+      <div className="wrap-row" style={{ display: 'flex' }}>
+        <button
+          className="btn"
+          data-nav=""
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await loadTops(true);
+            setBusy(false);
+          }}
+        >
+          {busy ? 'Atualizando…' : 'Atualizar agora'}
+        </button>
+      </div>
+    </div>
   );
 }
 

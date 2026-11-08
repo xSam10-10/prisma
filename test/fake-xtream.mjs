@@ -96,6 +96,16 @@ function epgFor(id) {
   }));
 }
 
+// Títulos em inglês da Netflix (falsa) → nome em português do TMDB (falso)
+const EN_PT = {
+  'Route 66': { id: 701, title: 'Rota 66', original_title: 'Route 66', release_date: '2019-05-01', vote_average: 7.1 },
+  'High Tide': { id: 702, title: 'Maré Alta', original_title: 'High Tide', release_date: '2024-02-01', vote_average: 6.8 },
+  'Northern Light': { id: 703, title: 'Luz do Norte', original_title: 'Northern Light', release_date: '1990-01-01', vote_average: 6.1 },
+  'Plan B': { id: 704, title: 'Plano B', original_title: 'Plan B', release_date: '2021-01-01', vote_average: 6.5 },
+  'Night Shift': { id: 801, name: 'Turno da Noite', original_name: 'Night Shift', first_air_date: '2016-03-01', vote_average: 7.9 },
+  'The Heirs': { id: 802, name: 'Os Herdeiros', original_name: 'The Heirs', first_air_date: '2015-03-01', vote_average: 8.0 },
+};
+
 createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   // Atualização dentro do app (teste): arquivos de UPDATE_DIR em /updates/
@@ -148,6 +158,41 @@ createServer((req, res) => {
     }
     if (a === 'get_short_epg') { limitG = u.searchParams.get('limit'); return send({ epg_listings: epgFor(u.searchParams.get('stream_id')) }); }
     return send([]);
+  }
+  // Tops: TSV oficial da Netflix (falso) e o arquivo gerado (TOPS_FILE) para o app
+  if (u.pathname === '/netflix/top10.tsv') {
+    const rows = ['country_name\tcountry_iso2\tweek\tcategory\tweekly_rank\tshow_title\tseason_title\tcumulative_weeks_in_top_10'];
+    const films = ['Route 66', 'High Tide', 'Unknown Movie', 'Northern Light', 'Plan B'];
+    const tv = ['Night Shift', 'The Heirs', 'Attack on Titan'];
+    for (const wk of ['2026-11-01', '2026-10-25']) {
+      films.forEach((t, i) => rows.push(`Brazil\tBR\t${wk}\tFilms\t${i + 1}\t${wk === '2026-11-01' ? t : 'Old ' + t}\tN/A\t1`));
+      tv.forEach((t, i) => rows.push(`Brazil\tBR\t${wk}\tTV\t${i + 1}\t${t}\t${t}: Season 1\t2`));
+    }
+    rows.push('Argentina\tAR\t2026-11-01\tFilms\t1\tSomething Else\tN/A\t1');
+    return res.writeHead(200, { 'content-type': 'text/tab-separated-values' }).end(rows.join('\n'));
+  }
+  if (u.pathname === '/tops/prisma-tops.json') {
+    if (!process.env.TOPS_FILE || !existsSync(process.env.TOPS_FILE)) return res.writeHead(404, { 'access-control-allow-origin': '*' }).end();
+    return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }) && createReadStream(process.env.TOPS_FILE).pipe(res);
+  }
+  if (u.pathname.startsWith('/tmdb/3/') && /^\/tmdb\/3\/(watch\/providers|discover|movie\/top_rated|tv\/top_rated)/.test(u.pathname) || EN_PT[(u.searchParams.get('query') || '')]) {
+    if (u.searchParams.get('api_key') !== 'chave-teste') return res.writeHead(401).end('{}');
+    const j = (o) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(o));
+    const path = u.pathname.slice(8);
+    const hit = EN_PT[u.searchParams.get('query') || ''];
+    if (hit) return j({ results: [hit] });
+    if (path.startsWith('watch/providers/')) return j({ results: [{ provider_id: 8, provider_name: 'Netflix', display_priority: 1 }, { provider_id: 1899, provider_name: 'HBO Max', display_priority: 2 }, { provider_id: 337, provider_name: 'Disney Plus', display_priority: 3 }, { provider_id: 307, provider_name: 'Globoplay', display_priority: 4 }] });
+    const type = path.startsWith('discover/') ? path.slice(9) : path.split('/')[0];
+    const prov = Number(u.searchParams.get('with_watch_providers') || 0);
+    const genre = Number(u.searchParams.get('with_genres') || 0);
+    const pool = type === 'movie' ? vods.map((v) => ({ title: v.name.replace(/ \(\d{4}\)$/, ''), date: v.year + '-01-01' })) : seriesList.map((x) => ({ title: x.name, date: x.releaseDate }));
+    const seed = prov + genre + (path.includes('top_rated') ? 7 : 0) + (u.searchParams.get('with_original_language') || '').length * 3;
+    const out = [];
+    for (let i = 0; i < 22; i++) {
+      if (i % 4 === 3) out.push({ id: 90000 + i, title: 'Fora da Lista ' + i, name: 'Fora da Lista ' + i, release_date: '2020-01-01', first_air_date: '2020-01-01', vote_average: 7 });
+      else { const x = pool[(seed + i * 5) % pool.length]; out.push({ id: 50000 + seed * 100 + i, title: x.title, name: x.title, original_title: x.title, original_name: x.title, release_date: x.date, first_air_date: x.date, vote_average: 7.2 }); }
+    }
+    return j({ results: Number(u.searchParams.get('page') || 1) > 1 ? out.slice(11) : out.slice(0, 20) });
   }
   if (u.pathname.startsWith('/tmdb/')) {
     const j = (o) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(o));

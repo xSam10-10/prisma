@@ -343,6 +343,15 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 html:not(.kbd) .tile:focus .tile-art { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.35); }
 .tile:hover .tile-art { border-color: rgba(255, 255, 255, 0.35); }
 .mobile .tile-name { font-size: 14px; margin-top: 8px; }
+.tile-sub { margin-top: 2px; padding: 0 4px; font-size: 14px; color: #a6a6b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.tile-rank {
+  position: absolute; left: 10px; bottom: 2px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 52px; line-height: 1;
+  color: #f4f4f8; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9);
+}
+.mobile .tile-sub { font-size: 12px; }
+.mobile .tile-rank { font-size: 36px; }
+.cat-head { display: block; margin: 14px 4px 4px; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #a6a6b8; }
+.stream-chip.topchip { font-weight: 800; }
 .mobile .tile-ini { font-size: 20px; border-radius: 12px; }
 
 /* ---- Destaque do Início ---- */

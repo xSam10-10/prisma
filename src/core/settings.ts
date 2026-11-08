@@ -27,6 +27,7 @@ export interface Settings {
   /** Chave da API do TMDB (v3) — capas, trailers e Top 10. */
   tmdbKey: string;
   /** Estrutura: A Vidro Líquido · B Cinema · C Hub (no celular sempre A). */
+  /** A = Menu Horizontal, C = Menu Vertical. ("B · Cinema" saiu na 0.18.0 e vira A.) */
   structure: 'A' | 'B' | 'C';
   /** Tema (só aparência). */
   theme: string;
@@ -47,12 +48,22 @@ export const DEFAULT_SETTINGS: Settings = {
   logoSource: 'official',
   tmdbKey: '',
   structure: 'A',
-  theme: 'prisma',
+  theme: 'apple',
   streamLogos: 'color',
 };
 
 export function loadSettings(): Settings {
-  return { ...DEFAULT_SETTINGS, ...prefGet<Partial<Settings>>('settings', {}) };
+  const saved = prefGet<Partial<Settings> & { v18?: boolean }>('settings', {});
+  const s = { ...DEFAULT_SETTINGS, ...saved };
+  // 0.18.0: só Menu Horizontal (A) e Menu Vertical (C); tema padrão Apple TV
+  // (quem estava no tema padrão antigo, Prisma, passa para o Apple TV uma vez).
+  if (s.structure === 'B') s.structure = 'A';
+  if (!saved.v18) {
+    if (!saved.theme || saved.theme === 'prisma') s.theme = 'apple';
+    (s as Settings & { v18?: boolean }).v18 = true;
+    if (Object.keys(saved).length) prefSet('settings', s);
+  }
+  return s;
 }
 
 export function saveSettings(s: Settings): void {

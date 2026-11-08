@@ -79,7 +79,7 @@ export function ChannelLogo({ ch, size = 40 }: { ch: Channel; size?: number }) {
 }
 
 /** Miniatura 16:9 com o logo em destaque (cards do Início). */
-export function ChannelTile({ ch, width, onClick, badge }: { ch: Channel; width: number; onClick: () => void; badge?: string }) {
+export function ChannelTile({ ch, width, onClick, badge, rank, sub }: { ch: Channel; width: number; onClick: () => void; badge?: string; rank?: number; sub?: string }) {
   const { src, onError } = useLogo(ch);
   const c = colorFor(ch.name);
   const h = Math.round((width * 9) / 16);
@@ -99,8 +99,10 @@ export function ChannelTile({ ch, width, onClick, badge }: { ch: Channel; width:
         )}
         {ch.number != null && <span className="tile-num">{ch.number}</span>}
         {badge && <span className="tile-badge">{badge}</span>}
+        {rank ? <span className="tile-rank">{rank}</span> : null}
       </span>
       <span className="tile-name">{ch.name}</span>
+      {sub ? <span className="tile-sub">{sub}</span> : null}
     </button>
   );
 }

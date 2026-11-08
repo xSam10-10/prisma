@@ -1,6 +1,14 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.18.0
+- Filmes e Séries: novo botão 🔥 Top com o Top 10 oficial da Netflix, os mais populares de cada streaming, Top 10 por gênero (terror, comédia, ação…), lançamentos, aclamados, doramas, novelas turcas, animes e nacionais — só o que está na sua lista
+- Ao escolher um streaming, o Top 10 dele aparece no alto das categorias
+- Início: Top 10 canais agora (com o que está passando), Top 10 da semana e Top de cada streaming, filmes e séries juntos
+- As listas se atualizam sozinhas várias vezes por dia, sem versão nova do app (Ajustes › Serviços mostra quando foram baixadas)
+- Jogos: usa também o guia completo e o placar do dia da ESPN (com os canais prováveis); se não achar nada, mostra o motivo
+- Aparência: Estrutura agora é Menu Horizontal ou Menu Vertical; tema padrão Apple TV
+
 ## 0.17.0
 - Agora na TV: mosaico com o que está passando em cada canal (menu da tela cheia)
 - Grupo Gravações no menu da tela cheia (canais que gravam)

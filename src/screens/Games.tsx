@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ensureReminder, hasReminder, isSportsChannel, loadGames, matchOf, myTeams, setMyTeams, teamsOf, toggleReminder, type Game } from '../core/games';
+import { ensureReminder, gamesStats, hasReminder, isSportsChannel, loadGames, matchOf, myTeams, setMyTeams, teamsOf, toggleReminder, type Game } from '../core/games';
 import { TABLE_LEAGUES, isMyTeam, loadFixtures, loadMatchStats, loadStandings, teamKey, type MatchStats, type Table } from '../core/scores';
 import type { Channel, Playlist } from '../core/types';
 import { loadScores, orderedScore, scoreFor, type Score } from '../core/scores';
@@ -86,15 +86,12 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
   useEffect(() => setIndex(0), [filter, league]);
   const sel = list[index];
 
-  if (playlist.source.type !== 'xtream') {
-    return <Info L={L} title="Jogos" text="O guia de jogos é montado com o guia de programação dos canais de esporte, que hoje vem da API Xtream. Com lista M3U, ele chega junto com o guia completo (XMLTV)." />;
-  }
   if (!sports.length) {
     return <Info L={L} title="Jogos" text="Não encontrei canais de esporte na sua lista (procuro por categorias e nomes como Esportes, SporTV, ESPN, Premiere, PPV, UFC)." />;
   }
   if (!games) {
     return (
-      <Info L={L} title="Procurando jogos…" text={`Lendo o guia dos canais de esporte: ${prog.done} de ${prog.total || sports.length}.`}>
+      <Info L={L} title="Procurando jogos…" text={prog.total ? `Lendo o guia dos canais de esporte: ${prog.done} de ${prog.total}.` : 'Lendo o guia de programação e o placar do dia…'}>
         <div className="progress" style={{ maxWidth: 420, marginTop: 8 }}><div style={{ width: `${prog.total ? (prog.done / prog.total) * 100 : 5}%`, background: T.primary }} /></div>
       </Info>
     );
@@ -166,7 +163,9 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
                 </span>
                 <div className="txt">
                   <span className="name" style={{ textTransform: 'none' }}>{matchOf(g.title)}</span>
-                  <span className="sub caps" style={{ fontSize: 13 }}>{g.league} · {g.channels.length} {g.channels.length > 1 ? 'canais' : 'canal'}</span>
+                  <span className="sub caps" style={{ fontSize: 13 }}>
+                    {g.league} · {g.likely ? (g.channels.length ? 'canais prováveis' : 'canal não informado') : `${g.channels.length} ${g.channels.length > 1 ? 'canais' : 'canal'}`}
+                  </span>
                 </div>
                 {(() => {
                   const sc = scoreFor(g, scores);
@@ -187,7 +186,8 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
           empty={
             <div className="gy-8" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
               <span className="title" style={{ fontSize: 20 }}>{filter === 'agora' ? 'Nenhum jogo ao vivo agora' : 'Nenhum jogo encontrado'}</span>
-              <span className="muted" style={{ fontSize: 15 }}>Veja “Hoje” ou “Todos”. Os jogos vêm do guia dos {sports.length} canais de esporte da sua lista.</span>
+              <span className="muted" style={{ fontSize: 15 }}>Veja “Hoje” ou “Todos”. Os jogos vêm do guia dos {sports.length} canais de esporte da sua lista e do placar do dia da ESPN.</span>
+              {games.length === 0 && <GamesDiag />}
             </div>
           }
         />
@@ -257,6 +257,13 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
         <MatchInfo score={score} tab={tab} />
       ) : (
       <div className="gy-8 scroll-y" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flexGrow: 1, flexShrink: 1 }}>
+        {g.likely && (
+          <span className="muted" style={{ fontSize: 14, lineHeight: 1.4 }}>
+            {g.channels.length
+              ? 'Este jogo veio do placar da ESPN e não apareceu no guia da sua lista. Estes são os canais que costumam transmitir a competição:'
+              : 'Este jogo veio do placar da ESPN e não apareceu no guia da sua lista. Procure nos canais de esporte (Ao vivo).'}
+          </span>
+        )}
         {g.channels.map((c) => (
           <button key={c.id} className="where-row" data-nav="" onClick={() => onWatch(c)}>
             <ChannelLogo ch={c} size={40} />
@@ -482,5 +489,23 @@ function MyTeamsDialog({ games, initial, onClose, onSave }: { games: Game[]; ini
         <button className="btn" data-nav="" onClick={onClose}>Cancelar</button>
       </div>
     </Modal>
+  );
+}
+
+/** Quando não acha jogos: o que o guia da lista devolveu (ajuda a entender o motivo). */
+function GamesDiag() {
+  const st = gamesStats();
+  if (!st) return null;
+  return (
+    <div className="gy-6" style={{ display: 'flex', flexDirection: 'column', marginTop: 10, fontSize: 14, lineHeight: 1.45 }}>
+      <span className="muted">
+        Diagnóstico: consultei {st.asked} de {st.sports} canais de esporte no guia rápido — {st.withGuide} responderam com programação; {st.fromXmltv} canais no guia completo; {st.programmes} programas lidos; {st.espn} jogos no placar da ESPN.
+      </span>
+      {st.programmes === 0 ? (
+        <span className="muted">O servidor da lista não devolveu programação para os canais de esporte. Em Ajustes › Lista › “Guia de programação extra”, adicione um guia público (ex.: epgshare01 Brasil) e volte aqui.</span>
+      ) : (
+        <span className="muted">Exemplos de programas no guia: {st.samples.map((t) => `“${t}”`).join(', ')}. Se forem jogos, me mande um print desta tela para eu ensinar o PRISMA a reconhecê-los.</span>
+      )}
+    </div>
   );
 }

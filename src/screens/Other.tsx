@@ -13,8 +13,8 @@ import { useLayout } from '../ui/layout';
 import { Carousel } from '../ui/Carousel';
 import { PosterCard, VodDetail } from './Vod';
 import { getProgress, myList, vodRecents } from '../core/vod';
-import { tmdbKey, weeklyTop } from '../core/tmdb';
-import { useSettings } from '../core/settings';
+import { homeShelves, topChannels, type TopChannelPick } from '../core/tops';
+import { useTops } from '../ui/useTops';
 import { prefGet } from '../core/storage';
 import { VoiceButton } from '../ui/Voice';
 
@@ -44,18 +44,9 @@ export function Home({
   const series = playlist.items.filter((i) => i.kind === 'series').length;
   const [detail, setDetail] = useState<Channel | null>(null);
   const onGoVod = (v: Channel) => setDetail(v);
-  // Top 10 da semana (TMDB), só com o que existe na lista
-  const [topM, setTopM] = useState<Channel[]>([]);
-  const [topS, setTopS] = useState<Channel[]>([]);
-  useEffect(() => {
-    if (!tmdbKey()) return;
-    let alive = true;
-    weeklyTop(playlist.items, 'movie').then((r) => alive && setTopM(r.map((x) => x.item)));
-    weeklyTop(playlist.items, 'series').then((r) => alive && setTopS(r.map((x) => x.item)));
-    return () => {
-      alive = false;
-    };
-  }, [playlist]);
+  // Tops (arquivo atualizado no GitHub): filmes e séries juntos, só o que existe na lista
+  const tops = useTops(playlist);
+  const shelves = useMemo(() => homeShelves(tops, playlist.items), [tops, playlist]);
   const L = useLayout();
   const mobile = L.form === 'mobile';
   useEffect(() => {
@@ -73,6 +64,9 @@ export function Home({
     };
   }, [playlist]); // eslint-disable-line react-hooks/exhaustive-deps
   const highlights = useMemo(() => todayHighlights(live, favs.map((f) => f.id)), [live, favs, guideReady, hlTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Top 10 canais agora: popularidade + o que está passando + favoritos e vistos por último
+  const topCh = useMemo(() => topChannels(tops, live, favs.map((f) => f.id), recents.map((r) => r.id)), [tops, live, favs, recents, guideReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  const topChList = useMemo(() => topCh.map((p) => p.ch), [topCh]);
   return (
     <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }}>
       <Hero
@@ -140,23 +134,29 @@ export function Home({
         />
       )}
 
-      <Shelf title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
-      {[['Top 10 filmes da semana', topM], ['Top 10 séries da semana', topS]].map(([title, items]) =>
-        (items as Channel[]).length ? (
-          <Carousel
-            key={title as string}
-            title={title as string}
-            items={items as Channel[]}
-            keyOf={(v) => v.id}
-            minWidth={mobile ? 110 : 160}
-            render={(v, i, w) => (
-              <button className="tile grow" data-nav="" style={{ width: w }} onClick={() => onGoVod(v)} aria-label={v.name}>
-                <PosterCard item={v} w={w} rank={i + 1} />
-              </button>
-            )}
-          />
-        ) : null,
+      {topCh.length >= 3 && (
+        <Carousel
+          title="Top 10 canais agora"
+          items={topCh}
+          keyOf={(p) => p.ch.id}
+          render={(p, i, w) => <TopChannelTile playlist={playlist} pick={p} rank={i + 1} width={w} onClick={() => onWatch(p.ch, topChList)} />}
+        />
       )}
+      <Shelf title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
+      {shelves.map((sh) => (
+        <Carousel
+          key={sh.id}
+          title={sh.title}
+          items={sh.items}
+          keyOf={(r) => r.item.id}
+          minWidth={mobile ? 110 : 160}
+          render={(r, _i, w) => (
+            <button className="tile grow" data-nav="" style={{ width: w }} onClick={() => onGoVod(r.item)} aria-label={`${r.rank}º ${r.item.name}`}>
+              <PosterCard item={r.item} w={w} rank={r.rank} />
+            </button>
+          )}
+        />
+      ))}
       {saved.length > 0 && (
         <Carousel
           title="Minha lista"
@@ -182,8 +182,6 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
 }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
-  // Estrutura B · Cinema: destaque maior.
-  const cinema = !mobile && useSettings().settings.structure === 'B';
   const epg = useEpg(playlist, last, 0);
   const now = useClock();
   const cur = epg?.[0];
@@ -240,7 +238,7 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
   const info = (
     <div className="gy-12" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, maxWidth: wide ? undefined : 680 }}>
       <span className="badge-live" style={{ alignSelf: 'flex-start', fontSize: mobile ? 12 : 13 }}>{last ? 'Continuar assistindo' : 'Bem-vindo'}</span>
-      <span className="title caps" style={{ fontSize: mobile ? 30 : cinema ? 72 : 46, fontWeight: 800, lineHeight: 1.02 }}>{last ? last.name : 'PRISMA'}</span>
+      <span className="title caps" style={{ fontSize: mobile ? 30 : 46, fontWeight: 800, lineHeight: 1.02 }}>{last ? last.name : 'PRISMA'}</span>
       {last ? (
         <span className="muted caps" style={{ fontSize: mobile ? 14 : 16, fontWeight: 600 }}>
           {last.number != null ? `Canal ${last.number} · ` : ''}{last.group}
@@ -277,7 +275,7 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
     </div>
   );
   return (
-    <div style={{ position: 'relative', padding: `${mobile ? 4 : cinema ? 60 : 10}px ${L.px}px ${cinema ? 40 : 0}px`, minHeight: cinema ? L.H * 0.42 : undefined }}>
+    <div style={{ position: 'relative', padding: `${mobile ? 4 : 10}px ${L.px}px 0px` }}>
       <div aria-hidden="true" className="hero-glow" style={{ background: `radial-gradient(ellipse at 70% 40%, ${rgba(c, 0.28)} 0%, rgba(0,0,0,0) 60%)` }} />
       <div style={{ position: 'relative', display: 'flex', flexDirection: mobile ? 'column-reverse' : 'row', alignItems: mobile ? 'stretch' : 'center' }}>
         <div style={{ flexGrow: 1, flexBasis: 0, minWidth: 0, marginTop: mobile ? 8 : 0, paddingRight: wide ? 48 : 0 }}>{info}</div>
@@ -285,6 +283,14 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
       </div>
     </div>
   );
+}
+
+/** Card do "Top 10 canais agora": logo, posição e o programa que está passando. */
+function TopChannelTile({ playlist, pick, rank, width, onClick }: { playlist: Playlist; pick: TopChannelPick; rank: number; width: number; onClick: () => void }) {
+  const epg = useEpg(playlist, pick.ch, 300 + rank * 120);
+  const now = Date.now();
+  const cur = epg?.find((e) => e.start <= now && e.end > now);
+  return <ChannelTile ch={pick.ch} width={width} onClick={onClick} rank={rank} badge={pick.why} sub={cur ? `Agora: ${cur.title}` : pick.cat} />;
 }
 
 /** Fileira do Início: sempre carrossel, no máximo 10 canais, só cards inteiros. */

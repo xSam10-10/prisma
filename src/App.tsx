@@ -8,6 +8,7 @@ import { cachedGames, dueReminders, ensureReminder, loadGames, myTeams, reminder
 import { isMyTeam, loadScores, scoreFor } from './core/scores';
 import { installNative, notifyNow, syncNativeReminders } from './core/native';
 import { checkForUpdate, markBootOk, shouldAutoCheck, type CheckResult } from './core/updater';
+import { loadTops } from './core/tops';
 import type { Section } from './screens/Settings';
 import { pushVodRecent } from './core/vod';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
@@ -51,8 +52,8 @@ export function App() {
   const L = useViewportLayout(settings);
   const scale = L.scale;
   const mobileForm = L.form === 'mobile';
-  // Estrutura (A, B, C) e tema. No celular é sempre a A.
-  const structure = mobileForm ? 'A' : settings.structure;
+  // Estrutura (A = Menu Horizontal, C = Menu Vertical) e tema. No celular é sempre a A.
+  const structure = mobileForm || settings.structure !== 'C' ? 'A' : 'C';
   const railW = structure === 'C' ? 96 : 0;
   // Layout das telas: na C o conteúdo fica à direita do menu lateral e começa mais em cima.
   const Ls = useMemo<Layout>(() => (railW ? { ...L, W: L.W - railW, top: 44 + L.safeY } : L), [L, railW]);
@@ -117,6 +118,16 @@ export function App() {
         .catch(() => {});
     }, 8000);
     return () => clearTimeout(t);
+  }, [phase]);
+  // Tops e recomendações: baixa em segundo plano e mantém atualizado (a cada 6 h) com o app aberto.
+  useEffect(() => {
+    if (phase !== 'app') return;
+    const t = setTimeout(() => loadTops(), 12000);
+    const iv = setInterval(() => loadTops(), 30 * 60 * 1000);
+    return () => {
+      clearTimeout(t);
+      clearInterval(iv);
+    };
   }, [phase]);
   // Meus times: lembretes automáticos dos jogos e aviso de gol (com o app aberto).
   const [goal, setGoal] = useState<null | { title: string; detail: string; channel?: Channel; list?: Channel[] }>(null);
@@ -401,8 +412,6 @@ export function App() {
             <MobileBars tab={tab} onTab={setTab} L={L} />
           ) : structure === 'C' ? (
             <SideRail tab={tab} onTab={setTab} L={L} />
-          ) : structure === 'B' ? (
-            <CinemaBar tab={tab} onTab={setTab} L={L} />
           ) : (
             <TopBar tab={tab} onTab={setTab} L={L} />
           ))}
@@ -558,29 +567,9 @@ function MobileBars({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: L
   );
 }
 
-/** Estrutura B · Cinema: abas de texto no topo, sublinhado na cor do tema. */
-function CinemaBar({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Layout }) {
-  return (
-    <div className="top cinema" style={{ left: L.px, right: L.px, top: 26 + L.safeY }}>
-      <Brand />
-      <nav className="tabs-b" aria-label="Menu">
-        {TABS.map(([id, label]) => (
-          <button key={id} data-nav="" className={id === tab ? 'on' : ''} aria-current={id === tab ? 'page' : undefined} onClick={() => onTab(id)}>
-            {label}
-          </button>
-        ))}
-      </nav>
-      <div style={{ flexGrow: 1 }} />
-      <button className={'round' + (tab === 'busca' ? ' on' : '')} data-nav="" aria-label="Buscar" onClick={() => onTab('busca')}>{Icon.search}</button>
-      <button className={'round' + (tab === 'lista' ? ' on' : '')} data-nav="" aria-label="Minha lista" onClick={() => onTab('lista')}>{Icon.bookmark}</button>
-      <ProfileButton onClick={() => onTab('ajustes')} />
-    </div>
-  );
-}
-
 const RAIL_ICON: Record<string, string> = { inicio: '⌂', aovivo: '●', jogos: '◎', filmes: '▶', series: '▤', anime: '✦', busca: '⌕', lista: '❏' };
 
-/** Estrutura C · Hub: menu lateral de ícones (96). */
+/** Menu Vertical (estrutura C): menu lateral de ícones (96). */
 function SideRail({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Layout }) {
   const items: [Tab, string][] = [...TABS, ['busca', 'Busca'], ['lista', 'Lista']];
   return (

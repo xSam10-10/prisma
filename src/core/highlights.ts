@@ -14,7 +14,7 @@ export interface Highlight {
   kind: 'jogo' | 'filme' | 'programa';
 }
 
-function kindOf(title: string): Highlight['kind'] | null {
+export function kindOf(title: string): Highlight['kind'] | null {
   if (looksLikeGame(title)) return 'jogo';
   if (MOVIE.test(title)) return 'filme';
   if (SHOW.test(title)) return 'programa';
