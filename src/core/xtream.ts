@@ -197,6 +197,25 @@ export async function shortEpg(c: XtreamCreds, streamId: string, limit = 4): Pro
     .filter((e) => e.title && Number.isFinite(e.start) && Number.isFinite(e.end));
 }
 
+/**
+ * Programação completa de um canal (get_simple_data_table): tudo o que o
+ * servidor tem — em geral os dias de gravação para trás e alguns dias à frente.
+ */
+export async function fullEpg(c: XtreamCreds, streamId: string): Promise<EpgEntry[]> {
+  const id = streamId.replace(/^l/, '');
+  const r = await fetchJson<{ epg_listings?: Array<Record<string, string | number>> }>(api(c, 'get_simple_data_table', { stream_id: id }), 30000);
+  return (r.epg_listings ?? [])
+    .map((e) => ({
+      title: b64(String(e.title ?? '')),
+      description: e.description ? b64(String(e.description)) : undefined,
+      start: Number(e.start_timestamp) * 1000 || Date.parse(String(e.start).replace(' ', 'T')),
+      end: Number(e.stop_timestamp) * 1000 || Date.parse(String(e.end).replace(' ', 'T')),
+      archive: String(e.has_archive) === '1' || undefined,
+    }))
+    .filter((e) => e.title && Number.isFinite(e.start) && Number.isFinite(e.end) && e.end > e.start)
+    .sort((a, b) => a.start - b.start);
+}
+
 // ---- Detalhes de filmes e séries ----
 
 export interface VodDetails {

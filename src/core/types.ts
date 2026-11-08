@@ -63,6 +63,8 @@ export interface EpgEntry {
   description?: string;
   start: number; // ms
   end: number;   // ms
+  /** O servidor tem a gravação deste programa (Xtream has_archive). */
+  archive?: boolean;
 }
 
 export class SourceError extends Error {

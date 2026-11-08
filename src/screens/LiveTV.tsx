@@ -5,6 +5,8 @@ import { categoriesOf } from '../core/source';
 import { prefGet, prefSet } from '../core/storage';
 import type { Channel, Playlist } from '../core/types';
 import { ChannelLogo, Icon, Symbol, fmtTime } from '../ui/bits';
+import { SchedulePanel } from './Schedule';
+import { canCatchup } from '../core/catchup';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 import { ensureVisible } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
@@ -114,6 +116,9 @@ interface Props {
 
 export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPlay, onFull, onPlayVod, lastChannel, onLast }: Props) {
   const [guide, setGuide] = useState(false);
+  // Programação do canal por dia (seta → na lista).
+  const [sched, setSched] = useState<Channel | null>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const native = useMemo(() => categoriesOf(live, 'live'), [live]);
   const { data: secData, set: setSecData } = useSections();
   const cats = useMemo(() => orderedSections(native, secData, live), [native, secData, live]);
@@ -320,6 +325,10 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
           onIndex={setIndex}
           onPick={pick}
           navDefault
+          onRight={(c) => {
+            setSched(c);
+            return true;
+          }}
           label="Canais"
           rowHeight={54}
           render={(c) => (
@@ -330,6 +339,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
                 <span className="name">{c.name}</span>
               </div>
               {isFav(c) && <span style={{ color: T.warn, display: 'flex' }}>{Icon.star(true)}</span>}
+              {canCatchup(c) && <span className="rec-ic" title="Tem gravação (voltar na programação)" aria-label="Tem gravação">⟲</span>}
               {playing?.id === c.id && <span className="playing" aria-label="Assistindo" />}
             </>
           )}
@@ -387,6 +397,9 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
               </span>
               <div className="progress"><div style={{ width: curPlay ? `${progressOf(curPlay, now) * 100}%` : '100%' }} /></div>
             </div>
+            <button className="btn icon" data-nav="" aria-label={`Programação de ${playing.name}`} title="Programação por dia" style={{ width: 46, padding: 0, justifyContent: 'center', fontSize: 18 }} onClick={() => setSched(playing)}>
+              ▦
+            </button>
             {lastChannel && onLast && (
               <button className="btn icon" data-nav="" aria-label={`Último canal: ${lastChannel.name}`} title={`Último canal: ${lastChannel.name}`} style={{ width: 46, padding: 0, justifyContent: 'center', fontSize: 20 }} onClick={onLast}>
                 ↺
@@ -419,6 +432,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
       >
         <div className="gx-18" style={{ display: 'flex', fontSize: 16, fontWeight: 700, alignItems: 'center' }}>
           <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>A seguir</span>
+          <button className="chip" data-nav="" onClick={() => selected && setSched(selected)} style={{ height: 32, flexShrink: 0 }}>Programação ▸</button>
           <button className="chip" data-nav="" onClick={() => setGuide(true)} style={{ height: 32, flexShrink: 0 }}>▦ Guia de 7 dias</button>
           <span className="muted caps" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selected ? `${selected.number ?? ''} · ${selected.name}` : ''}
@@ -472,6 +486,32 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
                 setIndex(0);
               }
             });
+          }}
+        />
+      )}
+      <div ref={anchorRef} style={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0 }} aria-hidden="true" />
+      {sched && (
+        <SchedulePanel
+          playlist={playlist}
+          channel={sched}
+          anchor={anchorRef}
+          rect={
+            G.next
+              ? { left: G.preview.left, top: G.preview.top, right: L.px, bottom: L.bottom }
+              : { left: L.px, top: L.top, right: L.px, bottom: L.bottom }
+          }
+          onClose={() => {
+            setSched(null);
+            requestAnimationFrame(() => listRef.current?.focus());
+          }}
+          onWatch={(c) => {
+            setSched(null);
+            onPlay(c, list);
+            requestAnimationFrame(onFull);
+          }}
+          onPlayVod={(it) => {
+            setSched(null);
+            onPlayVod(it);
           }}
         />
       )}

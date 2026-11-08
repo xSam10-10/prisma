@@ -12,6 +12,7 @@ import { clearTmdbCache, testKey, tmdbKey } from '../core/tmdb';
 import { prefSet } from '../core/storage';
 import { ConfirmButton } from '../ui/Dialog';
 import { applyBackup, exportBackup, pickBackupFile } from '../core/backup';
+import { guideCoverage } from '../core/schedule';
 import { clearEpgCache } from '../core/epg';
 import { clearXmltv } from '../core/xmltv';
 
@@ -242,6 +243,8 @@ export function Settings({
       ...(a?.maxConnections ? ([['Telas ao mesmo tempo', `${a.activeConnections ?? 0} em uso de ${a.maxConnections}`]] as [string, string][]) : []),
       ['Conteúdo', `${count('live')} canais · ${count('movie')} filmes · ${count('series')} séries`],
       ['Atualizada', new Date(playlist.loadedAt).toLocaleString('pt-BR')],
+      ['Guia de programação', guideSummary(playlist)],
+      ['Gravações (voltar na programação)', archiveSummary(playlist)],
     ];
     panel = (
       <>
@@ -457,4 +460,25 @@ function BackupRows({ Row }: { Row: (p: { label: string; help: string; children:
       {msg && <span className="muted" role="status" style={{ fontSize: 15 }}>{msg}</span>}
     </>
   );
+}
+
+/** O que a lista entrega de guia: canais com programação e de que dia a que dia. */
+function guideSummary(pl: Playlist): string {
+  const c = guideCoverage();
+  const live = pl.items.filter((i) => i.kind === 'live').length;
+  if (!c) return 'ainda não baixado (abre sozinho uns segundos depois de iniciar)';
+  if (!c.channels) return 'a lista não enviou guia completo (XMLTV); só “agora e a seguir” por canal';
+  const d = (t: number) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const back = Math.max(0, Math.round((today.getTime() - new Date(c.from).setHours(0, 0, 0, 0)) / 86400000));
+  const ahead = Math.max(0, Math.round((new Date(c.to).setHours(0, 0, 0, 0) - today.getTime()) / 86400000));
+  return `${c.channels.toLocaleString('pt-BR')} de ${live.toLocaleString('pt-BR')} canais · ${d(c.from)} a ${d(c.to)} (${back} ${back === 1 ? 'dia' : 'dias'} para trás, ${ahead} à frente)${c.limited ? ' · nesta TV o app guarda só 1 dia para trás e 2 à frente' : ''}`;
+}
+
+function archiveSummary(pl: Playlist): string {
+  const rec = pl.items.filter((i) => i.kind === 'live' && i.catchupDays && i.catchupDays > 0);
+  if (!rec.length) return 'nenhum canal da lista grava';
+  const max = Math.max(...rec.map((i) => i.catchupDays!));
+  return `${rec.length.toLocaleString('pt-BR')} canais gravam · até ${max} ${max === 1 ? 'dia' : 'dias'}`;
 }

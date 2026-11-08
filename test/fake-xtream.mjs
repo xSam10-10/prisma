@@ -119,6 +119,22 @@ createServer((req, res) => {
       for (let season = 1; season <= 3; season++) episodes[season] = Array.from({ length: 8 }, (_, e) => ({ id: `${sid}${season}${e + 1}`, episode_num: e + 1, season, title: `Episódio ${e + 1} — Capítulo ${season * 10 + e + 1}`, container_extension: 'mp4', info: { duration: '00:45:00', plot: 'Episódio de teste.' } }));
       return send({ info: { name: 'Série', plot: 'Sinopse da série de teste: três temporadas de reviravoltas.', genre: 'Suspense', cast: 'Elenco de teste', rating: '8.1', releaseDate: '2021-03-01' }, episodes });
     }
+    if (a === 'get_simple_data_table') {
+      // Programação completa do canal: 5 dias para trás e 2 à frente (canais "Extra" sem guia).
+      const id = Number(u.searchParams.get('stream_id'));
+      const ch = live.find((c) => c.stream_id === id);
+      if (!ch || id >= 100 && id < 500) return send({ epg_listings: [] });
+      const now = Math.floor(Date.now() / 1000);
+      const base = now - (now % 7200);
+      const shows = ['Jornal da Manhã', 'Esporte Total', 'Sessão da Tarde', 'Brasileirão: Flamengo x Palmeiras', 'Jornal Nacional', 'Filme: Tropa de Elite', 'Programa do Jô', 'Corujão', 'Desenhos', 'Documentário: Amazônia', 'Resenha', 'Madrugada'];
+      const out = [];
+      for (let h = -60; h < 24; h++) {
+        const st = base + h * 7200;
+        const arch = ch.tv_archive && st + 7200 <= now && st >= now - (ch.tv_archive_duration || 0) * 86400;
+        out.push({ id: String(h), epg_id: String(id), title: b64(shows[(h + 120 + id) % shows.length]), description: b64(`Programa completo de teste (${h >= 0 ? 'futuro' : 'passado'}).`), lang: 'pt', start_timestamp: String(st), stop_timestamp: String(st + 7200), now_playing: st <= now && now < st + 7200 ? 1 : 0, has_archive: arch ? 1 : 0 });
+      }
+      return send({ epg_listings: out });
+    }
     if (a === 'get_short_epg') { limitG = u.searchParams.get('limit'); return send({ epg_listings: epgFor(u.searchParams.get('stream_id')) }); }
     return send([]);
   }

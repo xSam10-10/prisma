@@ -16,6 +16,8 @@ interface Props<T> {
   empty?: ReactNode;
   navDefault?: boolean;
   label?: string;
+  /** Seta → num item: devolve true se tratou (ex.: abrir a programação). */
+  onRight?: (item: T, i: number) => boolean;
 }
 
 export interface VirtualListHandle {
@@ -23,7 +25,7 @@ export interface VirtualListHandle {
 }
 
 function VirtualListInner<T>(
-  { items, index, onIndex, onPick, render, rowHeight = 62, gap = 4, empty, navDefault, label }: Props<T>,
+  { items, index, onIndex, onPick, render, rowHeight = 62, gap = 4, empty, navDefault, label, onRight }: Props<T>,
   ref: React.Ref<VirtualListHandle>,
 ) {
   const box = useRef<HTMLDivElement>(null);
@@ -71,6 +73,9 @@ function VirtualListInner<T>(
     } else if (e.keyCode === KEY.CH_DOWN && index < items.length - 1) {
       e.preventDefault();
       onIndex(Math.min(items.length - 1, index + pageRows));
+    } else if (d === 'right' && onRight && items[index] && onRight(items[index], index)) {
+      e.preventDefault();
+      e.stopPropagation();
     } else if (isEnter(e) && items[index]) {
       e.preventDefault();
       onPick(items[index], index);

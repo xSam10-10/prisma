@@ -156,6 +156,22 @@ export function programmesOf(ch: Channel): EpgEntry[] {
   return id ? mem.guide[id] ?? [] : [];
 }
 
+/** Cobertura do guia baixado: quantos canais têm programação e de que dia a que dia. */
+export function xmltvCoverage(): { channels: number; from: number; to: number; at: number; limited: boolean } | null {
+  if (!mem) return null;
+  let from = Infinity;
+  let to = 0;
+  const ids = Object.keys(mem.guide);
+  for (const k of ids) {
+    const g = mem.guide[k];
+    if (!g.length) continue;
+    if (g[0].start < from) from = g[0].start;
+    if (g[g.length - 1].end > to) to = g[g.length - 1].end;
+  }
+  if (!ids.length) return { channels: 0, from: 0, to: 0, at: mem.at, limited: LITE };
+  return { channels: ids.length, from, to, at: mem.at, limited: LITE };
+}
+
 export function hasXmltv(): boolean {
   return !!mem && Object.keys(mem.guide).length > 0;
 }

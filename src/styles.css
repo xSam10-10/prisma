@@ -649,3 +649,61 @@ html:not(.kbd) .tile:focus .tile-art { box-shadow: inset 0 1px 0 rgba(255, 255, 
 .cbar.ml .cbar-ic { width: 38px; height: 38px; }
 .cbar.ml .cbar-ic-lbl { display: none !important; }
 .cbar.ml .cbar-pop { bottom: 48px; }
+
+/* ===== Programação por dia (seta → na lista) ===== */
+.rec-ic { font-size: 17px; opacity: 0.75; margin-left: 6px; }
+.sch { position: absolute; z-index: 20; display: -webkit-box; display: -webkit-flex; display: flex; border-radius: 26px; overflow: hidden; background: rgba(20, 21, 30, 0.97); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); outline: none; }
+.sch:focus { box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55) !important; }
+.sch-days { width: 112px; -webkit-flex-shrink: 0; flex-shrink: 0; background: rgba(46, 50, 60, 0.95); display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; -webkit-box-align: center; -webkit-align-items: center; align-items: center; padding: 8px 0; overflow: hidden; }
+.sch-arrow { font-size: 22px; line-height: 1; color: #e4e6ea; height: 22px; }
+.sch-day { width: 86px; height: 70px; -webkit-flex-shrink: 0; flex-shrink: 0; margin: 3px 0; border: 0; border-radius: 35px; background: transparent; color: #fff; cursor: pointer; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; font: inherit; }
+.sch-d1 { font-size: 19px; font-weight: 700; }
+.sch-d2 { font-size: 12px; font-weight: 700; margin-top: 3px; color: #c9ccd3; }
+.sch-day.empty { opacity: 0.45; }
+.sch-day.on { background: rgba(30, 167, 232, 0.35); opacity: 1; }
+.sch-day.on.foc, .sch-day.on.foc .sch-d2 { background: #1ea7e8; color: #fff; }
+html:not(.kbd) .sch-day:hover { background: rgba(255, 255, 255, 0.1); }
+.sch-main { -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.sch-head { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; padding: 16px 22px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.18); }
+.sch-head > * + * { margin-left: 12px; }
+.sch-title { font-size: 20px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; text-transform: uppercase; }
+.sch-cover { font-size: 13px; color: #a6a6b8; white-space: nowrap; }
+.sch-progs { -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; overflow-y: auto; padding: 10px 14px; position: relative; }
+.sch-prog { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: start; -webkit-align-items: flex-start; align-items: flex-start; padding: 12px 12px; border-radius: 14px; cursor: pointer; margin-bottom: 4px; }
+.sch-prog.past { opacity: 0.5; }
+.sch-prog.sel { background: #f4f4f8; color: #0b0b12; opacity: 1; }
+html:not(.kbd) .sch-prog:hover { background: rgba(255, 255, 255, 0.08); }
+html:not(.kbd) .sch-prog.sel:hover { background: #f4f4f8; }
+.sch-time { width: 118px; -webkit-flex-shrink: 0; flex-shrink: 0; font-size: 15px; font-weight: 700; color: #a6a6b8; padding-top: 2px; }
+.sch-prog.sel .sch-time { color: #4a4a5a; }
+.sch-prog.now .sch-time { color: #ff6b3d; }
+.sch-txt { -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.sch-name { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sch-desc { font-size: 14px; line-height: 1.35; margin-top: 4px; opacity: 0.8; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.sch-tag { font-size: 13px; font-weight: 800; margin-left: 10px; white-space: nowrap; padding-top: 3px; }
+.sch-prog.now .sch-tag { color: #ff6b3d; }
+.sch-prog.past-rec .sch-tag { color: #3dd6c4; }
+.sch-prog.sel .sch-tag { color: #0b0b12; }
+.sch-empty { padding: 30px 12px; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.sch-empty > * + * { margin-top: 8px; }
+.sch-hint { font-size: 13px; color: #ff9a2e; padding: 10px 22px 14px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.sch { z-index: 60; }
+.sch-days { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
+.sch-days::-webkit-scrollbar { display: none; }
+.sch-arrow { -webkit-flex-shrink: 0; flex-shrink: 0; position: -webkit-sticky; position: sticky; top: 0; }
+.sch { background: #14151e; }
+.sch-htxt { -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.sch-htxt .sch-title { -webkit-box-flex: 0; -webkit-flex: none; flex: none; }
+.sch-cover { margin-top: 2px; white-space: normal; }
+.sch-when { width: 112px; -webkit-flex-shrink: 0; flex-shrink: 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.sch-when .sch-time { width: auto; }
+.sch-when .sch-tag { margin: 3px 0 0; padding: 0; font-size: 12px; }
+.sch-name { white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.sch-days { position: relative; padding: 30px 0; }
+.sch-arrow { position: absolute; left: 0; right: 0; text-align: center; z-index: 1; background: #2e323c; height: 26px; line-height: 30px; }
+.sch-arrow:first-child { top: 0; }
+.sch-arrow:last-child { bottom: 0; line-height: 18px; }
+.sch-daycol { width: 112px; -webkit-flex-shrink: 0; flex-shrink: 0; background: #2e323c; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.sch-daycol .sch-days { -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-height: 0; padding: 4px 0; width: auto; background: transparent; }
+.sch-daycol .sch-arrow { position: static; height: 30px; line-height: 34px; background: transparent; }
+.sch-daycol .sch-arrow:last-child { line-height: 20px; }
