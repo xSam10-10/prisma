@@ -6,6 +6,8 @@ import { MyList, VodScreen, type VodTab } from './screens/Vod';
 import { Games } from './screens/Games';
 import { dueReminders, reminders, type Reminder } from './core/games';
 import { installNative, syncNativeReminders } from './core/native';
+import { checkForUpdate, markBootOk, shouldAutoCheck, type CheckResult } from './core/updater';
+import type { Section } from './screens/Settings';
 import { pushVodRecent } from './core/vod';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
 import { loadLogoCatalogs } from './core/logos';
@@ -92,6 +94,26 @@ export function App() {
     }, 30000);
     return () => clearInterval(t);
   }, []);
+  // Atualizações: o app abriu bem (a TV LG guarda isso para não voltar à versão instalada)
+  // e, de vez em quando, procura uma versão nova e avisa.
+  const [updInfo, setUpdInfo] = useState<CheckResult | null>(null);
+  const [setSection, setSetSection] = useState<Section | undefined>();
+  useEffect(() => {
+    (window as unknown as { __PRISMA_BOOTED__?: boolean }).__PRISMA_BOOTED__ = true;
+    markBootOk();
+  }, []);
+  useEffect(() => {
+    if (tab !== 'ajustes') setSetSection(undefined);
+  }, [tab]);
+  useEffect(() => {
+    if (phase !== 'app' || !shouldAutoCheck()) return;
+    const t = setTimeout(() => {
+      checkForUpdate()
+        .then((r) => r.available && setUpdInfo(r))
+        .catch(() => {});
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [phase]);
   // Android: Voltar do controle, toque na notificação e lembretes agendados.
   useEffect(() => {
     void installNative((r) => setToast(r));
@@ -271,6 +293,7 @@ export function App() {
         screen =
           tab === 'ajustes' ? (
             <Settings
+              initialSection={setSection}
               data={{
                 counts: {
                   recents: recentIds.length,
@@ -373,6 +396,27 @@ export function App() {
               if (i >= 0 && queue[i + 1]) playVod(queue[i + 1], 0);
             }}
           />
+        )}
+        {updInfo && !toast && (
+          <div className="toast gy-10" style={{ right: L.px, top: 24 + L.safeY, display: 'flex', flexDirection: 'column' }} role="alert">
+            <span className="badge-live" style={{ alignSelf: 'flex-start', background: '#3DD6C4', color: '#0B0B12' }}>Nova versão</span>
+            <span style={{ fontSize: 18, fontWeight: 700 }}>PRISMA {updInfo.version} está disponível</span>
+            {updInfo.notes && updInfo.notes[0] && <span className="muted" style={{ fontSize: 15 }}>{updInfo.notes[0]}</span>}
+            <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <button
+                className="btn primary"
+                data-nav=""
+                onClick={() => {
+                  setUpdInfo(null);
+                  setSetSection('sobre');
+                  setTab('ajustes');
+                }}
+              >
+                Atualizar
+              </button>
+              <button className="btn" data-nav="" onClick={() => setUpdInfo(null)}>Depois</button>
+            </div>
+          </div>
         )}
         {toast && (
           <div className="toast gy-10" style={{ right: L.px, top: 24 + L.safeY, display: 'flex', flexDirection: 'column' }} role="alert">

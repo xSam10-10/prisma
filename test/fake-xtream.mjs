@@ -93,6 +93,12 @@ function epgFor(id) {
 
 createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
+  // Atualização dentro do app (teste): arquivos de UPDATE_DIR em /updates/
+  if (u.pathname.startsWith('/updates/') && process.env.UPDATE_DIR) {
+    const f = join(process.env.UPDATE_DIR, u.pathname.slice(9).replace(/\.\./g, ''));
+    if (!existsSync(f)) return res.writeHead(404, { 'access-control-allow-origin': '*' }).end();
+    return res.writeHead(200, { 'content-type': f.endsWith('.json') ? 'application/json' : 'application/octet-stream', 'access-control-allow-origin': '*' }) && createReadStream(f).pipe(res);
+  }
   const send = (obj) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(obj));
   // Simula painel que só aceita um player específico: REQUIRE_UA=IPTVSmartersPlayer
   if (process.env.REQUIRE_UA && req.headers['user-agent'] !== process.env.REQUIRE_UA && u.pathname === '/player_api.php') {

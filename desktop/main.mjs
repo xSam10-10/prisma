@@ -3,7 +3,7 @@
 // (app + proxy das listas) e abre uma janela própria apontando para ele.
 // Porta fixa (47815) para que favoritos e a lista salva não se percam.
 
-import { app, BrowserWindow, dialog, Menu, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, session, shell } from 'electron';
 import updaterPkg from 'electron-updater';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -50,7 +50,7 @@ async function createWindow() {
     icon: fileURLToPath(new URL('./icon.png', import.meta.url)),
     autoHideMenuBar: true,
     show: false,
-    webPreferences: { contextIsolation: true, sandbox: true },
+    webPreferences: { contextIsolation: true, sandbox: true, preload: fileURLToPath(new URL('./preload.cjs', import.meta.url)) },
   });
   Menu.setApplicationMenu(null);
   win.once('ready-to-show', () => win.show());
@@ -89,32 +89,33 @@ app.whenReady().then(async () => {
   checkUpdates();
 });
 
-// Atualização automática: procura uma versão nova nas Releases públicas
-// (repositório xSam10-10/prisma-releases, só com os instaladores). Baixa em
-// segundo plano e pergunta se pode reiniciar. Sem internet ou sem o
-// repositório público, não faz nada.
-const FEED = 'https://github.com/xSam10-10/prisma-releases/releases/latest/download';
+// Atualização dentro do app: procura uma versão nova nas Releases públicas
+// (repositório xSam10-10/prisma-releases, só com os instaladores). A tela
+// (Ajustes › Sobre, ou o aviso ao abrir) pede para baixar e instalar.
+// Se ninguém pedir, uma versão já baixada é instalada ao fechar o programa.
+const FEED = process.env.PRISMA_UPDATE_FEED || 'https://github.com/xSam10-10/prisma-releases/releases/latest/download';
 function checkUpdates() {
-  if (!app.isPackaged) return;
   const { autoUpdater } = updaterPkg;
+  const send = (data) => win && !win.isDestroyed() && win.webContents.send('upd:event', data);
   autoUpdater.setFeedURL({ provider: 'generic', url: FEED });
-  autoUpdater.autoDownload = true;
+  autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on('error', () => {});
-  autoUpdater.on('update-downloaded', async (info) => {
-    const r = await dialog.showMessageBox(win ?? undefined, {
-      type: 'info',
-      title: 'PRISMA',
-      message: `A versão ${info.version} do PRISMA está pronta.`,
-      detail: 'Reiniciar agora para atualizar? Se preferir, ela é instalada quando você fechar o app.',
-      buttons: ['Reiniciar agora', 'Depois'],
-      defaultId: 0,
-      cancelId: 1,
-    });
-    if (r.response === 0) autoUpdater.quitAndInstall();
+  autoUpdater.on('error', (e) => send({ type: 'error', message: String((e && e.message) || e).slice(0, 200) }));
+  autoUpdater.on('download-progress', (p) => send({ type: 'progress', percent: Math.round(p.percent) }));
+  autoUpdater.on('update-downloaded', (info) => send({ type: 'ready', version: info.version }));
+  ipcMain.handle('upd:check', async () => {
+    if (!app.isPackaged) return null;
+    const r = await autoUpdater.checkForUpdates();
+    const v = r && r.updateInfo && r.updateInfo.version;
+    return v && v !== app.getVersion() ? { version: v } : null;
   });
-  autoUpdater.checkForUpdates().catch(() => {});
-  // E de novo a cada 6 horas, para quem deixa o app aberto.
-  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 3600 * 1000);
+  ipcMain.handle('upd:download', async () => {
+    await autoUpdater.downloadUpdate();
+    return true;
+  });
+  ipcMain.handle('upd:install', () => {
+    // isSilent=true (sem perguntas do instalador), isForceRunAfter=true (abre de novo)
+    setImmediate(() => autoUpdater.quitAndInstall(true, true));
+  });
 }
 app.on('window-all-closed', () => app.quit());

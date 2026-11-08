@@ -5,7 +5,6 @@ import type { Channel, Playlist } from '../core/types';
 import { useLayout } from '../ui/layout';
 import { dirOf, focusFirst } from '../ui/nav';
 import { T } from '../ui/tokens';
-import { VERSION } from '../version';
 import { THEMES } from '../ui/themes';
 import { ProfilesPanel } from './Profiles';
 import { clearTmdbCache, testKey, tmdbKey } from '../core/tmdb';
@@ -13,13 +12,15 @@ import { prefSet } from '../core/storage';
 import { ConfirmButton } from '../ui/Dialog';
 import { applyBackup, exportBackup, pickBackupFile } from '../core/backup';
 import { guideCoverage } from '../core/schedule';
+import { runningVersion } from '../core/updater';
+import { UpdatePanel } from './UpdatePanel';
 import { clearEpgCache } from '../core/epg';
 import { clearXmltv } from '../core/xmltv';
 
 // Ajustes do PRISMA: Tela · Player · Aparência · Lista · Sobre.
 // Cada opção é um seletor: OK (ou clique) avança; ◀ ▶ no controle trocam.
 
-type Section = 'tela' | 'player' | 'aparencia' | 'perfis' | 'lista' | 'servicos' | 'dados' | 'sobre';
+export type Section = 'tela' | 'player' | 'aparencia' | 'perfis' | 'lista' | 'servicos' | 'dados' | 'sobre';
 
 const SECTIONS: { id: Section; label: string; hint: string }[] = [
   { id: 'tela', label: 'Tela', hint: 'Tamanho, margens e formato da interface' },
@@ -97,7 +98,7 @@ export interface DataActions {
 }
 
 export function Settings({
-  playlist, onReload, onChange, onRemove, reloading, data,
+  playlist, onReload, onChange, onRemove, reloading, data, initialSection,
 }: {
   playlist: Playlist;
   onReload: () => void;
@@ -105,8 +106,10 @@ export function Settings({
   onRemove: () => void;
   reloading: boolean;
   data: DataActions;
+  /** Abrir direto numa seção (ex.: 'sobre' pelo aviso de atualização). */
+  initialSection?: Section;
 }) {
-  const [sec, setSec] = useState<Section>('tela');
+  const [sec, setSec] = useState<Section>(initialSection ?? 'tela');
   const { settings: st, update } = useSettings();
   const L = useLayout();
   const mobile = L.form === 'mobile';
@@ -306,7 +309,7 @@ export function Settings({
       <>
         <Info
           rows={[
-            ['Versão do PRISMA', VERSION],
+            ['Versão do PRISMA', runningVersion()],
             ['Aparelho', platform],
             ['Tela', `${Math.round(L.realW * L.dpr)} × ${Math.round(L.realH * L.dpr)} pixels (densidade ${L.dpr.toLocaleString('pt-BR')}×)`],
             ['Proporção', proportion(L.realW, L.realH)],
@@ -314,6 +317,7 @@ export function Settings({
             ['Interface', `${L.form === 'tv' ? 'TV e computador' : 'Celular'} · área ${Math.round(L.W)} × ${Math.round(L.H)} · escala ${L.scale.toFixed(2)}×`],
           ]}
         />
+        <UpdatePanel />
         <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', marginTop: 12 }}>
           <button className="btn" data-nav="" onClick={() => update(DEFAULT_SETTINGS)}>Restaurar ajustes padrão</button>
         </div>

@@ -7,6 +7,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Plugin local: atualizar o app de dentro dele.
+        registerPlugin(ApkInstallerPlugin.class);
         super.onCreate(savedInstanceState);
         // Canal abre tocando, sem precisar tocar na tela.
         getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);

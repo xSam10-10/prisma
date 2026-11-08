@@ -5,3 +5,4 @@ dist-webos
 .env*
 release
 dist-android
+dist-ota

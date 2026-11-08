@@ -46,7 +46,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: webos
-          path: com.prisma.iptv_*.ipk
+          path: |
+            com.prisma.iptv_*.ipk
+            dist-ota/prisma-webos-*.json
 
   android:
     runs-on: ubuntu-latest
@@ -98,10 +100,16 @@ jobs:
     env:
       HAS_RT: ${{ secrets.RELEASES_TOKEN != '' }}
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: out
           merge-multiple: true
+      - name: Manifesto da atualização dentro do app
+        run: |
+          find out -mindepth 2 -type f -exec mv {} out/ \;
+          ls -la out
+          node scripts/update-manifest.mjs out
       - name: Publica a Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,7 +117,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           case "$TAG" in v*) ;; *) TAG="v$(date +%Y.%m.%d-%H%M)";; esac
-          NOTES="Downloads: PRISMA-Setup (Windows), com.prisma.iptv (TV LG) e PRISMA-Android (celular e Google TV). No Windows, na primeira vez: Mais informações › Executar assim mesmo."
+          NOTES="Downloads: PRISMA-Setup (Windows), com.prisma.iptv (TV LG) e PRISMA-Android (celular e Google TV). prisma-update.json e prisma-webos-*.json são da atualização dentro do app. No Windows, na primeira vez: Mais informações › Executar assim mesmo."
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "PRISMA $TAG" --notes "$NOTES" --target "$GITHUB_SHA"
           gh release upload "$TAG" out/* --clobber
       # Atualização automática do Windows: copia os instaladores para o
