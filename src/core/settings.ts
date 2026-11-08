@@ -30,6 +30,8 @@ export interface Settings {
   structure: 'A' | 'B' | 'C';
   /** Tema (só aparência). */
   theme: string;
+  /** Logotipos dos streamings em Filmes/Séries: coloridos ou brancos. */
+  streamLogos: 'color' | 'mono';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tmdbKey: '',
   structure: 'A',
   theme: 'prisma',
+  streamLogos: 'color',
 };
 
 export function loadSettings(): Settings {

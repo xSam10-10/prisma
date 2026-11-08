@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSettings } from '../core/settings';
 import type { Channel, ItemKind, Playlist } from '../core/types';
 import { ANIME, STREAMINGS, getProgress, inMyList, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
@@ -53,6 +54,7 @@ const TOP = '__top10__';
 export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: VodTab; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
+  const logoMode = useSettings().settings.streamLogos ?? 'color';
   const all = useMemo(() => {
     const kinds: ItemKind[] = tab === 'filmes' ? ['movie'] : tab === 'series' ? ['series'] : ['movie', 'series'];
     const list = playlist.items.filter((i) => kinds.includes(i.kind));
@@ -128,7 +130,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
           {streamings.map((s) => (
             <button
               key={s.id}
-              className={'stream-chip' + (stream === s.id ? ' on' : '') + (s.logo ? ' logo' : '')}
+              className={'stream-chip' + (stream === s.id ? ' on' : '') + (s.logo ? ' logo ' + logoMode : '')}
               data-nav=""
               aria-label={s.name}
               title={s.name}
@@ -137,7 +139,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
               onClick={() => { setStream(s.id); setCat(''); setQuery(''); }}
             >
               {s.logo ? (
-                <img src={logoUrl(s.id)} alt={s.name} style={mobile ? logoSize(s.logo, 1900, 100, 22, 16) : logoSize(s.logo)} draggable={false} />
+                <img src={logoUrl(s.id, logoMode)} alt={s.name} style={mobile ? logoSize(s.logo, 1900, 100, 22, 16) : logoSize(s.logo)} draggable={false} />
               ) : (
                 <>
                   <i style={{ background: s.accent }} />

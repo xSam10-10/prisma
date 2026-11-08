@@ -815,3 +815,8 @@ html:not(.kbd) .stream-arrow:hover { background: #f4f4f8; color: #0b0b12; }
 .stream-row.fade-l.fade-r { -webkit-mask-image: -webkit-linear-gradient(left, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%); -webkit-mask-image: linear-gradient(to right, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%); }
 .upd-nofeed { font-size: 15px; line-height: 1.45; color: #f5b83d; max-width: 900px; }
 .upd-nofeed b { font-weight: 800; }
+/* Logotipos coloridos: botão escuro sólido (as cores aparecem sobre qualquer fundo de streaming);
+   escolhido = contorno na cor do tema (fundo claro apagaria os logos brancos/claros) */
+.stream-chip.logo.color { background: #16161f; border-color: rgba(255, 255, 255, 0.12); }
+.stream-chip.logo.color.on { background: #23232f; border: 2px solid #3dd6c4; }
+.stream-chip.logo.color.on img { -webkit-filter: none; filter: none; }

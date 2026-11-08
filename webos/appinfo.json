@@ -1,6 +1,6 @@
 {
   "id": "com.prisma.iptv",
-  "version": "0.16.5",
+  "version": "0.16.6",
   "vendor": "PRISMA",
   "type": "web",
   "main": "index.html",

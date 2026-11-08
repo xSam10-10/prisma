@@ -228,6 +228,13 @@ export function Settings({
           options={[{ v: 'official', label: 'Oficiais primeiro' }, { v: 'list', label: 'Da lista primeiro' }]}
           onChange={set('logoSource')}
         />
+        <Choice
+          label="Logotipos dos streamings"
+          help="Nos botões de Netflix, HBO Max, Disney+… em Filmes e Séries. Coloridos: as cores de cada marca. Brancos: todos em branco, mais discreto e minimalista."
+          value={st.streamLogos}
+          options={[{ v: 'color', label: 'Coloridos' }, { v: 'mono', label: 'Brancos' }]}
+          onChange={set('streamLogos')}
+        />
       </>
     );
   } else if (sec === 'perfis') {
