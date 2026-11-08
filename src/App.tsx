@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MyList, VodScreen, type VodTab } from './screens/Vod';
+import { Games } from './screens/Games';
+import { dueReminders, type Reminder } from './core/games';
+import { pushVodRecent } from './core/vod';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
 import { loadLogoCatalogs } from './core/logos';
 import { prefGet, prefSet } from './core/storage';
 import { SourceError, type Channel, type Playlist, type SourceConfig } from './core/types';
 import { AddList } from './screens/AddList';
 import { LiveTV, catColumnWidth, liveGeometry } from './screens/LiveTV';
-import { Home, Search, Soon } from './screens/Other';
+import { Home, Search } from './screens/Other';
 import { Settings } from './screens/Settings';
 import { SettingsContext, loadSettings, saveSettings, type Settings as SettingsT } from './core/settings';
 import { LayoutContext, useViewportLayout, type Layout } from './ui/layout';
@@ -59,6 +63,15 @@ export function App() {
   const [favIds, setFavIds] = useState<string[]>(() => prefGet('favs', []));
   const [recentIds, setRecentIds] = useState<string[]>(() => prefGet('recents', []));
   const [reloading, setReloading] = useState(false);
+  // Lembretes de jogos: confere a cada 30 s e avisa na tela.
+  const [toast, setToast] = useState<Reminder | null>(null);
+  useEffect(() => {
+    const t = setInterval(() => {
+      const due = dueReminders();
+      if (due.length) setToast(due[0]);
+    }, 30000);
+    return () => clearInterval(t);
+  }, []);
   const [secData, setSecData] = useState<SectionsData>(() => ({ ...EMPTY_SECTIONS, ...prefGet<Partial<SectionsData>>('sections', {}) }));
   useEffect(() => prefSet('sections', secData), [secData]);
   const sectionsApi = useMemo(() => ({ data: secData, set: (fn: (d: SectionsData) => SectionsData) => setSecData(fn) }), [secData]);
@@ -98,6 +111,8 @@ export function App() {
     setPlaying(c);
     if (list.length) setZapList(list);
     setRecentIds((r) => [c.id, ...r.filter((x) => x !== c.id)].slice(0, 30));
+    setStartAt(undefined);
+    prefSet('lastKind', 'live');
   }, []);
 
   const watchFull = useCallback(
@@ -108,9 +123,26 @@ export function App() {
     [play],
   );
 
+  // Filme/série/episódio: toca em tela cheia, de onde parou.
+  const [startAt, setStartAt] = useState<number | undefined>();
+  const playingRef = useRef<Channel>();
+  playingRef.current = playing;
+  const playVod = useCallback((item: Channel, from?: number) => {
+    setStartAt(from);
+    setPlaying(item);
+    setFull(true);
+    pushVodRecent(item);
+    prefSet('lastKind', 'vod');
+  }, []);
+
   const onPlayerMode = useCallback((m: PlayerMode) => {
     if (m === 'full') setFull(true);
-    else {
+    else if (playingRef.current && playingRef.current.kind !== 'live') {
+      // Saiu do filme: para o vídeo e volta para a tela de onde veio.
+      setFull(false);
+      setPlaying(undefined);
+      setStartAt(undefined);
+    } else {
       setFull(false);
       setTab('aovivo');
       // Volta o foco para a lista de canais.
@@ -156,7 +188,7 @@ export function App() {
     }
   };
 
-  const mode: PlayerMode = !playing ? 'off' : full ? 'full' : tab === 'aovivo' ? 'preview' : 'off';
+  const mode: PlayerMode = !playing ? 'off' : full ? 'full' : tab === 'aovivo' && playing.kind === 'live' ? 'preview' : 'off';
 
   let body: React.ReactNode = null;
   if (phase === 'boot') {
@@ -183,7 +215,7 @@ export function App() {
         screen = <LiveTV playlist={playlist} live={live} favIds={favIds} playing={playing} isFav={isFav} toggleFav={toggleFav} onPlay={play} onFull={() => setFull(true)} />;
         break;
       case 'inicio':
-        screen = <Home playlist={playlist} live={live} favs={favs} recents={recents} onWatch={watchFull} onGoLive={() => setTab('aovivo')} />;
+        screen = <Home playlist={playlist} live={live} favs={favs} recents={recents} onWatch={watchFull} onGoLive={() => setTab('aovivo')} onPlayVod={playVod} />;
         break;
       case 'busca':
         screen = <Search playlist={playlist} onWatch={watchFull} />;
@@ -228,24 +260,14 @@ export function App() {
               }}
             />
           ) : (
-            <Soon title="Minha lista" step="Fase 1 · passo 4" text="Filmes e séries salvos para ver depois. Os canais favoritos já estão no Início e na aba Ao vivo › Favoritos." />
+            <MyList playlist={playlist} onPlay={playVod} />
           );
         break;
       case 'jogos':
-        screen = <Soon title="Jogos" step="Depois do guia (passo 3)" text="Guia de jogos com placar, onde assistir e lembrete. Depende do guia de programação e de uma fonte de placares." />;
+        screen = <Games playlist={playlist} onWatch={watchFull} />;
         break;
-      default: {
-        const kind = tab === 'filmes' ? 'movie' : 'series';
-        const n = playlist.items.filter((i) => i.kind === kind && (tab !== 'anime' || /anime/i.test(i.group))).length;
-        screen = (
-          <Soon
-            title={tab === 'filmes' ? 'Filmes' : tab === 'series' ? 'Séries' : 'Anime'}
-            step="Fase 1 · passo 4"
-            text="Capas, sinopse e streamings (Netflix, HBO Max, Disney+…) com dados do TMDB e o mapeamento pelos grupos da lista."
-            count={n}
-          />
-        );
-      }
+      default:
+        screen = <VodScreen playlist={playlist} tab={tab as VodTab} onPlay={playVod} />;
     }
     body = (
       <>
@@ -275,7 +297,28 @@ export function App() {
             toggleFav={toggleFav}
             onMode={onPlayerMode}
             onZap={(c) => play(c, [])}
+            startAt={startAt}
           />
+        )}
+        {toast && (
+          <div className="toast gy-10" style={{ right: L.px, top: 24 + L.safeY, display: 'flex', flexDirection: 'column' }} role="alert">
+            <span className="badge-live" style={{ alignSelf: 'flex-start', background: '#F5B83D' }}>⏰ Começando agora</span>
+            <span style={{ fontSize: 18, fontWeight: 700 }}>{toast.title}</span>
+            <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <button
+                className="btn primary"
+                data-nav=""
+                onClick={() => {
+                  const c = live.find((x) => x.id === toast.channelId);
+                  if (c) watchFull(c, []);
+                  setToast(null);
+                }}
+              >
+                ▶ Assistir
+              </button>
+              <button className="btn" data-nav="" onClick={() => setToast(null)}>Fechar</button>
+            </div>
+          </div>
         )}
       </div>
     </div>

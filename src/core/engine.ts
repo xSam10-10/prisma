@@ -146,7 +146,18 @@ export class Engine {
 
     // Nativo: MP4 (filmes) ou HLS no Safari / Android.
     v.src = src;
-    if (startAt) v.currentTime = startAt;
+    if (startAt) {
+      // Só dá para pular depois de saber a duração.
+      const seek = () => {
+        v.removeEventListener('loadedmetadata', seek);
+        try {
+          v.currentTime = startAt;
+        } catch {
+          /* ignora */
+        }
+      };
+      v.addEventListener('loadedmetadata', seek);
+    }
     safePlay(v);
   }
 

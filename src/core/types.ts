@@ -16,6 +16,12 @@ export interface Channel {
   altUrls?: string[];    // "fonte 2": mesma emissora em outra URL
   headers?: { userAgent?: string; referrer?: string };
   catchupDays?: number;
+  /** Filmes/séries: nota (0–10), ano e data em que entrou na lista (ms). */
+  rating?: number;
+  year?: number;
+  added?: number;
+  /** Episódio: id da série a que pertence. */
+  seriesId?: string;
 }
 
 export interface Category {

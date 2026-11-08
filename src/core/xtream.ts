@@ -40,12 +40,31 @@ interface XVod {
   stream_icon?: string;
   category_id?: string | null;
   container_extension?: string;
+  rating?: string | number;
+  added?: string;
+  year?: string | number;
 }
 interface XSeries {
   name: string;
   series_id: number;
   cover?: string;
   category_id?: string | null;
+  rating?: string | number;
+  releaseDate?: string;
+  last_modified?: string;
+  year?: string | number;
+}
+
+function num(v: unknown): number | undefined {
+  const n = typeof v === 'number' ? v : parseFloat(String(v ?? ''));
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+function yearOf(...vals: unknown[]): number | undefined {
+  for (const v of vals) {
+    const m = String(v ?? '').match(/(19|20)\d{2}/);
+    if (m) return Number(m[0]);
+  }
+  return undefined;
 }
 
 export function normalizeServer(server: string): string {
@@ -96,9 +115,9 @@ export async function loadAll(c: XtreamCreds, liveFormat: LiveFormat = 'm3u8'): 
     fetchJson<XCategory[]>(api(c, 'get_live_categories')),
     fetchJson<XLive[]>(api(c, 'get_live_streams'), 90000),
     fetchJson<XCategory[]>(api(c, 'get_vod_categories')).catch(() => []),
-    fetchJson<XVod[]>(api(c, 'get_vod_streams'), 90000).catch(() => []),
+    fetchJson<XVod[]>(api(c, 'get_vod_streams'), 240000).catch(() => []),
     fetchJson<XCategory[]>(api(c, 'get_series_categories')).catch(() => []),
-    fetchJson<XSeries[]>(api(c, 'get_series'), 90000).catch(() => []),
+    fetchJson<XSeries[]>(api(c, 'get_series'), 240000).catch(() => []),
   ]);
 
   const lc = catMap(Array.isArray(liveCats) ? liveCats : []);
@@ -128,6 +147,9 @@ export async function loadAll(c: XtreamCreds, liveFormat: LiveFormat = 'm3u8'): 
       group: vc.get(String(s.category_id)) ?? 'Sem categoria',
       logo: s.stream_icon || undefined,
       url: `${base}/movie/${u}/${p}/${s.stream_id}.${s.container_extension || 'mp4'}`,
+      rating: num(s.rating),
+      year: yearOf(s.year, s.name),
+      added: num(s.added) ? num(s.added)! * 1000 : undefined,
     });
   });
   (Array.isArray(series) ? series : []).forEach((s) => {
@@ -137,7 +159,10 @@ export async function loadAll(c: XtreamCreds, liveFormat: LiveFormat = 'm3u8'): 
       name: s.name?.trim() || `Série ${s.series_id}`,
       group: sc.get(String(s.category_id)) ?? 'Sem categoria',
       logo: s.cover || undefined,
-      url: '', // episódios vêm de get_series_info (passo 4 da Fase 1)
+      url: '', // episódios vêm de get_series_info
+      rating: num(s.rating),
+      year: yearOf(s.year, s.releaseDate, s.name),
+      added: num(s.last_modified) ? num(s.last_modified)! * 1000 : undefined,
     });
   });
 
@@ -169,4 +194,87 @@ export async function shortEpg(c: XtreamCreds, streamId: string, limit = 4): Pro
       end: Number(e.stop_timestamp) * 1000 || Date.parse(String(e.end).replace(' ', 'T')),
     }))
     .filter((e) => e.title && Number.isFinite(e.start) && Number.isFinite(e.end));
+}
+
+// ---- Detalhes de filmes e séries ----
+
+export interface VodDetails {
+  plot?: string;
+  genre?: string;
+  cast?: string;
+  director?: string;
+  year?: number;
+  rating?: number;
+  duration?: string;
+  backdrop?: string;
+  cover?: string;
+  trailer?: string;
+}
+
+export interface Episode {
+  id: string;
+  season: number;
+  number: number;
+  title: string;
+  plot?: string;
+  duration?: string;
+  cover?: string;
+  url: string;
+}
+
+export interface SeriesDetails extends VodDetails {
+  seasons: number[];
+  episodes: Episode[];
+}
+
+type Obj = Record<string, unknown>;
+const str = (v: unknown) => (v == null || v === '' ? undefined : String(v));
+const first = (v: unknown) => (Array.isArray(v) ? str(v[0]) : str(v));
+
+function details(info: Obj): VodDetails {
+  return {
+    plot: str(info.plot ?? info.description),
+    genre: str(info.genre),
+    cast: str(info.cast ?? info.actors),
+    director: str(info.director),
+    year: yearOf(info.releasedate, info.releaseDate, info.release_date, info.year),
+    rating: num(info.rating),
+    duration: str(info.duration),
+    backdrop: first(info.backdrop_path),
+    cover: str(info.movie_image ?? info.cover ?? info.cover_big),
+    trailer: str(info.youtube_trailer),
+  };
+}
+
+export async function vodInfo(c: XtreamCreds, movieId: string): Promise<VodDetails> {
+  const r = await fetchJson<{ info?: Obj }>(api(c, 'get_vod_info', { vod_id: movieId.replace(/^m/, '') }), 20000);
+  return details(r.info ?? {});
+}
+
+export async function seriesInfo(c: XtreamCreds, seriesId: string): Promise<SeriesDetails> {
+  const base = normalizeServer(c.server);
+  const u = encodeURIComponent(c.username);
+  const p = encodeURIComponent(c.password);
+  const r = await fetchJson<{ info?: Obj; episodes?: Record<string, Obj[]> | Obj[][] }>(api(c, 'get_series_info', { series_id: seriesId.replace(/^s/, '') }), 30000);
+  const eps: Episode[] = [];
+  const groups = r.episodes ?? {};
+  const lists: Obj[][] = Array.isArray(groups) ? groups : Object.values(groups);
+  for (const list of lists) {
+    for (const e of list ?? []) {
+      const info = (e.info ?? {}) as Obj;
+      const season = Number(e.season ?? info.season ?? 1) || 1;
+      eps.push({
+        id: 'e' + String(e.id),
+        season,
+        number: Number(e.episode_num ?? 0) || eps.filter((x) => x.season === season).length + 1,
+        title: str(e.title) ?? `Episódio ${e.episode_num}`,
+        plot: str(info.plot),
+        duration: str(info.duration),
+        cover: str(info.movie_image),
+        url: `${base}/series/${u}/${p}/${e.id}.${str(e.container_extension) ?? 'mp4'}`,
+      });
+    }
+  }
+  eps.sort((a, b) => a.season - b.season || a.number - b.number);
+  return { ...details(r.info ?? {}), seasons: [...new Set(eps.map((e) => e.season))], episodes: eps };
 }

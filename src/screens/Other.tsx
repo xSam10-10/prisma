@@ -8,6 +8,9 @@ import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 import { focusFirst } from '../ui/nav';
 import { useLayout } from '../ui/layout';
 import { Carousel } from '../ui/Carousel';
+import { PosterCard, VodDetail } from './Vod';
+import { getProgress, myList, vodRecents } from '../core/vod';
+import { prefGet } from '../core/storage';
 import { VoiceButton } from '../ui/Voice';
 
 function normalize(s: string) {
@@ -16,7 +19,7 @@ function normalize(s: string) {
 
 // ---------------------------------------------------------------- Início
 export function Home({
-  playlist, live, favs, recents, onWatch, onGoLive,
+  playlist, live, favs, recents, onWatch, onGoLive, onPlayVod,
 }: {
   playlist: Playlist;
   live: Channel[];
@@ -24,11 +27,18 @@ export function Home({
   recents: Channel[];
   onWatch: (c: Channel, list: Channel[]) => void;
   onGoLive: () => void;
+  onPlayVod: (item: Channel, startAt?: number) => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  // Filmes/episódios em andamento (com progresso) e Minha lista.
+  const vodNow = vodRecents().filter((v) => getProgress(v.id));
+  const saved = myList();
+  const lastVod = prefGet<string>('lastKind', 'live') === 'vod' ? vodNow[0] : undefined;
+  const heroItem = lastVod ?? recents[0];
   const movies = playlist.items.filter((i) => i.kind === 'movie').length;
   const series = playlist.items.filter((i) => i.kind === 'series').length;
-  const last = recents[0];
+  const [detail, setDetail] = useState<Channel | null>(null);
+  const onGoVod = (v: Channel) => setDetail(v);
   const L = useLayout();
   const mobile = L.form === 'mobile';
   useEffect(() => {
@@ -36,10 +46,49 @@ export function Home({
   }, []);
   return (
     <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }}>
-      <Hero playlist={playlist} last={last} live={live} movies={movies} series={series} onPlay={() => last && onWatch(last, recents)} onGoLive={onGoLive} />
+      <Hero
+        playlist={playlist}
+        last={heroItem}
+        live={live}
+        movies={movies}
+        series={series}
+        onPlay={() => {
+          if (!heroItem) return;
+          if (heroItem.kind === 'live') onWatch(heroItem, recents);
+          else onPlayVod(heroItem, getProgress(heroItem.id)?.pos);
+        }}
+        onGoLive={onGoLive}
+      />
+      {vodNow.length > 0 && (
+        <Carousel
+          title="Filmes e séries em andamento"
+          items={vodNow}
+          keyOf={(v) => v.id}
+          minWidth={mobile ? 110 : 160}
+          render={(v, _i, w) => (
+            <button className="tile grow" data-nav="" style={{ width: w }} onClick={() => onPlayVod(v, getProgress(v.id)?.pos)} aria-label={v.name}>
+              <PosterCard item={v} w={w} />
+            </button>
+          )}
+        />
+      )}
 
       <Shelf title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
+      {saved.length > 0 && (
+        <Carousel
+          title="Minha lista"
+          items={saved}
+          keyOf={(v) => v.id}
+          minWidth={mobile ? 110 : 160}
+          render={(v, _i, w) => (
+            <button className="tile grow" data-nav="" style={{ width: w }} onClick={() => onGoVod(v)} aria-label={v.name}>
+              <PosterCard item={v} w={w} />
+            </button>
+          )}
+        />
+      )}
       <Shelf title="Vistos por último" badgeFor={(_c, i) => (i === 0 ? 'Último' : undefined)} items={recents} empty="Os canais que você assistir aparecem aqui." onWatch={(c) => onWatch(c, recents)} />
+      {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => setDetail(null)} />}
     </div>
   );
 }
@@ -183,7 +232,7 @@ export function Search({ playlist, onWatch }: { playlist: Playlist; onWatch: (c:
       <span className="muted" style={{ fontSize: 16 }}>
         {q.trim().length < 2
           ? 'Digite pelo menos 2 letras. Na TV, o teclado do aparelho aparece ao apertar OK no campo.'
-          : `${live.length} canais${vod ? ` · ${vod} filmes/séries (chegam no passo 4 da Fase 1)` : ''}`}
+          : `${live.length} canais${vod ? ` · ${vod} filmes/séries (busque nas abas Filmes, Séries ou Anime)` : ''}`}
       </span>
       <div className={mobile ? '' : 'glass'} style={{ flexGrow: 1, borderRadius: T.radiusPanel, padding: mobile ? 0 : 16, display: 'flex', minHeight: 0 }}>
         <VirtualList

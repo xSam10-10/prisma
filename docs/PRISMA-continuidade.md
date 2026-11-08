@@ -251,3 +251,30 @@ Com LG webOS + Roku + Android + computador:
 1. Usuário testa a lista Goldcard no computador (`npm run dev`) e instala na TV B7 (README); trazer os erros/prints
 2. Fase 1 · passo 3: guia XMLTV completo
 3. Em paralelo, quando quiser: tema HBO Max no canvas v2, página "Temas"
+
+**Filmes · Séries · Anime (0.9.0):** `src/screens/Vod.tsx`, `src/core/vod.ts`, `src/ui/VirtualGrid.tsx`. Streamings detectados pelo nome das categorias (Netflix, HBO Max, Disney+, Prime Video, Apple TV, Globoplay, Paramount+, Star+, Hulu, Crunchyroll, Discovery+) com arte própria; categorias; grade virtual de capas; busca + voz; ordenar Recentes/A–Z/Nota; detalhe (sinopse, elenco, direção, nota — via get_vod_info/get_series_info); séries com temporadas e episódios; player de filme (barra de tempo, ◀▶ 10 s, OK pausa, teclas de mídia), progresso salvo e "Continuar"; Minha lista; Início com "Filmes e séries em andamento" e "Minha lista". Anime = categorias com "anime"/Crunchyroll.
+**Jogos (0.9.0):** `src/screens/Games.tsx`, `src/core/games.ts`. Partidas tiradas do guia (Xtream, 12 próximos programas) de até 80 canais de esporte; filtros Ao vivo/Hoje/Amanhã/Todos e por liga; onde assistir (todos os canais); lembrete com aviso na tela.
+
+## 11. Pendências (07–08/11/2026)
+
+**Precisa de você / testes reais**
+1. Instalar e testar na TV LG OLED B7 (webOS 3.5) — nunca rodou numa B7 de verdade.
+2. Goldcard mostrou "0 filmes": conferir na 0.9.0 (o tempo de espera da lista de filmes subiu para 4 min) e, se continuar, mandar print.
+3. Enviar logos que faltam (ex.: ESPN) — `public/logos/custom/`.
+4. Microfone: funciona no navegador (Chrome/Edge) e no Android; no programa de Windows não (o Electron não tem o serviço de voz do Google); na LG, usar o microfone do teclado da TV.
+
+**Funcionalidades**
+5. Guia completo XMLTV (listas M3U) e grade de 7 dias; "voltar na programação" (catch-up) quando a lista oferece.
+6. Placar ao vivo e estatísticas nos Jogos — precisa de um serviço esportivo (ex.: API-Football, TheSportsDB) com chave.
+7. TMDB: capas/fundos melhores, trailers, "Top 10 da semana" — precisa de chave TMDB.
+8. Estruturas B (Cinema) e C (Hub), tema Netflix (já desenhado) e outros temas; Perfis ("Quem está assistindo"), estrutura por perfil, atalho no botão colorido.
+9. Controle parental: esconder categorias adultas com PIN (a Goldcard tem "ADULTOS +18").
+10. Player: próximo episódio automático, escolha de áudio/legenda e qualidade; reconectar sozinho quando o canal cai.
+11. Séries em listas M3U (agrupar episódios soltos por nome) e busca geral incluindo filmes/séries.
+12. Lembretes de jogos só avisam com o app aberto (notificação do sistema virá com o app Android).
+13. Sincronizar favoritos/seções/Minha lista entre aparelhos (hoje ficam em cada aparelho).
+
+**Plataformas e distribuição**
+14. Android (celular) e Google TV / Android TV com Capacitor (voz e notificações nativas); Roku depois.
+15. Assinatura digital do instalador de Windows (tira o aviso "O Windows protegeu…") e atualização automática.
+16. Etiquetas de versão (tags) no GitHub: esta sessão não consegue criar; as Releases saem com a data no nome.

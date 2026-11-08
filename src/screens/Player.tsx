@@ -4,6 +4,7 @@ import { Engine } from '../core/engine';
 import { IS_WEBOS } from '../core/platform';
 import { useSettings } from '../core/settings';
 import { SectionPicker } from './Sections';
+import { fmtDuration, saveProgress } from '../core/vod';
 import { useLayout } from '../ui/layout';
 import { progressOf } from '../core/epg';
 import type { Channel, Playlist } from '../core/types';
@@ -31,11 +32,16 @@ interface Props {
   toggleFav: (c: Channel) => void;
   onMode: (m: PlayerMode) => void;
   onZap: (c: Channel) => void;
+  /** Filme/episódio: começar deste segundo (continuar de onde parou). */
+  startAt?: number;
 }
 
 type Status = 'loading' | 'playing' | 'error';
 
-export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap }: Props) {
+export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, startAt }: Props) {
+  const vod = !!channel && channel.kind !== 'live';
+  const [time, setTime] = useState({ cur: 0, dur: 0, paused: false });
+  const lastSave = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const engine = useRef<Engine>();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -106,6 +112,57 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
 
   useEffect(() => setHeight(undefined), [channel?.id]);
 
+  // Filme/episódio: tempo, pausa e progresso salvo a cada 10 s.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !vod || !channel) return;
+    const id = channel.id;
+    const save = () => {
+      if (v.duration && isFinite(v.duration) && v.currentTime > 0) saveProgress(id, v.currentTime, v.duration);
+    };
+    const onTime = () => {
+      setTime({ cur: v.currentTime, dur: isFinite(v.duration) ? v.duration : 0, paused: v.paused });
+      if (Date.now() - lastSave.current > 10000) {
+        lastSave.current = Date.now();
+        save();
+      }
+    };
+    const onPause = () => {
+      setTime((t) => ({ ...t, paused: v.paused }));
+      save();
+    };
+    v.addEventListener('timeupdate', onTime);
+    v.addEventListener('pause', onPause);
+    v.addEventListener('play', onPause);
+    v.addEventListener('ended', save);
+    return () => {
+      save();
+      v.removeEventListener('timeupdate', onTime);
+      v.removeEventListener('pause', onPause);
+      v.removeEventListener('play', onPause);
+      v.removeEventListener('ended', save);
+    };
+  }, [channel?.id, vod]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const seek = (delta: number) => {
+    const v = videoRef.current;
+    if (!v || !isFinite(v.duration)) return;
+    v.currentTime = Math.max(0, Math.min(v.duration - 1, v.currentTime + delta));
+    setTime((t) => ({ ...t, cur: v.currentTime }));
+  };
+  const togglePause = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      try {
+        const r = v.play() as Promise<void> | undefined;
+        if (r && typeof r.catch === 'function') r.catch(() => {});
+      } catch {
+        /* ignora */
+      }
+    } else v.pause();
+  };
+
   useEffect(() => {
     if (!channel || mode === 'off') {
       engine.current?.stop();
@@ -118,7 +175,8 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       return;
     }
     setStatus('loading');
-    engine.current?.play(t.u, channel, 0, t.native);
+    setTime({ cur: 0, dur: 0, paused: false });
+    engine.current?.play(t.u, channel, vod ? startAt || 0 : 0, t.native);
   }, [channel?.id, srcIdx, attempt, mode === 'off']); // eslint-disable-line react-hooks/exhaustive-deps
 
   const osdMs = Math.max(2, S.osdSeconds || 5) * 1000;
@@ -169,6 +227,39 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       const d = dirOf(e);
       let handled = true;
       const interactive = overlayKind === 'controls' || status === 'error';
+      // ---- Filme/episódio ----
+      if (vod) {
+        let h = true;
+        if (isBack(e)) {
+          if (overlayKind === 'controls' && status !== 'error') setOverlay(false);
+          else onMode('preview');
+        } else if (k === KEY.PLAY || k === KEY.PAUSE || k === KEY.PLAY_PAUSE) {
+          togglePause();
+          showOverlay(true);
+        } else if (k === 417 /* avançar */ || (!interactive && d === 'right')) {
+          seek(k === 417 ? 30 : 10);
+          setOverlayKind((o) => (o === 'controls' ? o : 'info'));
+          clearTimeout(hideTimer.current);
+          hideTimer.current = window.setTimeout(() => setOverlayKind(false), osdMs);
+        } else if (k === 412 /* voltar */ || (!interactive && d === 'left')) {
+          seek(k === 412 ? -30 : -10);
+          setOverlayKind((o) => (o === 'controls' ? o : 'info'));
+          clearTimeout(hideTimer.current);
+          hideTimer.current = window.setTimeout(() => setOverlayKind(false), osdMs);
+        } else if (!interactive && isEnter(e)) {
+          togglePause();
+          showOverlay(true);
+        } else if (!interactive && d) showOverlay(true);
+        else if (interactive) {
+          showOverlay(true);
+          h = false;
+        } else h = false;
+        if (h) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
       if (isBack(e)) {
         if (overlayKind === 'controls' && status !== 'error') setOverlay(false);
         else onMode('preview');
@@ -199,7 +290,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [mode, overlay, overlayKind, status, digits, zap, allLive, onMode, onZap, showOverlay]);
+  }, [mode, overlay, overlayKind, status, digits, vod, zap, allLive, onMode, onZap, showOverlay]);
 
   useEffect(() => {
     if (mode === 'full' && overlay) requestAnimationFrame(() => {
@@ -270,14 +361,50 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         </div>
       )}
 
-      {full && channel && status !== 'error' && overlayKind === 'info' && S.osd === 'name' && (
+      {full && vod && channel && status !== 'error' && (overlayKind || time.paused) && (
+        <div
+          ref={overlayRef}
+          style={{
+            position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.35) 34%, transparent 58%), linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 22%)',
+          }}
+        >
+          <div style={{ position: 'absolute', left: padX, right: padX, top: padT, display: 'flex', alignItems: 'center' }}>
+            <span className="caps" style={{ fontSize: mobile ? 14 : 16, color: '#D6D6E0', flexGrow: 1 }}>{channel.group}</span>
+            <span style={{ fontSize: 18, fontWeight: 700 }}>{fmtTime(now)}</span>
+          </div>
+          {time.paused && <div className="vod-paused" aria-hidden="true">❚❚</div>}
+          <div className="gy-12" style={{ position: 'absolute', left: padX, right: padX, bottom: padB, display: 'flex', flexDirection: 'column' }}>
+            <span className="title caps" style={{ fontSize: mobile ? 22 : 34, lineHeight: 1.1 }}>{channel.name}</span>
+            <div className="vod-seek">
+              <span>{fmtDuration(time.cur)}</span>
+              <div className="vod-bar"><div style={{ width: time.dur ? `${(time.cur / time.dur) * 100}%` : '0%' }} /></div>
+              <span>{time.dur ? '-' + fmtDuration(time.dur - time.cur) : '--:--'}</span>
+            </div>
+            {overlayKind === 'controls' || time.paused ? (
+              <div className="gx-10" style={{ display: 'flex', alignItems: 'center', justifyContent: mobile ? 'center' : 'flex-start' }}>
+                <button className="btn" data-nav="" aria-label="Voltar 10 segundos" onClick={() => seek(-10)}>⟲ 10s</button>
+                <button className="btn primary" data-nav="" data-nav-default="" aria-label={time.paused ? 'Continuar' : 'Pausar'} onClick={togglePause} style={{ minWidth: 120, justifyContent: 'center' }}>
+                  {time.paused ? '▶ Continuar' : '❚❚ Pausar'}
+                </button>
+                <button className="btn" data-nav="" aria-label="Avançar 10 segundos" onClick={() => seek(10)}>10s ⟳</button>
+                <div style={{ flexGrow: 1 }} />
+                {!mobile && <span className="muted" style={{ fontSize: 14, marginRight: 12 }}>◀ ▶ voltar/avançar · OK pausa · Voltar sai</span>}
+                <button className="btn" data-nav="" onClick={() => onMode('preview')}>Sair</button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {full && !vod && channel && status !== 'error' && overlayKind === 'info' && S.osd === 'name' && (
         <div className="gx-10" style={{ position: 'absolute', left: padX, top: padT, display: 'flex', alignItems: 'center', padding: '8px 14px 8px 8px', borderRadius: 16, background: 'rgba(0,0,0,0.55)' }}>
           <ChannelLogo ch={channel} size={mobile ? 32 : 40} />
           <span className="caps" style={{ fontSize: mobile ? 15 : 18, fontWeight: 700 }}>{channel.number} · {channel.name}</span>
         </div>
       )}
 
-      {full && channel && status !== 'error' && (overlayKind === 'controls' || (overlayKind === 'info' && S.osd === 'full')) && (
+      {full && !vod && channel && status !== 'error' && (overlayKind === 'controls' || (overlayKind === 'info' && S.osd === 'full')) && (
         <div
           ref={overlayRef}
           style={{
