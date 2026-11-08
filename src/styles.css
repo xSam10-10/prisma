@@ -765,3 +765,13 @@ html:not(.kbd) .flist.prisma .flist-row:hover { background: rgba(255, 255, 255, 
 .flist.prisma .flist-ag-time { color: #3dd6c4; }
 .flist.prisma .flist-search input:focus { border-color: #3dd6c4; }
 .flist.prisma .flist-hint { color: #a6a6b8; border-top-color: rgba(255, 255, 255, 0.08); }
+/* Streamings com logotipo: só a marca, sem nome; escolhido = contorno na cor do tema */
+.stream-chip.logo { padding: 0 20px; }
+.stream-chip.logo img { display: block; -o-object-fit: contain; object-fit: contain; pointer-events: none; }
+.stream-chip.logo.on { background: rgba(255, 255, 255, 0.14); border: 2px solid #3dd6c4; }
+.flist-rail-in { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; padding-bottom: 40px; box-sizing: border-box; }
+.flist-rail-in::-webkit-scrollbar { display: none; }
+.flist-mi { position: relative; }
+.flist-rail-in { position: relative; }
+/* barra e menus por cima das janelas PIP */
+.cbar { z-index: 8; }

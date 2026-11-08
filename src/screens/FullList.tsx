@@ -86,6 +86,7 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   const [, force] = useState(0);
   const root = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
 
   const channels = useMemo(() => {
     if (view === 'search') {
@@ -113,6 +114,21 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   useEffect(() => {
     root.current?.focus();
   }, []);
+  // Menu lateral: rola para o grupo escolhido ficar sempre à vista (lista de grupos longa).
+  useEffect(() => {
+    const box = railRef.current;
+    if (!box) return;
+    if (col !== 'menu') {
+      box.scrollTop = 0;
+      return;
+    }
+    const el = box.querySelector<HTMLElement>('.flist-mi.sel');
+    if (!el) return;
+    const top = el.offsetTop;
+    const bottom = top + el.offsetHeight;
+    if (top < box.scrollTop + 60) box.scrollTop = Math.max(0, top - 60);
+    else if (bottom > box.scrollTop + box.clientHeight - 60) box.scrollTop = bottom - box.clientHeight + 60;
+  }, [mi, col]);
 
   const count = view === 'agenda' ? agenda.length : channels.length;
   const title = view === 'search' ? 'Buscar' : view === 'agenda' ? 'Agendar programação' : group === FAV ? 'Favoritos' : group === ALL ? 'Lista de canais' : sections.find((s) => s.id === group)?.name ?? '';
@@ -215,7 +231,7 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   return (
     <div ref={root} className={'flist' + (expanded ? ' open' : '') + (variant === 'prisma' ? ' prisma' : '')} tabIndex={-1} data-nav-scope="" style={{ paddingTop: pad, paddingBottom: pad }} onClick={(e) => e.stopPropagation()}>
       <div className="flist-rail" style={{ width: railW }}>
-        <div className="flist-rail-in">
+        <div className="flist-rail-in" ref={railRef}>
           {menu.slice(0, expanded ? menu.length : 5).map((m, i) => (
             <button
               key={m.id}

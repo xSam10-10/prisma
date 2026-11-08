@@ -33,7 +33,6 @@ const TABS: [Tab, string][] = [
   ['jogos', 'Jogos'],
   ['filmes', 'Filmes'],
   ['series', 'Séries'],
-  ['anime', 'Anime'],
 ];
 
 const TAB_ICON: Record<string, string> = { inicio: '⌂', aovivo: '●', jogos: '◎', filmes: '▶', series: '▤', anime: '✦' };
@@ -69,7 +68,11 @@ export function App() {
   const [playlist, setPlaylist] = useState<Playlist>();
   const [progress, setProgress] = useState('');
   const [bootError, setBootError] = useState<SourceError | null>(null);
-  const [tab, setTab] = useState<Tab>(() => prefGet<Tab>('tab', 'aovivo'));
+  // A aba Anime virou parte de Séries (as categorias de anime e o Crunchyroll estão lá).
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = prefGet<Tab>('tab', 'aovivo');
+    return t === 'anime' ? 'series' : t;
+  });
   const [playing, setPlaying] = useState<Channel>();
   const [zapList, setZapList] = useState<Channel[]>([]);
   // Telas auxiliares (PIP): ficam fixas enquanto você troca o canal principal.

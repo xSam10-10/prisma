@@ -10,20 +10,33 @@ export interface Streaming {
   bg: string;
   accent: string;
   accent2: string;
+  /** Logotipo (public/streaming/<id>.png) e a largura/altura dele, para o mesmo "peso" visual em todos. */
+  logo?: { w: number; h: number };
+}
+
+/** Altura do logo no botão: os mais largos ficam mais baixos, os compactos mais altos (área parecida). */
+export function logoSize(l: { w: number; h: number }, area = 2300): { width: number; height: number } {
+  const ratio = l.w / l.h;
+  const height = Math.round(Math.max(18, Math.min(30, Math.sqrt(area / ratio))));
+  return { width: Math.round(height * ratio), height };
+}
+
+export function logoUrl(id: string): string {
+  return `${import.meta.env.BASE_URL}streaming/${id}.png`;
 }
 
 /** Streamings reconhecidos pelos nomes das categorias da lista (cores = arte do protótipo v2). */
 export const STREAMINGS: Streaming[] = [
-  { id: 'netflix', name: 'Netflix', match: /netflix/i, bg: '#141414', accent: '#E50914', accent2: '#7A0A0F' },
-  { id: 'hbo', name: 'HBO Max', match: /\bhbo\b|\bmax\b/i, bg: '#0A0A2E', accent: '#3D2BFF', accent2: '#A020F0' },
-  { id: 'disney', name: 'Disney+', match: /disney/i, bg: '#0B1A3D', accent: '#1F80E0', accent2: '#00D4FF' },
-  { id: 'prime', name: 'Prime Video', match: /prime|amazon/i, bg: '#0F171E', accent: '#00A8E1', accent2: '#1A4D8F' },
-  { id: 'apple', name: 'Apple TV', match: /apple/i, bg: '#000000', accent: '#8E8E93', accent2: '#3A3A3C' },
-  { id: 'globoplay', name: 'Globoplay', match: /globoplay/i, bg: '#1E0A12', accent: '#FB2E5A', accent2: '#FF7A00' },
-  { id: 'paramount', name: 'Paramount+', match: /paramount/i, bg: '#00112E', accent: '#0064FF', accent2: '#00B3FF' },
+  { id: 'netflix', name: 'Netflix', match: /netflix/i, bg: '#141414', accent: '#E50914', accent2: '#7A0A0F', logo: { w: 357, h: 96 } },
+  { id: 'hbo', name: 'HBO Max', match: /\bhbo\b|\bmax\b/i, bg: '#0A0A2E', accent: '#3D2BFF', accent2: '#A020F0', logo: { w: 538, h: 96 } },
+  { id: 'disney', name: 'Disney+', match: /disney/i, bg: '#0B1A3D', accent: '#1F80E0', accent2: '#00D4FF', logo: { w: 181, h: 96 } },
+  { id: 'prime', name: 'Prime Video', match: /prime|amazon/i, bg: '#0F171E', accent: '#00A8E1', accent2: '#1A4D8F', logo: { w: 313, h: 96 } },
+  { id: 'apple', name: 'Apple TV', match: /apple/i, bg: '#000000', accent: '#8E8E93', accent2: '#3A3A3C', logo: { w: 191, h: 96 } },
+  { id: 'globoplay', name: 'Globoplay', match: /globoplay/i, bg: '#1E0A12', accent: '#FB2E5A', accent2: '#FF7A00', logo: { w: 435, h: 96 } },
+  { id: 'paramount', name: 'Paramount+', match: /paramount/i, bg: '#00112E', accent: '#0064FF', accent2: '#00B3FF', logo: { w: 159, h: 96 } },
   { id: 'star', name: 'Star+', match: /star\s?\+|star plus/i, bg: '#1A0B2E', accent: '#C724B1', accent2: '#FF6C00' },
   { id: 'hulu', name: 'Hulu', match: /hulu/i, bg: '#0B0C0F', accent: '#1CE783', accent2: '#0B8F52' },
-  { id: 'crunchyroll', name: 'Crunchyroll', match: /crunchy/i, bg: '#1A1206', accent: '#F47521', accent2: '#FFB000' },
+  { id: 'crunchyroll', name: 'Crunchyroll', match: /crunchy/i, bg: '#1A1206', accent: '#F47521', accent2: '#FFB000', logo: { w: 526, h: 96 } },
   { id: 'discovery', name: 'Discovery+', match: /discovery/i, bg: '#00101F', accent: '#2175FF', accent2: '#00C2FF' },
 ];
 

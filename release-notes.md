@@ -1,6 +1,13 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.16.2
+- Logotipos de Netflix, Prime Video, Disney+, HBO Max, Globoplay, Apple TV, Paramount+ e Crunchyroll em Filmes e Séries
+- Menu da lista em tela cheia rola até os grupos de baixo
+- Com o PIP ligado, ▲▼ voltam a trocar o canal (o menu do PIP fecha sozinho)
+- Na tela cheia, OK sempre abre a lista de canais; as funções da barra se escolhem com ◀▶
+- A aba Anime foi incorporada em Séries
+
 ## 0.16.1
 - "Nenhuma atualização disponível" ao procurar atualização quando não há versão nova
 - Lista de canais da tela cheia no visual Clássico (cinza, como a barra clássica) ou Prisma (cores do tema), em Ajustes › Player › Visual da tela cheia

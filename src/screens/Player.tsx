@@ -106,6 +106,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   // Lista de canais por cima do vídeo (OK na tela cheia).
   const [listOpen, setListOpen] = useState(false);
   const listOpenRef = useRef(false);
+  // Barra clássica: OK abre a lista de canais, a não ser que a pessoa tenha
+  // acabado de escolher uma função com ◀▶ (como no app de referência).
+  const barNavRef = useRef(false);
   listOpenRef.current = listOpen;
   const [guideOpen, setGuideOpen] = useState<null | { channels: Channel[]; index: number }>(null);
   const guideOpenRef = useRef(false);
@@ -315,6 +318,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       setOverlayKind((k) => (focus || k === 'controls' ? 'controls' : 'info'));
       hideTimer.current = window.setTimeout(() => {
         if (menuRef.current) return; // menu aberto: a barra fica
+        barNavRef.current = false;
         setOverlayKind(false);
         setInfoOpen(false);
       }, osdMs);
@@ -485,11 +489,19 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       if (isBack(e)) {
         if (overlayKind === 'controls' && status !== 'error') setOverlay(false);
         else onMode('preview');
-      } else if (k === KEY.CH_UP || d === 'up') zap(-1);
-      else if (k === KEY.CH_DOWN || d === 'down') zap(1);
-      else if (!interactive && isEnter(e)) openList();
-      else if (!interactive && d) showOverlay(true);
+      } else if (k === KEY.CH_UP || d === 'up') {
+        barNavRef.current = false;
+        zap(-1);
+      } else if (k === KEY.CH_DOWN || d === 'down') {
+        barNavRef.current = false;
+        zap(1);
+      } else if (isEnter(e) && status !== 'error' && (!interactive || (S.osdStyle !== 'prisma' && !barNavRef.current))) openList();
+      else if (!interactive && d) {
+        barNavRef.current = true;
+        showOverlay(true);
+      }
       else if (interactive) {
+        if (d === 'left' || d === 'right') barNavRef.current = true;
         showOverlay(); // reinicia o tempo; deixa a navegação dos botões agir
         handled = false;
       } else handled = false;
@@ -546,6 +558,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       if (el) el.focus();
     });
   const openMenu = (id: string) => {
+    barNavRef.current = true;
     clearTimeout(hideTimer.current);
     setOverlayKind('controls');
     setMenu(id);
@@ -581,12 +594,13 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       onClick: () => (menu === 'pip' ? closeMenu() : openMenu('pip')),
       menu: (
         <BarMenu>
-          <MenuToggle on={pips.length > 0} onClick={() => (pips.length ? onPips?.([]) : addPip(channel))} />
+          {/* Depois de ligar/trocar, o menu fecha: ▲▼ voltam a trocar o canal principal. */}
+          <MenuToggle on={pips.length > 0} onClick={() => { if (pips.length) onPips?.([]); else addPip(channel); closeMenu(); }} />
           {pips.length <= 1 ? (
-            <MenuItem def onClick={() => { if (pips.length) onSwapPip?.(0); else addPip(channel); }}>Trocar PIP</MenuItem>
+            <MenuItem def onClick={() => { if (pips.length) onSwapPip?.(0); else addPip(channel); closeMenu(); }}>Trocar PIP</MenuItem>
           ) : (
             pips.map((p, i) => (
-              <MenuItem key={p.id} def={i === 0} onClick={() => onSwapPip?.(i)}>Trocar com {p.number ? p.number + ' ' : ''}{p.name}</MenuItem>
+              <MenuItem key={p.id} def={i === 0} onClick={() => { onSwapPip?.(i); closeMenu(); }}>Trocar com {p.number ? p.number + ' ' : ''}{p.name}</MenuItem>
             ))
           )}
           <MenuItem onClick={() => openMenu('add')}>Adicionar a..</MenuItem>

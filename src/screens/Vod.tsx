@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Channel, ItemKind, Playlist } from '../core/types';
-import { ANIME, STREAMINGS, getProgress, inMyList, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
+import { ANIME, STREAMINGS, getProgress, inMyList, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
 import { colorFor, initials, rgba } from '../ui/bits';
 import { useLayout } from '../ui/layout';
@@ -128,13 +128,21 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
           {streamings.map((s) => (
             <button
               key={s.id}
-              className={'stream-chip' + (stream === s.id ? ' on' : '')}
+              className={'stream-chip' + (stream === s.id ? ' on' : '') + (s.logo ? ' logo' : '')}
               data-nav=""
-              style={stream === s.id ? { background: s.accent, color: '#fff' } : undefined}
+              aria-label={s.name}
+              title={s.name}
+              style={stream === s.id && !s.logo ? { background: s.accent, color: '#fff' } : undefined}
               onClick={() => { setStream(s.id); setCat(''); setQuery(''); }}
             >
-              <i style={{ background: s.accent }} />
-              {s.name}
+              {s.logo ? (
+                <img src={logoUrl(s.id)} alt={s.name} style={logoSize(s.logo)} draggable={false} />
+              ) : (
+                <>
+                  <i style={{ background: s.accent }} />
+                  {s.name}
+                </>
+              )}
             </button>
           ))}
         </div>
