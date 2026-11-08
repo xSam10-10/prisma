@@ -8,6 +8,24 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
+## 0. ESTADO ATUAL — leia primeiro (08/11/2026, 19h · versão 0.17.0)
+
+**O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
+
+**Código:** GitHub `xSam10-10/prisma` (branch `main`). React 18 + TypeScript + Vite 8. Pasta `prisma-app` neste pacote = cópia do código da 0.17.0.
+
+**Publicar uma versão:** subir a versão em `package.json` e `webos/appinfo.json`, escrever as novidades no topo de `release-notes.md`, commit (autor Samuel Costa) + push na `main` e `gh workflow run release.yml --repo xSam10-10/prisma --ref main`. O workflow gera Windows (PRISMA-Setup-x.exe + latest.yml), TV LG (.ipk + prisma-webos-x.json para atualização no app), Android (PRISMA-Android-x.apk, assinatura fixa) e o manifesto `prisma-update.json`, numa Release com a data no nome (a sessão não cria tags).
+
+**Atualização dentro do app:** lê `https://github.com/xSam10-10/prisma/releases/latest/download/` — só funciona com o repositório **público** (em 08/11 19h ainda estava PRIVADO). Ver 10i e 10r.
+
+**Verificações antes de publicar:** `npx tsc --noEmit` · `npx vitest run` (34 testes) · `npm run build:webos` + `npx es-check@8.0.2 es5 "dist-webos/assets/*.js"` (TV de 2017: sem CSS gap/variáveis/grid; flex com prefixos -webkit-; nada de sintaxe nova no JS final).
+**Testes de tela:** `node test/fake-xtream.mjs` (servidor Xtream falso na porta 8090, usuário `teste` / senha `1234`; também ESPN falsa em `/espn/...`, TMDB falso em `/tmdb/...`, `/updates/` com `UPDATE_DIR`) + `npx vite --port 5173` + roteiros Playwright. O Chromium do ambiente não decodifica H.264: nos testes, segurar as requisições de vídeo (`page.route(... /live/ ..., () => {})`).
+**Limites do ambiente de desenvolvimento:** ESPN, TMDB, guias públicos e o servidor da Goldcard não são acessíveis de lá — testar com o servidor falso e pedir ao Samuel o teste real.
+
+**Histórico de versões:** seções 10b–10s (0.10.0 → 0.17.0). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+
+**Referências do app usado pelo Samuel (vídeos que ele mandou):** barra do canal estilo receptor + PIP (10f), programação do canal por dia (10h), lista de canais por cima da tela cheia com menu lateral e grupos (10j).
+
 ## 1. O que é o projeto
 
 App de IPTV **para uso pessoal** que funciona como **player**: não traz conteúdo próprio, só reproduz as listas oficiais que o usuário assina. Visual de streaming premium (inspiração em Netflix e HBO Max) somado à organização de um app de IPTV que o usuário já usa: abas TV, Jogos, Filmes, Séries; lista de canais com prévia; guia de jogos com placar e lembrete; categorias.
@@ -246,7 +264,7 @@ Com LG webOS + Roku + Android + computador:
 
 ---
 
-## 10. Próximo passo imediato
+## 10. Próximo passo imediato (antigo — ver seção 0 e docs/PENDENCIAS.md)
 
 1. Usuário testa a lista Goldcard no computador (`npm run dev`) e instala na TV B7 (README); trazer os erros/prints
 2. Fase 1 · passo 3: guia XMLTV completo
@@ -365,14 +383,14 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - **45 Guias públicos sugeridos** (`PUBLIC_GUIDES`): epgshare01 Brasil 1 e 2, Pluto TV Brasil (i.mjh.nz) — botões de 1 clique. **Não testados daqui** (o ambiente bloqueia esses endereços).
 - Fonte esportiva: ESPN (sem chave). Também não acessível daqui; tudo testado com o servidor falso (`/espn/...`, `/espn/gol` soma um gol para testar o aviso).
 
-## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11)
+## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
 **Depois:** 8 qualidade (parcial na 0.13.0, menu HD) · 11 ExoPlayer no Android · 12 voz no Android · 17 multitela em grade (o PIP da 0.13.0 cobre parte) · 18 picture-in-picture do sistema · 31 placar flutuante · 32 tabela do campeonato · 44 onde assistir · 46 trailer no destaque · 47 prévia no pôster · 49 "porque você assistiu" · 50 franquias · 52 novidades e em breve · 55 semelhantes · 63 aviso de novo episódio · 65 pular abertura · 68 velocidade · 69 estilo de legenda / .srt · 75 histórico de assistidos · 80 filtros de busca.
 **Projetos maiores:** 9 sincronização na nuvem · 14 Roku · 19 gravar · 20 baixar offline · 23 Chromecast · 59 IMDb/Rotten · 67 miniaturas na barra · 72 créditos finais · 79 assistir junto.
 **Talvez não:** 51, 58, 66, 71, 74, 77, 82. **Sem prioridade:** 10, 16, 25, 28, 33, 34, 35, 36, 37, 40, 42, 43, 45.
 **Depende do usuário:** 1 testar na LG · 2 testar o APK · 3 "0 filmes" · 4 logos · 5 chave TMDB · 6 repositório público + token · 13 assinatura paga.
 
-## 11. Pendências (07–08/11/2026)
+## 11. Pendências (07–08/11/2026) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 
 **Precisa de você / testes reais**
 1. Instalar e testar na TV LG OLED B7 (webOS 3.5) — nunca rodou numa B7 de verdade.
