@@ -30,7 +30,12 @@ jobs:
           echo "$KS" | base64 -d > "$RUNNER_TEMP/prisma.jks"
           echo "PRISMA_KEYSTORE=$RUNNER_TEMP/prisma.jks" >> "$GITHUB_ENV"
           echo "PRISMA_KEYSTORE_PASSWORD=$KSPW" >> "$GITHUB_ENV"
-      - run: cd android && chmod +x gradlew && ./gradlew --no-daemon assembleRelease
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compila o APK (até 3 tentativas, a rede do GitHub às vezes falha)
+        run: |
+          cd android && chmod +x gradlew
+          for i in 1 2 3; do ./gradlew --no-daemon assembleRelease && exit 0; echo "tentativa $i falhou"; sleep 20; done
+          exit 1
       - name: Confere o APK (Google TV, versão, assinatura)
         run: |
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
