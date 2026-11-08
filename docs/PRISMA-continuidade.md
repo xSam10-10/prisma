@@ -252,6 +252,7 @@ Com LG webOS + Roku + Android + computador:
 2. Fase 1 · passo 3: guia XMLTV completo
 3. Em paralelo, quando quiser: tema HBO Max no canvas v2, página "Temas"
 
+**Início (0.9.1):** o destaque "Continuar assistindo" não tem mais o quadro grande à direita (removido a pedido); só texto, programa atual e botões.
 **Filmes · Séries · Anime (0.9.0):** `src/screens/Vod.tsx`, `src/core/vod.ts`, `src/ui/VirtualGrid.tsx`. Streamings detectados pelo nome das categorias (Netflix, HBO Max, Disney+, Prime Video, Apple TV, Globoplay, Paramount+, Star+, Hulu, Crunchyroll, Discovery+) com arte própria; categorias; grade virtual de capas; busca + voz; ordenar Recentes/A–Z/Nota; detalhe (sinopse, elenco, direção, nota — via get_vod_info/get_series_info); séries com temporadas e episódios; player de filme (barra de tempo, ◀▶ 10 s, OK pausa, teclas de mídia), progresso salvo e "Continuar"; Minha lista; Início com "Filmes e séries em andamento" e "Minha lista". Anime = categorias com "anime"/Crunchyroll.
 **Jogos (0.9.0):** `src/screens/Games.tsx`, `src/core/games.ts`. Partidas tiradas do guia (Xtream, 12 próximos programas) de até 80 canais de esporte; filtros Ao vivo/Hoje/Amanhã/Todos e por liga; onde assistir (todos os canais); lembrete com aviso na tela.
 

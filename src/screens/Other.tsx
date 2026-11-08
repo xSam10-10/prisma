@@ -1,7 +1,7 @@
 import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Channel, Playlist } from '../core/types';
-import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol, colorFor, fmtTime, initials, rgba, useLogo } from '../ui/bits';
+import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol, colorFor, fmtTime, rgba } from '../ui/bits';
 import { progressOf } from '../core/epg';
 import { useClock, useEpg } from '../ui/useEpg';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
@@ -104,7 +104,6 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
   const cur = epg?.[0];
   const next = epg?.[1];
   const c = last ? colorFor(last.name) : '#3DD6C4';
-  const artW = mobile ? L.W - L.px * 2 : Math.round(Math.min(620, Math.max(420, L.W * 0.36)));
   const isVod = last && last.kind !== 'live';
   const info = (
     <div className="gy-12" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, maxWidth: 680 }}>
@@ -138,43 +137,13 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
       </div>
     </div>
   );
-  const art = last ? (
-    <button
-      className="hero-art grow"
-      data-nav=""
-      onClick={onPlay}
-      aria-label={`Assistir ${last.name}`}
-      style={{
-        width: artW,
-        height: Math.round((artW * 9) / 16),
-        background: `radial-gradient(ellipse 70% 80% at 50% 45%, ${rgba(c, 0.5)} 0%, ${rgba(c, 0.16)} 50%, rgba(0,0,0,0) 78%), linear-gradient(150deg, #2A2A3C 0%, #13131B 100%)`,
-      }}
-    >
-      <HeroImage ch={last} />
-      <span className="badge-live" style={{ position: 'absolute', left: 16, top: 16, fontSize: 12 }}>● {isVod ? 'Continuar' : 'Ao vivo'}</span>
-      {cur && <span className="hero-bar"><span style={{ width: `${progressOf(cur, now) * 100}%` }} /></span>}
-      <span className="hero-play" aria-hidden="true">▶</span>
-    </button>
-  ) : null;
   return (
     <div style={{ position: 'relative', padding: `${mobile ? 4 : 10}px ${L.px}px 0` }}>
       <div aria-hidden="true" className="hero-glow" style={{ background: `radial-gradient(ellipse at 70% 40%, ${rgba(c, 0.28)} 0%, rgba(0,0,0,0) 60%)` }} />
       <div style={{ position: 'relative', display: 'flex', flexDirection: mobile ? 'column-reverse' : 'row', alignItems: mobile ? 'stretch' : 'center' }}>
-        <div style={{ flexGrow: 1, minWidth: 0, marginRight: mobile ? 0 : 40, marginTop: mobile ? 16 : 0 }}>{info}</div>
-        {art}
+        <div style={{ flexGrow: 1, minWidth: 0, marginTop: mobile ? 8 : 0 }}>{info}</div>
       </div>
     </div>
-  );
-}
-
-/** Logo grande (canal) ou capa (filme/série/anime) no destaque. */
-function HeroImage({ ch }: { ch: Channel }) {
-  const { src, onError } = useLogo(ch);
-  if (ch.kind !== 'live' && ch.logo) return <img className="hero-cover" src={ch.logo} alt="" referrerPolicy="no-referrer" />;
-  return src ? (
-    <img key={src} className="hero-logo" src={src} alt="" referrerPolicy="no-referrer" onError={onError} />
-  ) : (
-    <span className="tile-ini" style={{ background: colorFor(ch.name), width: '26%', height: '36%', fontSize: 40 }}>{initials(ch.name)}</span>
   );
 }
 
