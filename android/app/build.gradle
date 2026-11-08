@@ -1,0 +1,81 @@
+apply plugin: 'com.android.application'
+
+import groovy.json.JsonSlurper
+
+// Versão tirada do package.json (0.12.0 -> versionCode 1200).
+def pkg = new JsonSlurper().parse(file('../../package.json'))
+def (vMaj, vMin, vPat) = pkg.version.tokenize('.').collect { it.toInteger() }
+def vCode = vMaj * 100000 + vMin * 100 + vPat
+
+// Assinatura: chave própria se o GitHub tiver os secrets
+// (ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD); senão, a chave de
+// depuração fixa do repositório (senha pública "android"). Em ambos os casos
+// a assinatura é sempre a mesma, então as atualizações instalam por cima.
+def ksFile = System.getenv('PRISMA_KEYSTORE') ?: 'prisma-debug.keystore'
+def ksPass = System.getenv('PRISMA_KEYSTORE_PASSWORD') ?: 'android'
+def ksAlias = System.getenv('PRISMA_KEYSTORE') ? 'prisma' : 'androiddebugkey'
+
+android {
+    namespace = "com.prisma.iptv"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.prisma.iptv"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode vCode
+        versionName pkg.version
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        prisma {
+            storeFile file(ksFile)
+            storePassword ksPass
+            keyAlias ksAlias
+            keyPassword ksPass
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.prisma
+        }
+        release {
+            signingConfig signingConfigs.prisma
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

@@ -1,4 +1,6 @@
 import { SourceError } from './types';
+import { IS_ANDROID } from './platform';
+import { nativeGet } from './native';
 
 /**
  * No navegador do computador, as listas IPTV quase nunca liberam CORS.
@@ -6,7 +8,7 @@ import { SourceError } from './types';
  * o servidor de desenvolvimento do Vite). Na TV LG (app empacotado) e no
  * Android (Capacitor) o acesso é direto.
  */
-export const USE_PROXY: boolean = import.meta.env.MODE !== 'webos' && import.meta.env.VITE_DIRECT !== '1';
+export const USE_PROXY: boolean = import.meta.env.MODE !== 'webos' && import.meta.env.MODE !== 'android' && import.meta.env.VITE_DIRECT !== '1';
 
 export function proxify(url: string): string {
   if (!USE_PROXY) return url;
@@ -21,6 +23,19 @@ export function proxify(url: string): string {
  * file:// (app empacotado na TV) e no Chromium antigo da LG, sem AbortController.
  */
 export function fetchText(url: string, timeoutMs = 30000): Promise<string> {
+  if (IS_ANDROID) {
+    return nativeGet(url, timeoutMs, false).then(
+      (r) => {
+        if (r.status === 401 || r.status === 403) throw new SourceError('auth', 'O servidor recusou o acesso. Confira usuário e senha.');
+        if (r.status < 200 || r.status >= 300) throw new SourceError('network', `O servidor respondeu com erro ${r.status}.`);
+        return r.text ?? '';
+      },
+      (e) => {
+        if (e instanceof SourceError) throw e;
+        throw new SourceError('network', 'Não foi possível conectar ao servidor da lista.');
+      },
+    );
+  }
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', proxify(url), true);
@@ -63,6 +78,12 @@ export async function fetchJson<T>(url: string, timeoutMs?: number): Promise<T> 
 
 /** Baixa dados binários (ex.: guia .xml.gz). Mesmo caminho do fetchText (proxy no computador). */
 export function fetchBytes(url: string, timeoutMs = 180000): Promise<Uint8Array> {
+  if (IS_ANDROID) {
+    return nativeGet(url, timeoutMs, true).then((r) => {
+      if (r.status < 200 || r.status >= 300) throw new SourceError('network', `O guia respondeu com erro ${r.status}.`);
+      return r.bytes ?? new Uint8Array();
+    });
+  }
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', proxify(url), true);

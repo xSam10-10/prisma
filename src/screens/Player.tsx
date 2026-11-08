@@ -1,7 +1,7 @@
 import { T } from '../ui/tokens';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Engine } from '../core/engine';
-import { IS_WEBOS } from '../core/platform';
+import { IS_ANDROID, IS_WEBOS } from '../core/platform';
 import { useSettings } from '../core/settings';
 import { SectionPicker } from './Sections';
 import { fmtDuration, saveProgress } from '../core/vod';
@@ -94,9 +94,11 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   // na TV LG, também com o player nativo da TV.
   const urls0 = channel ? [channel.url, ...(channel.altUrls ?? [])].filter(Boolean) : [];
   // Formato preferido (Ajustes › Player): coloca HLS ou MPEG-TS primeiro.
-  const prefExt = S.liveFormat === 'hls' ? /\.m3u8(\?|$)/i : S.liveFormat === 'ts' ? /\.ts(\?|$)/i : null;
+  const prefExt = S.liveFormat === 'hls' || (IS_ANDROID && S.liveFormat === 'auto') ? /\.m3u8(\?|$)/i : S.liveFormat === 'ts' ? /\.ts(\?|$)/i : null;
   const urls = prefExt ? [...urls0.filter((u) => prefExt.test(u)), ...urls0.filter((u) => !prefExt.test(u))] : urls0;
   const sources = urls.reduce<{ u: string; n: number; native: boolean }[]>((acc, u, n) => {
+    // Android: HLS e filmes primeiro no player do aparelho (não esbarra em CORS).
+    if (IS_ANDROID && !/\.ts(\?|$)/i.test(u)) acc.push({ u, n, native: true });
     acc.push({ u, n, native: false });
     if (IS_WEBOS) acc.push({ u, n, native: true });
     return acc;
@@ -494,7 +496,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
             {cur0 && (urls.length > 1 || cur0.native) && (
               <span className="muted" style={{ fontSize: 15 }}>
                 Fonte {cur0.n + 1} de {urls.length}
-                {cur0.native ? ' · player da TV' : ''}
+                {cur0.native ? (IS_ANDROID ? ' · player do aparelho' : ' · player da TV') : ''}
               </span>
             )}
           </div>

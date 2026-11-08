@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
         : []),
     ],
     build: {
-      outDir: webos ? 'dist-webos' : 'dist',
+      outDir: webos ? 'dist-webos' : mode === 'android' ? 'dist-android' : 'dist',
       chunkSizeWarningLimit: 1200,
       ...(webos ? { cssTarget: 'chrome38' } : {}),
     },

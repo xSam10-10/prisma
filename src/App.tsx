@@ -4,7 +4,8 @@ import { askOnStart, chosenThisSession, currentProfile, switchProfile } from './
 import { WhoIsWatching } from './screens/Profiles';
 import { MyList, VodScreen, type VodTab } from './screens/Vod';
 import { Games } from './screens/Games';
-import { dueReminders, type Reminder } from './core/games';
+import { dueReminders, reminders, type Reminder } from './core/games';
+import { installNative, syncNativeReminders } from './core/native';
 import { pushVodRecent } from './core/vod';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
 import { loadLogoCatalogs } from './core/logos';
@@ -88,6 +89,11 @@ export function App() {
       if (due.length) setToast(due[0]);
     }, 30000);
     return () => clearInterval(t);
+  }, []);
+  // Android: Voltar do controle, toque na notificação e lembretes agendados.
+  useEffect(() => {
+    void installNative((r) => setToast(r));
+    void syncNativeReminders(reminders());
   }, []);
   const [secData, setSecData] = useState<SectionsData>(() => ({ ...EMPTY_SECTIONS, ...prefGet<Partial<SectionsData>>('sections', {}) }));
   useEffect(() => prefSet('sections', secData), [secData]);

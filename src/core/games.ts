@@ -1,4 +1,5 @@
 import { prefGet, prefSet } from './storage';
+import { syncNativeReminders } from './native';
 import type { Channel, Playlist } from './types';
 import { shortEpg } from './xtream';
 
@@ -105,7 +106,9 @@ export function hasReminder(key: string): boolean {
 export function toggleReminder(g: Game): boolean {
   const cur = reminders();
   const has = cur.some((r) => r.key === g.key);
-  prefSet('reminders', has ? cur.filter((r) => r.key !== g.key) : [...cur, { key: g.key, title: g.title, start: g.start, channelId: g.channels[0]?.id }]);
+  const next = has ? cur.filter((r) => r.key !== g.key) : [...cur, { key: g.key, title: g.title, start: g.start, channelId: g.channels[0]?.id }];
+  prefSet('reminders', next);
+  void syncNativeReminders(next); // Android: notificação mesmo com o app fechado
   return !has;
 }
 

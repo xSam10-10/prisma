@@ -1,7 +1,7 @@
 {
   "name": "prisma-app",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,9 +11,14 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "desktop": "npm run build && electron .",
-    "dist:win": "npm run build && electron-builder --win --x64 --publish never"
+    "dist:win": "npm run build && electron-builder --win --x64 --publish never",
+    "build:android": "tsc --noEmit && vite build --mode android && cap sync android"
   },
   "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/local-notifications": "8.3.1",
     "fflate": "0.8.3",
     "hls.js": "1.7.4",
     "mpegts.js": "1.8.2",
@@ -23,6 +28,7 @@
   "devDependencies": {
     "@babel/core": "7.29.13",
     "@babel/preset-env": "7.29.7",
+    "@capacitor/cli": "8.6.0",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-legacy": "8.2.4",

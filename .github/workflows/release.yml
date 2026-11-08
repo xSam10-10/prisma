@@ -1,4 +1,4 @@
-# Gera o instalador do Windows e o app da TV LG e publica numa Release.
+# Gera o instalador do Windows, o app da TV LG e o APK do Android e publica numa Release.
 # Dispara ao enviar uma tag "v*" (ex.: v0.1.0) ou pelo botão "Run workflow"
 # na aba Actions.
 name: Release
@@ -45,8 +45,42 @@ jobs:
           name: webos
           path: com.prisma.iptv_*.ipk
 
+  android:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KS: ${{ secrets.ANDROID_KEYSTORE_B64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build:android
+      - name: Chave própria (opcional, secrets do repositório)
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KSPW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        if: env.HAS_KS == 'true'
+        run: |
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/prisma.jks"
+          echo "PRISMA_KEYSTORE=$RUNNER_TEMP/prisma.jks" >> "$GITHUB_ENV"
+          echo "PRISMA_KEYSTORE_PASSWORD=$KSPW" >> "$GITHUB_ENV"
+      - run: cd android && chmod +x gradlew && ./gradlew --no-daemon assembleRelease
+      - run: |
+          V=$(node -p "require('./package.json').version")
+          cp android/app/build/outputs/apk/release/app-release.apk "PRISMA-Android-$V.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: PRISMA-Android-*.apk
+
   release:
-    needs: [windows, webos]
+    needs: [windows, webos, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -60,6 +94,6 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           case "$TAG" in v*) ;; *) TAG="v$(date +%Y.%m.%d-%H%M)";; esac
-          NOTES="Downloads: PRISMA-Setup (Windows) e com.prisma.iptv (TV LG). No Windows, na primeira vez: Mais informações › Executar assim mesmo."
+          NOTES="Downloads: PRISMA-Setup (Windows), com.prisma.iptv (TV LG) e PRISMA-Android (celular e Google TV). No Windows, na primeira vez: Mais informações › Executar assim mesmo."
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "PRISMA $TAG" --notes "$NOTES" --target "$GITHUB_SHA"
           gh release upload "$TAG" out/* --clobber

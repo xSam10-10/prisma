@@ -1,0 +1,10 @@
+{
+  "appId": "com.prisma.iptv",
+  "appName": "PRISMA",
+  "webDir": "dist-android",
+  "server": { "androidScheme": "http" },
+  "android": { "allowMixedContent": true, "backgroundColor": "#0B0B12" },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_prisma", "iconColor": "#3DD6C4" }
+  }
+}
