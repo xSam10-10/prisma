@@ -154,6 +154,13 @@ export function Settings({
           onChange={set('osd')}
         />
         <Choice
+          label="Barra do canal"
+          help="Visual da barra de baixo em tela cheia. Clássica: logo, número, programa atual e próximo e uma fileira de funções (PIP, qualidade, último canal, formato, favorito, bloqueio). Prisma: o visual anterior."
+          value={st.osdStyle}
+          options={[{ v: 'classic', label: 'Clássica' }, { v: 'prisma', label: 'Prisma' }]}
+          onChange={set('osdStyle')}
+        />
+        <Choice
           label="Tempo das informações"
           help="Quantos segundos as informações e os botões ficam na tela."
           value={st.osdSeconds}

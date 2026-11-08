@@ -280,6 +280,21 @@ Com LG webOS + Roku + Android + computador:
 - **Último canal:** botão ↺ ao lado da estrela (Ao vivo) e na barra da tela cheia; tecla amarela do controle ou **L** no teclado. É o canal ao vivo anterior do histórico (vale até depois de fechar o app).
 - **Zapear por número** também na tela Ao vivo (antes só em tela cheia), com teclado numérico; mostra o nome do canal enquanto digita; **OK** confirma na hora, **Voltar** cancela, sozinho em 2 s.
 
+## 10f. Versão 0.13.0 (08/11) — barra do canal clássica e PIP (pedido do vídeo de referência)
+Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e PIP).
+- **Barra do canal clássica** (`src/screens/ChannelBar.tsx`, CSS `.cbar*`), padrão em tela cheia; Ajustes › Player › Barra do canal (Clássica / Prisma). Layout: logo grande à esquerda; número + nome; "Atual:" (azul) e "próximo:"; data à direita; linha do programa + horário (início-fim); dicas "Menu info · HD · Normal · ◀▶ Seleção de funções"; fileira de ícones (o selecionado fica azul com o nome embaixo). Relógio e velocidade de download (KB/S, MB/S) no canto superior direito. Data em formato brasileiro (o vídeo usa 2015-01-01).
+- Ícones: **Pip** · **Qualidade** (HD: Automática/resoluções do HLS + fontes) · **Último canal** · **Formato** (Normal/Esticar/Zoom) · **Favorito** (♥) · **Bloquear** (cadeado, senha de 4 números) — do vídeo; e mantidos do PRISMA: Áudio e legendas, Seção, Lista de canais (e ▲▼ no celular). O 7º ícone do vídeo (tela com seta) não foi identificado.
+- **Menu / Info** (tecla Info da LG, Menu, "i" ou clique em "Menu info"): painel com a sinopse do programa.
+- **PIP** (até 3 janelas = 4 telas; na LG 1, experimental): menu acima do ícone igual ao vídeo — "Desl/Lig", "Trocar PIP" (com várias janelas, "Trocar com …"), "Adicionar a.." (Nova janela PIP, Favoritos, Uma seção…). Janelas: 1ª embaixo à direita (acima da barra), 2ª em cima à direita, 3ª em cima à esquerda; borda branca e nome do canal no canto; sem som; clique troca com a principal; ✕ fecha. Ficam fixas ao trocar de canal; aparecem também no vídeo pequeno da tela Ao vivo. Aviso do limite de telas da assinatura (max_connections do Xtream): cada janela usa 1 conexão.
+- **Bloquear canal** (`src/core/parental.ts`): canais bloqueados por perfil, senha por aparelho; desbloqueado com a senha vale até fechar o app.
+
+## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11)
+**Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
+**Depois:** 8 qualidade (parcial na 0.13.0, menu HD) · 11 ExoPlayer no Android · 12 voz no Android · 17 multitela em grade (o PIP da 0.13.0 cobre parte) · 18 picture-in-picture do sistema · 31 placar flutuante · 32 tabela do campeonato · 44 onde assistir · 46 trailer no destaque · 47 prévia no pôster · 49 "porque você assistiu" · 50 franquias · 52 novidades e em breve · 55 semelhantes · 63 aviso de novo episódio · 65 pular abertura · 68 velocidade · 69 estilo de legenda / .srt · 75 histórico de assistidos · 80 filtros de busca.
+**Projetos maiores:** 9 sincronização na nuvem · 14 Roku · 19 gravar · 20 baixar offline · 23 Chromecast · 59 IMDb/Rotten · 67 miniaturas na barra · 72 créditos finais · 79 assistir junto.
+**Talvez não:** 51, 58, 66, 71, 74, 77, 82. **Sem prioridade:** 10, 16, 25, 28, 33, 34, 35, 36, 37, 40, 42, 43, 45.
+**Depende do usuário:** 1 testar na LG · 2 testar o APK · 3 "0 filmes" · 4 logos · 5 chave TMDB · 6 repositório público + token · 13 assinatura paga.
+
 ## 11. Pendências (07–08/11/2026)
 
 **Precisa de você / testes reais**

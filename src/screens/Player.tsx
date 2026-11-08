@@ -1,5 +1,5 @@
 import { T } from '../ui/tokens';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Engine } from '../core/engine';
 import { IS_ANDROID, IS_WEBOS } from '../core/platform';
 import { useSettings } from '../core/settings';
@@ -13,6 +13,8 @@ import type { Channel, Playlist } from '../core/types';
 import { ChannelLogo, Icon, fmtTime } from '../ui/bits';
 import { KEY, dirOf, focusFirst, isBack, isEnter } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
+import { BarIcon, BarMenu, BarTop, ClassicBar, MenuItem, MenuToggle, PinDialog, PipWindow, pipSlotStyle, type BarAction } from './ChannelBar';
+import { checkPin, hasPin, isLockMarked, isLocked, setLocked, setPin, unlockForSession } from '../core/parental';
 
 export type PlayerMode = 'off' | 'preview' | 'full';
 export interface Rect {
@@ -41,11 +43,19 @@ interface Props {
   /** Próximo episódio (série): toca sozinho ao terminar. */
   nextEp?: Channel;
   onNext?: () => void;
+  /** Telas auxiliares (PIP), até 3. */
+  pips?: Channel[];
+  onPips?: (p: Channel[]) => void;
+  /** Troca a tela principal com a janela i. */
+  onSwapPip?: (i: number) => void;
 }
 
-type Status = 'loading' | 'playing' | 'error';
+type Status = 'loading' | 'playing' | 'error' | 'locked';
+const MAX_PIPS = IS_WEBOS ? 1 : 3;
+const FIT_LABEL: Record<string, string> = { contain: 'Normal', fill: 'Esticar', cover: 'Zoom' };
+const FIT_NEXT: Record<string, 'contain' | 'fill' | 'cover'> = { contain: 'fill', fill: 'cover', cover: 'contain' };
 
-export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, lastChannel, startAt, nextEp, onNext }: Props) {
+export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, lastChannel, startAt, nextEp, onNext, pips = [], onPips, onSwapPip }: Props) {
   const vod = !!channel && channel.kind !== 'live';
   // Reconexão automática
   const okRef = useRef('');
@@ -78,7 +88,15 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const [overlayKind, setOverlayKind] = useState<false | 'info' | 'controls'>(false);
   const overlay = overlayKind !== false;
   const setOverlay = (v: boolean) => setOverlayKind(v ? 'controls' : false);
-  const { settings: S } = useSettings();
+  const { settings: S, update: updateSettings } = useSettings();
+  // Barra clássica: menu aberto acima de um ícone, painel de informações, senha, velocidade.
+  const [menu, setMenu] = useState<string | null>(null);
+  const menuRef = useRef<string | null>(null);
+  menuRef.current = menu;
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [pinDlg, setPinDlg] = useState<null | 'unlock' | 'lock' | 'unlockMark'>(null);
+  const [speed, setSpeed] = useState<number>();
+  const [lockTick, setLockTick] = useState(0);
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const padX = L.px;
@@ -243,10 +261,28 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       setErrMsg('Este item não tem endereço de vídeo.');
       return;
     }
+    if (isLocked(channel.id)) {
+      engine.current?.stop();
+      setStatus('locked');
+      return;
+    }
     setStatus('loading');
     setTime({ cur: 0, dur: 0, paused: false });
     engine.current?.play(t.u, channel, vod ? startAt || 0 : 0, t.native);
   }, [channel?.id, srcIdx, attempt, mode === 'off']); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Velocidade de download (canto superior direito), enquanto a barra aparece.
+  useEffect(() => {
+    if (mode !== 'full' || vod || !overlayKind) return;
+    const tick = () => setSpeed(engine.current?.speed());
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [mode, vod, overlayKind]);
+  useEffect(() => {
+    setMenu(null);
+    setInfoOpen(false);
+  }, [channel?.id, mode]);
 
   const osdMs = Math.max(2, S.osdSeconds || 5) * 1000;
   /** focus=true: mostra os botões (o usuário interagiu). false: só as informações, conforme Ajustes. */
@@ -258,7 +294,11 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         return;
       }
       setOverlayKind((k) => (focus || k === 'controls' ? 'controls' : 'info'));
-      hideTimer.current = window.setTimeout(() => setOverlayKind(false), osdMs);
+      hideTimer.current = window.setTimeout(() => {
+        if (menuRef.current) return; // menu aberto: a barra fica
+        setOverlayKind(false);
+        setInfoOpen(false);
+      }, osdMs);
       if (focus) requestAnimationFrame(() => focusFirst(overlayRef.current));
     },
     [S.osd, osdMs],
@@ -395,7 +435,30 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         }
         return;
       }
+      // Menu da barra aberto: as setas andam nele; Voltar fecha.
+      if (menuRef.current) {
+        if (isBack(e)) {
+          closeMenu();
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
       if (zapKey(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (k === 457 || k === 93 || (k === 73 && !e.ctrlKey)) {
+        // Info (controle LG) / Menu / "i": detalhes do programa
+        setInfoOpen((o) => !o);
+        showOverlay(true);
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (isBack(e) && infoOpen) {
+        setInfoOpen(false);
         e.preventDefault();
         e.stopPropagation();
         return;
@@ -417,7 +480,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [mode, overlay, overlayKind, status, vod, nextIn, zap, zapKey, onMode, showOverlay]);
+  }, [mode, overlay, overlayKind, status, vod, nextIn, zap, zapKey, onMode, showOverlay, infoOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Na tela Ao vivo (vídeo pequeno): números e "Último canal" também valem.
   useEffect(() => {
@@ -442,6 +505,135 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const cur = epg?.[0];
   const next = epg?.[1];
   const full = mode === 'full';
+
+  // ---------- Barra clássica: funções ----------
+  const classic = S.osdStyle !== 'prisma';
+  const showBar = full && !vod && !!channel && status !== 'error' && classic && (overlayKind === 'controls' || (overlayKind === 'info' && S.osd === 'full'));
+  const [barH, setBarH] = useState(0);
+  useLayoutEffect(() => {
+    setBarH(showBar && overlayRef.current ? overlayRef.current.offsetHeight : 0);
+  });
+  const focusIcon = (id: string) =>
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(`.cbar-ic[data-ic="${id}"]`);
+      if (el) el.focus();
+    });
+  const openMenu = (id: string) => {
+    clearTimeout(hideTimer.current);
+    setOverlayKind('controls');
+    setMenu(id);
+    requestAnimationFrame(() => focusFirst(document.querySelector<HTMLElement>('.cbar-pop')));
+  };
+  const closeMenu = () => {
+    const id = menuRef.current;
+    setMenu(null);
+    showOverlay(false);
+    setOverlayKind('controls');
+    if (id) focusIcon(id === 'add' ? 'pip' : id);
+  };
+  const acc = playlist?.account;
+  const addPip = (c: Channel) => {
+    if (!onPips || pips.some((p) => p.id === c.id) || pips.length >= MAX_PIPS) return;
+    onPips([...pips, c]);
+  };
+  const resLabel = height ? (height >= 2000 ? '4K' : height >= 1000 ? 'FHD' : height >= 700 ? 'HD' : 'SD') : channel && /\b(4k|uhd)\b/i.test(channel.name) ? '4K' : channel && /\bfhd\b/i.test(channel.name) ? 'FHD' : channel && /\bhd\b/i.test(channel.name) ? 'HD' : undefined;
+  const connNote = acc?.maxConnections
+    ? `Sua assinatura: ${acc.maxConnections} ${acc.maxConnections === 1 ? 'tela' : 'telas'} ao mesmo tempo. Cada janela usa 1.`
+    : 'Cada janela usa 1 conexão da sua assinatura.';
+  const overLimit = !!acc?.maxConnections && pips.length + 1 >= acc.maxConnections;
+  const barActions: BarAction[] = [];
+  if (channel && !vod) {
+    if (mobile) {
+      barActions.push({ id: 'up', label: 'Canal anterior', icon: BarIcon.up, onClick: () => zap(-1) });
+      barActions.push({ id: 'down', label: 'Próximo canal', icon: BarIcon.down, onClick: () => zap(1) });
+    }
+    barActions.push({
+      id: 'pip',
+      label: 'Pip',
+      icon: BarIcon.pip,
+      onClick: () => (menu === 'pip' ? closeMenu() : openMenu('pip')),
+      menu: (
+        <BarMenu>
+          <MenuToggle on={pips.length > 0} onClick={() => (pips.length ? onPips?.([]) : addPip(channel))} />
+          {pips.length <= 1 ? (
+            <MenuItem def onClick={() => { if (pips.length) onSwapPip?.(0); else addPip(channel); }}>Trocar PIP</MenuItem>
+          ) : (
+            pips.map((p, i) => (
+              <MenuItem key={p.id} def={i === 0} onClick={() => onSwapPip?.(i)}>Trocar com {p.number ? p.number + ' ' : ''}{p.name}</MenuItem>
+            ))
+          )}
+          <MenuItem onClick={() => openMenu('add')}>Adicionar a..</MenuItem>
+          {overLimit && <span className="cbar-pop-note">{connNote}</span>}
+        </BarMenu>
+      ),
+    });
+    // "Adicionar a.." abre no mesmo lugar do PIP
+    if (menu === 'add') {
+      barActions[barActions.length - 1].menu = (
+        <BarMenu>
+          <MenuItem def onClick={() => { addPip(channel); closeMenu(); }}>
+            {pips.length >= MAX_PIPS ? `Janelas cheias (${MAX_PIPS})` : pips.some((p) => p.id === channel.id) ? 'Já está numa janela' : `Nova janela PIP (${pips.length + 1} de ${MAX_PIPS})`}
+          </MenuItem>
+          <MenuItem onClick={() => { toggleFav(channel); closeMenu(); }}>{isFav(channel) ? 'Tirar dos favoritos' : 'Favoritos'}</MenuItem>
+          <MenuItem onClick={() => { setMenu(null); setPicker(true); }}>Uma seção…</MenuItem>
+          <span className="cbar-pop-note">{IS_WEBOS ? 'Na TV LG: 1 janela (experimental). ' : ''}{connNote}</span>
+        </BarMenu>
+      );
+    }
+    const qs = engine.current?.qualities() ?? [];
+    const q = engine.current?.quality() ?? -1;
+    barActions.push({
+      id: 'hd',
+      label: 'Qualidade',
+      icon: BarIcon.hd,
+      onClick: () => (menu === 'hd' ? closeMenu() : openMenu('hd')),
+      menu: (
+        <BarMenu>
+          {qs.length > 0 && (
+            <>
+              <MenuItem def={q === -1} on={q === -1} onClick={() => { engine.current?.setQuality(-1); closeMenu(); }}>Automática</MenuItem>
+              {qs.map((x) => (
+                <MenuItem key={x.id} on={q === x.id} onClick={() => { engine.current?.setQuality(x.id); closeMenu(); }}>{x.label}</MenuItem>
+              ))}
+            </>
+          )}
+          {sources.length > 1 &&
+            sources.map((t, i) => (
+              <MenuItem key={'s' + i} def={qs.length === 0 && i === srcIdx} on={i === srcIdx} onClick={() => { setSrcIdx(() => i); closeMenu(); }}>
+                Fonte {t.n + 1}
+                {/\.m3u8(\?|$)/i.test(t.u) ? ' · HLS' : /\.ts(\?|$)/i.test(t.u) ? ' · TS' : ''}
+                {t.native ? (IS_ANDROID ? ' · aparelho' : ' · TV') : ''}
+              </MenuItem>
+            ))}
+          {qs.length === 0 && sources.length < 2 && <span className="cbar-pop-note">Este canal tem uma só qualidade{resLabel ? ` (${resLabel})` : ''}.</span>}
+        </BarMenu>
+      ),
+    });
+    if (lastChannel) barActions.push({ id: 'last', label: 'Último canal', icon: BarIcon.last, onClick: goLast });
+    barActions.push({ id: 'aspect', label: 'Formato: ' + FIT_LABEL[S.videoFit], icon: BarIcon.aspect, onClick: () => updateSettings({ videoFit: FIT_NEXT[S.videoFit] }) });
+    barActions.push({ id: 'fav', label: isFav(channel) ? 'Favorito' : 'Favoritar', icon: BarIcon.heart(isFav(channel)), onClick: () => toggleFav(channel) });
+    const marked = isLockMarked(channel.id) || lockTick < 0;
+    barActions.push({
+      id: 'lock',
+      label: marked ? 'Desbloquear' : 'Bloquear',
+      icon: BarIcon.lock(marked),
+      onClick: () => {
+        if (marked) setPinDlg('unlockMark');
+        else if (!hasPin()) setPinDlg('lock');
+        else {
+          setLocked(channel.id, true);
+          unlockForSession(channel.id); // quem bloqueou continua assistindo
+          setLockTick((t) => t + 1);
+        }
+      },
+    });
+    if (hasTracks) barActions.push({ id: 'audio', label: 'Áudio e legendas', icon: BarIcon.audio, onClick: () => setTrackDlg(true) });
+    barActions.push({ id: 'sec', label: 'Seção', icon: BarIcon.folder, onClick: () => setPicker(true) });
+    barActions.push({ id: 'list', label: 'Lista de canais', icon: BarIcon.list, onClick: () => onMode('preview') });
+  }
+  const pipBox = full
+    ? { w: mobile ? 36 : 26, side: Math.round(padX * 0.6), top: padT + (mobile ? 30 : 56), bottom: showBar ? barH + 12 : padB }
+    : { w: 30, side: 10, top: 10, bottom: '36%' }; // vídeo pequeno: acima do cartão de informações
   const style = full || !rect ? undefined : { left: rect.left, top: rect.top, width: rect.width, height: rect.height, borderRadius: rect.radius ?? 28 };
   const fav = channel ? isFav(channel) : false;
 
@@ -547,7 +739,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         </div>
       )}
 
-      {full && !vod && channel && status !== 'error' && (overlayKind === 'controls' || (overlayKind === 'info' && S.osd === 'full')) && (
+      {full && !vod && channel && status !== 'error' && !classic && (overlayKind === 'controls' || (overlayKind === 'info' && S.osd === 'full')) && (
         <div
           ref={overlayRef}
           style={{
@@ -616,6 +808,73 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
             </div>
           </div>
         </div>
+      )}
+
+      {mode !== 'off' && !vod && pips.map((p, i) => (
+        <PipWindow key={p.id} ch={p} small={!full} style={pipSlotStyle(i, pipBox)} onSwap={() => onSwapPip?.(i)} onClose={() => onPips?.(pips.filter((x) => x.id !== p.id))} />
+      ))}
+
+      {showBar && channel && (
+        <>
+          <BarTop now={now} speed={speed} padX={padX} padT={padT} />
+          <ClassicBar
+            channel={channel}
+            cur={cur}
+            next={next}
+            now={now}
+            quality={resLabel}
+            fitLabel={FIT_LABEL[S.videoFit]}
+            actions={barActions}
+            openMenu={menu === 'add' ? 'pip' : menu}
+            mobile={mobile}
+            padX={padX}
+            padB={Math.max(14, padB - 12)}
+            onInfo={() => { setInfoOpen((o) => !o); showOverlay(true); }}
+            infoOpen={infoOpen}
+            barRef={overlayRef}
+            stack={mobile && L.H > L.W}
+          />
+        </>
+      )}
+
+      {status === 'locked' && mode !== 'off' && channel && (
+        <div className={'lock-screen ' + (full ? 'gy-14' : 'gy-8')} style={full ? undefined : { paddingBottom: '32%' }}>
+          <span style={{ fontSize: full ? 56 : 28 }}>🔒</span>
+          <span className="title caps" style={{ fontSize: full ? 30 : 18 }}>{channel.name}</span>
+          {full && <span className="muted" style={{ fontSize: 16 }}>Canal bloqueado. Digite a senha para assistir.</span>}
+          <button className="btn primary" data-nav="" data-nav-default="" onClick={() => setPinDlg('unlock')}>Digitar senha</button>
+        </div>
+      )}
+
+      {pinDlg && channel && (
+        <PinDialog
+          title={pinDlg === 'lock' ? 'Criar senha de bloqueio' : pinDlg === 'unlockMark' ? 'Desbloquear canal' : 'Canal bloqueado'}
+          help={
+            pinDlg === 'lock'
+              ? 'Escolha 4 números. A senha vale para todos os canais bloqueados neste aparelho; guarde-a.'
+              : pinDlg === 'unlockMark'
+                ? `Digite a senha para tirar o bloqueio de ${channel.name}.`
+                : `Digite a senha para assistir ${channel.name}.`
+          }
+          onClose={() => { setPinDlg(null); if (full) showOverlay(true); }}
+          onSubmit={(pin) => {
+            if (pinDlg === 'lock') {
+              setPin(pin);
+              setLocked(channel.id, true);
+              unlockForSession(channel.id);
+            } else {
+              if (!checkPin(pin)) return 'Senha incorreta.';
+              if (pinDlg === 'unlockMark') setLocked(channel.id, false);
+              else {
+                unlockForSession(channel.id);
+                setAttempt((a) => a + 1);
+              }
+            }
+            setPinDlg(null);
+            setLockTick((t) => t + 1);
+            return null;
+          }}
+        />
       )}
 
       {picker && channel && <SectionPicker ch={channel} live={allLive} onClose={() => { setPicker(false); showOverlay(true); }} />}

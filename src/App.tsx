@@ -70,6 +70,8 @@ export function App() {
   const [tab, setTab] = useState<Tab>(() => prefGet<Tab>('tab', 'aovivo'));
   const [playing, setPlaying] = useState<Channel>();
   const [zapList, setZapList] = useState<Channel[]>([]);
+  // Telas auxiliares (PIP): ficam fixas enquanto você troca o canal principal.
+  const [pips, setPips] = useState<Channel[]>([]);
   const [full, setFull] = useState(false);
   const [favIds, setFavIds] = useState<string[]>(() => prefGet('favs', []));
   const [recentIds, setRecentIds] = useState<string[]>(() => prefGet('recents', []));
@@ -356,6 +358,14 @@ export function App() {
             onMode={onPlayerMode}
             onZap={(c) => play(c, [])}
             lastChannel={lastChannel}
+            pips={pips}
+            onPips={setPips}
+            onSwapPip={(i) => {
+              const p = pips[i];
+              if (!p || !playing) return;
+              setPips((ps) => ps.map((x, j) => (j === i ? playing : x)));
+              play(p, []);
+            }}
             startAt={startAt}
             nextEp={playing && queue.length ? queue[queue.findIndex((x) => x.id === playing.id) + 1] : undefined}
             onNext={() => {

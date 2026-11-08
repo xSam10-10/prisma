@@ -14,6 +14,8 @@ export interface Settings {
   videoFit: 'contain' | 'cover' | 'fill';
   /** Informações por cima do vídeo em tela cheia. */
   osd: 'full' | 'name' | 'none';
+  /** Visual da barra do canal em tela cheia: clássica (estilo receptor) ou Prisma. */
+  osdStyle: 'classic' | 'prisma';
   /** Segundos que as informações ficam na tela. */
   osdSeconds: number;
   /** Formato preferido dos canais ao vivo (quando a lista oferece os dois). */
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   safeMargin: 0,
   videoFit: 'contain',
   osd: 'full',
+  osdStyle: 'classic',
   osdSeconds: 5,
   liveFormat: 'auto',
   resumeLast: false,

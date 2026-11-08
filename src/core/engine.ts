@@ -68,6 +68,8 @@ export class Engine {
   private ts?: mpegts.Player;
   private stallTimer?: number;
   private destroyed = false;
+  /** Bytes baixados recentemente (para mostrar a velocidade, ex.: "436 KB/s"). */
+  private loaded: { t: number; b: number }[] = [];
 
   constructor(
     private video: HTMLVideoElement,
@@ -141,6 +143,11 @@ export class Engine {
       hls.on(Hls.Events.LEVEL_SWITCHED, (_e, d) => {
         this.onEvent({ type: 'levels', height: hls.levels[d.level]?.height });
       });
+      hls.on(Hls.Events.FRAG_LOADED, (_e, d) => {
+        const st = d.frag.stats as { loaded?: number; total?: number };
+        this.addBytes(st.loaded || st.total || 0);
+      });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => this.onEvent({ type: 'tracks' }));
       hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => this.onEvent({ type: 'tracks' }));
       hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => this.onEvent({ type: 'tracks' }));
       hls.loadSource(src);
@@ -234,8 +241,47 @@ export class Engine {
     for (let i = 0; i < tt.length; i++) tt[i].mode = i === id ? 'showing' : 'disabled';
   }
 
+  private addBytes(b: number) {
+    const t = Date.now();
+    this.loaded.push({ t, b });
+    while (this.loaded.length && t - this.loaded[0].t > 8000) this.loaded.shift();
+  }
+
+  /** Velocidade de download em KB/s (média dos últimos segundos); undefined se não dá para saber. */
+  speed(): number | undefined {
+    if (this.ts) {
+      try {
+        const sp = (this.ts.statisticsInfo as { speed?: number } | undefined)?.speed;
+        return typeof sp === 'number' ? sp : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+    if (!this.hls) return undefined;
+    const now = Date.now();
+    const recent = this.loaded.filter((x) => now - x.t <= 8000);
+    if (!recent.length) return undefined;
+    const bytes = recent.reduce((a, x) => a + x.b, 0);
+    return bytes / 1024 / 8;
+  }
+
+  /** Qualidades disponíveis (HLS com várias resoluções). */
+  qualities(): { id: number; label: string }[] {
+    const h = this.hls;
+    if (!h || h.levels.length < 2) return [];
+    return h.levels.map((l, i) => ({ id: i, label: l.height ? `${l.height}p` : `${Math.round((l.bitrate || 0) / 1000)} kbps` }));
+  }
+  quality(): number {
+    return this.hls ? (this.hls.autoLevelEnabled ? -1 : this.hls.currentLevel) : -1;
+  }
+  /** -1 = automática */
+  setQuality(id: number): void {
+    if (this.hls) this.hls.currentLevel = id;
+  }
+
   stop(): void {
     clearTimeout(this.stallTimer);
+    this.loaded = [];
     if (this.hls) {
       this.hls.destroy();
       this.hls = undefined;
