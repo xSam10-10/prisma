@@ -1,6 +1,12 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.16.0
+- Ao vivo: andar na lista já troca o canal no vídeo; OK abre a tela cheia
+- Tela cheia: OK abre a lista de canais por cima do vídeo
+- ◀ abre o menu: Buscar, Agendar programação, Favoritos, Lista de canais, Guia de 7 dias e os grupos
+- ▶ num canal mostra a programação dos dias anteriores e seguintes
+
 ## 0.15.0
 - Atualizar o PRISMA de dentro do app (Ajustes › Sobre), no Windows, no Android/Google TV e na TV LG
 - Aviso de versão nova ao abrir o app

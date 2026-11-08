@@ -383,6 +383,8 @@ export function App() {
             lastChannel={lastChannel}
             pips={pips}
             onPips={setPips}
+            onPickList={(c, list) => play(c, list)}
+            onPlayVod={(it) => playVod(it, 0)}
             onSwapPip={(i) => {
               const p = pips[i];
               if (!p || !playing) return;

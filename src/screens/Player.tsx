@@ -14,6 +14,8 @@ import { ChannelLogo, Icon, fmtTime } from '../ui/bits';
 import { KEY, dirOf, focusFirst, isBack, isEnter } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
 import { BarIcon, BarMenu, BarTop, ClassicBar, MenuItem, MenuToggle, PinDialog, PipWindow, pipSlotStyle, type BarAction } from './ChannelBar';
+import { FullList } from './FullList';
+import { Guide } from './Guide';
 import { checkPin, hasPin, isLockMarked, isLocked, setLocked, setPin, unlockForSession } from '../core/parental';
 
 export type PlayerMode = 'off' | 'preview' | 'full';
@@ -48,6 +50,10 @@ interface Props {
   onPips?: (p: Channel[]) => void;
   /** Troca a tela principal com a janela i. */
   onSwapPip?: (i: number) => void;
+  /** Canal escolhido na lista da tela cheia (com a lista do grupo para o ▲▼). */
+  onPickList?: (c: Channel, list: Channel[]) => void;
+  /** Gravação/filme escolhido na programação. */
+  onPlayVod?: (item: Channel) => void;
 }
 
 type Status = 'loading' | 'playing' | 'error' | 'locked';
@@ -55,7 +61,7 @@ const MAX_PIPS = IS_WEBOS ? 1 : 3;
 const FIT_LABEL: Record<string, string> = { contain: 'Normal', fill: 'Esticar', cover: 'Zoom' };
 const FIT_NEXT: Record<string, 'contain' | 'fill' | 'cover'> = { contain: 'fill', fill: 'cover', cover: 'contain' };
 
-export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, lastChannel, startAt, nextEp, onNext, pips = [], onPips, onSwapPip }: Props) {
+export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, lastChannel, startAt, nextEp, onNext, pips = [], onPips, onSwapPip, onPickList, onPlayVod }: Props) {
   const vod = !!channel && channel.kind !== 'live';
   // Reconexão automática
   const okRef = useRef('');
@@ -97,6 +103,13 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const [pinDlg, setPinDlg] = useState<null | 'unlock' | 'lock' | 'unlockMark'>(null);
   const [speed, setSpeed] = useState<number>();
   const [lockTick, setLockTick] = useState(0);
+  // Lista de canais por cima do vídeo (OK na tela cheia).
+  const [listOpen, setListOpen] = useState(false);
+  const listOpenRef = useRef(false);
+  listOpenRef.current = listOpen;
+  const [guideOpen, setGuideOpen] = useState<null | { channels: Channel[]; index: number }>(null);
+  const guideOpenRef = useRef(false);
+  guideOpenRef.current = !!guideOpen;
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const padX = L.px;
@@ -283,6 +296,12 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     setMenu(null);
     setInfoOpen(false);
   }, [channel?.id, mode]);
+  useEffect(() => {
+    if (mode !== 'full') {
+      setListOpen(false);
+      setGuideOpen(null);
+    }
+  }, [mode]);
 
   const osdMs = Math.max(2, S.osdSeconds || 5) * 1000;
   /** focus=true: mostra os botões (o usuário interagiu). false: só as informações, conforme Ajustes. */
@@ -387,8 +406,8 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   useEffect(() => {
     if (mode !== 'full') return;
     const onKey = (e: KeyboardEvent) => {
-      // Janela aberta (ex.: escolher seção): ela trata as teclas.
-      if (document.querySelector('.modal-back')) return;
+      // Janela aberta (ex.: escolher seção) ou lista de canais: elas tratam as teclas.
+      if (document.querySelector('.modal-back') || listOpenRef.current || guideOpenRef.current) return;
       const k = e.keyCode;
       const d = dirOf(e);
       let handled = true;
@@ -468,7 +487,8 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         else onMode('preview');
       } else if (k === KEY.CH_UP || d === 'up') zap(-1);
       else if (k === KEY.CH_DOWN || d === 'down') zap(1);
-      else if (!interactive && (d || isEnter(e))) showOverlay(true);
+      else if (!interactive && isEnter(e)) openList();
+      else if (!interactive && d) showOverlay(true);
       else if (interactive) {
         showOverlay(); // reinicia o tempo; deixa a navegação dos botões agir
         handled = false;
@@ -513,6 +533,13 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   useLayoutEffect(() => {
     setBarH(showBar && overlayRef.current ? overlayRef.current.offsetHeight : 0);
   });
+  function openList() {
+    clearTimeout(hideTimer.current);
+    setMenu(null);
+    setInfoOpen(false);
+    setOverlayKind(false);
+    setListOpen(true);
+  }
   const focusIcon = (id: string) =>
     requestAnimationFrame(() => {
       const el = document.querySelector<HTMLElement>(`.cbar-ic[data-ic="${id}"]`);
@@ -629,7 +656,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     });
     if (hasTracks) barActions.push({ id: 'audio', label: 'Áudio e legendas', icon: BarIcon.audio, onClick: () => setTrackDlg(true) });
     barActions.push({ id: 'sec', label: 'Seção', icon: BarIcon.folder, onClick: () => setPicker(true) });
-    barActions.push({ id: 'list', label: 'Lista de canais', icon: BarIcon.list, onClick: () => onMode('preview') });
+    barActions.push({ id: 'list', label: 'Lista de canais', icon: BarIcon.list, onClick: () => openList() });
   }
   const pipBox = full
     ? { w: mobile ? 36 : 26, side: Math.round(padX * 0.6), top: padT + (mobile ? 30 : 56), bottom: showBar ? barH + 12 : padB }
@@ -835,6 +862,53 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
             stack={mobile && L.H > L.W}
           />
         </>
+      )}
+
+      {full && !vod && listOpen && channel && playlist && (
+        <FullList
+          playlist={playlist}
+          live={allLive}
+          current={channel}
+          isFav={isFav}
+          onClose={() => setListOpen(false)}
+          onOpenGuide={(chs, i) => {
+            setListOpen(false);
+            setGuideOpen({ channels: chs, index: i });
+          }}
+          onPlayVod={(it) => {
+            setListOpen(false);
+            onPlayVod?.(it);
+          }}
+          onPick={(c, list) => {
+            setListOpen(false);
+            if (c.id !== channel.id) {
+              if (onPickList) onPickList(c, list);
+              else onZap(c);
+            }
+            showOverlay();
+          }}
+        />
+      )}
+
+      {full && guideOpen && playlist && (
+        <Guide
+          playlist={playlist}
+          channels={guideOpen.channels}
+          startIndex={guideOpen.index}
+          onClose={() => setGuideOpen(null)}
+          onWatch={(c) => {
+            setGuideOpen(null);
+            if (c.id !== channel?.id) {
+              if (onPickList) onPickList(c, guideOpen.channels);
+              else onZap(c);
+            }
+            showOverlay();
+          }}
+          onPlayVod={(it) => {
+            setGuideOpen(null);
+            onPlayVod?.(it);
+          }}
+        />
       )}
 
       {status === 'locked' && mode !== 'off' && channel && (
