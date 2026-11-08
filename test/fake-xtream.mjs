@@ -33,7 +33,7 @@ const live = [
 for (let i = 0; i < 400; i++) live.push({ num: 100 + i, name: `Canal Extra ${i + 1}`, stream_id: 100 + i, category_id: '50', epg_channel_id: '', dir: ['prisma1', 'prisma2', 'prisma3', 'prisma4'][i % 4] });
 
 // ---- Filmes e séries de teste ----
-const VOD_CATS = [['101', 'FILMES | NETFLIX'], ['102', 'FILMES | HBO MAX'], ['103', 'FILMES | DISNEY+'], ['104', 'LANÇAMENTOS 2026'], ['105', 'FILMES | AÇÃO']];
+const VOD_CATS = [['101', 'FILMES | NETFLIX'], ['102', 'FILMES | HBO MAX'], ['103', 'FILMES | DISNEY+'], ['104', 'LANÇAMENTOS 2026'], ['105', 'FILMES | AÇÃO'], ['106', 'DUBLAGEM NAO OFICIAL']];
 const SER_CATS = [['201', 'SÉRIES | NETFLIX'], ['202', 'SÉRIES | PRIME VIDEO'], ['203', 'ANIMES | CRUNCHYROLL'], ['204', 'SÉRIES | GLOBOPLAY'],
   // Mais streamings (para testar o carrossel de logotipos)
   ['205', 'SÉRIES | HBO MAX'], ['206', 'SÉRIES | DISNEY+'], ['207', 'SÉRIES | APPLE TV+'], ['208', 'SÉRIES | PARAMOUNT+'], ['209', 'SÉRIES | STAR+'], ['210', 'SÉRIES | DISCOVERY+'],

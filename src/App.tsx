@@ -437,7 +437,7 @@ export function App() {
             allLive={live}
             mode={mode}
             rect={(() => {
-              const r = liveGeometry(Ls, catColumnWidth(live)).preview;
+              const r = liveGeometry(Ls, catColumnWidth(playlist?.items ?? live)).preview;
               return { ...r, left: r.left + railW };
             })()}
             isFav={isFav}

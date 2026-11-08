@@ -1,3 +1,4 @@
+import { categoryColumnWidth } from '../ui/catColumn';
 import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { progressOf } from '../core/epg';
@@ -21,39 +22,9 @@ export function normalizeText(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-/** Mede a largura de um texto na fonte da interface (canvas: funciona também na TV de 2017). */
-let measureCtx: CanvasRenderingContext2D | null = null;
-function textWidth(text: string, font: string): number {
-  try {
-    measureCtx = measureCtx ?? document.createElement('canvas').getContext('2d');
-    if (!measureCtx) return text.length * 9;
-    measureCtx.font = font;
-    return measureCtx.measureText(text).width;
-  } catch {
-    return text.length * 9;
-  }
-}
-
-const widthCache = new WeakMap<Channel[], number>();
-/**
- * Largura da coluna de categorias: o suficiente para o nome mais longo caber
- * inteiro (em caixa alta) com o número de prioridade, entre 240 e 380.
- */
-export function catColumnWidth(live: Channel[]): number {
-  const hit = widthCache.get(live);
-  if (hit) return hit;
-  const cats = categoriesOf(live, 'live');
-  let max = Math.max(textWidth('FAVORITOS', '600 15px Inter'), textWidth('TODOS', '600 15px Inter'));
-  let maxCount = String(live.length).length;
-  for (const c of cats) {
-    max = Math.max(max, textWidth(c.name.toUpperCase(), '600 15px Inter'));
-    maxCount = Math.max(maxCount, String(c.count).length);
-  }
-  // nome + selo da contagem + margens internas (14 + 10 + 8) + borda/rolagem (14)
-  const badge = Math.max(28, maxCount * 8 + 14);
-  const w = Math.round(Math.min(380, Math.max(240, max + badge + 22 + 14 + 10 + 8 + 14 + 6)));
-  widthCache.set(live, w);
-  return w;
+/** Largura da coluna de categorias: a mesma em todas as abas (src/ui/catColumn.ts). */
+export function catColumnWidth(items: Channel[]): number {
+  return categoryColumnWidth(items);
 }
 
 export function liveGeometry(L: Layout, catW = CAT_W) {
@@ -186,7 +157,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
   ];
 
   const L = useLayout();
-  const catW = catColumnWidth(live);
+  const catW = catColumnWidth(playlist.items);
   const G = liveGeometry(L, catW);
   const P = G.preview;
   const mobile = L.form === 'mobile';

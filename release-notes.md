@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.19.1
+- Coluna de categorias com a mesma largura em todas as abas (Ao vivo, Filmes, Séries e menu da tela cheia), calculada pelo nome mais longo da sua lista: nenhum nome cortado
+
 ## 0.19.0
 - Filmes e Séries › Top: todas as listas uma embaixo da outra, cada uma em carrossel (como no Início)
 - Nova lista "Adicionados recentemente" (os 10 últimos que chegaram na sua lista)

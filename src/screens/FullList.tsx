@@ -1,3 +1,4 @@
+import { categoryColumnWidth } from '../ui/catColumn';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { canCatchup } from '../core/catchup';
 import { reminders, toggleReminder } from '../core/games';
@@ -235,7 +236,7 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   const visible = Math.max(5, Math.floor((L.H - 130) / ROW));
   const first = Math.max(0, Math.min(idx - Math.floor(visible / 2), count - visible));
   const expanded = col === 'menu';
-  const railW = expanded ? (mobile ? 200 : 250) : mobile ? 48 : 60;
+  const railW = expanded ? (mobile ? 200 : categoryColumnWidth(playlist.items)) : mobile ? 48 : 60;
   const listW = mobile ? Math.min(330, L.W - railW - 8) : 400;
   const pad = L.safeY;
 

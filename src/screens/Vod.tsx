@@ -14,6 +14,7 @@ import { trailerOf } from '../core/tmdb';
 import { matchedLists, streamGenreLists, type MatchedList } from '../core/tops';
 import { StackedRows, StreamBanner, type Row, type StackedHandle } from './TopRows';
 import { useTops } from '../ui/useTops';
+import { categoryColumnWidth } from '../ui/catColumn';
 import { Modal } from '../ui/Dialog';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
@@ -182,7 +183,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const top = L.top;
   const showRow = tab !== 'anime';
   const streamRowH = showRow ? (mobile ? 46 : 54) : 0;
-  const catW = mobile ? 0 : 250;
+  const catW = mobile ? 0 : categoryColumnWidth(playlist.items);
 
   return (
     <>

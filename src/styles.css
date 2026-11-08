@@ -220,11 +220,15 @@ html:not(.kbd) input[data-nav]:focus { box-shadow: 0 0 0 3px #f4f4f8; }
 }
 .cats > * + * { margin-top: 2px; }
 .cat {
-  width: 100%; height: 44px; padding: 0 10px 0 14px; border: 0; border-radius: 12px; cursor: pointer; text-align: left;
+  width: 100%; min-height: 44px; padding: 4px 10px 4px 14px; border: 0; border-radius: 12px; cursor: pointer; text-align: left;
   background: transparent; color: #e4e4ee; font-size: 15px; font-weight: 600;
   display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
 }
-.cat .cat-name { -webkit-flex-grow: 1; flex-grow: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
+.cat .cat-name {
+  -webkit-flex-grow: 1; flex-grow: 1; min-width: 0; overflow: hidden; text-transform: uppercase; line-height: 1.2;
+  /* nomes enormes quebram em 2 linhas em vez de aparecer cortados */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word;
+}
 .cat .cat-count {
   margin-left: 8px; -webkit-flex-shrink: 0; flex-shrink: 0; min-width: 28px; padding: 2px 7px; border-radius: 999px; text-align: center;
   font-size: 12px; font-weight: 700; color: #a6a6b8; background: rgba(255, 255, 255, 0.07);
