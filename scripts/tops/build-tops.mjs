@@ -71,7 +71,9 @@ export function parseNetflixTsv(tsv, country = 'BR') {
     rows
       .filter((c) => c[ci.week] === week && re.test(c[ci.cat]))
       .sort((a, b) => Number(a[ci.rank]) - Number(b[ci.rank]))
-      .map((c) => ({ t: c[ci.show], s: ci.season >= 0 && c[ci.season] && c[ci.season] !== 'N/A' ? c[ci.season] : undefined }));
+      .map((c) => ({ t: c[ci.show], s: ci.season >= 0 && c[ci.season] && c[ci.season] !== 'N/A' ? c[ci.season] : undefined }))
+      // A mesma série pode ocupar várias posições (uma por temporada): fica a melhor.
+      .filter((x, i, arr) => arr.findIndex((y) => y.t === x.t) === i);
   return { week, movie: pick(/^films?/i), tv: pick(/^tv/i) };
 }
 

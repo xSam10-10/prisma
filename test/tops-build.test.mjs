@@ -9,6 +9,7 @@ describe('gerador de tops', () => {
       'Brazil\tBR\t2026-11-01\tFilms\t2\tB\tN/A\t1',
       'Brazil\tBR\t2026-11-01\tFilms\t1\tA\tN/A\t1',
       'Brazil\tBR\t2026-11-01\tTV\t1\tSquid Game\tSquid Game: Season 2\t3',
+      'Brazil\tBR\t2026-11-01\tTV\t2\tSquid Game\tSquid Game: Season 1\t9',
       'Argentina\tAR\t2026-11-08\tFilms\t1\tX\tN/A\t1',
     ].join('\n');
     const r = parseNetflixTsv(tsv);
