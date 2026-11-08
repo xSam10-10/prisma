@@ -16,7 +16,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Publicar uma versão:** subir a versão em `package.json` e `webos/appinfo.json`, escrever as novidades no topo de `release-notes.md`, commit (autor Samuel Costa) + push na `main` e `gh workflow run release.yml --repo xSam10-10/prisma --ref main`. O workflow gera Windows (PRISMA-Setup-x.exe + latest.yml), TV LG (.ipk + prisma-webos-x.json para atualização no app), Android (PRISMA-Android-x.apk, assinatura fixa) e o manifesto `prisma-update.json`, numa Release com a data no nome (a sessão não cria tags).
 
-**Atualização dentro do app:** lê `https://github.com/xSam10-10/prisma/releases/latest/download/` — só funciona com o repositório **público** (em 08/11 19h ainda estava PRIVADO). Ver 10i e 10r.
+**Atualização dentro do app:** lê `https://github.com/xSam10-10/prisma/releases/latest/download/` — repositório **público** desde 08/11 23h (conferido: `prisma-update.json` 0.18.0 e `prisma-tops.json` respondem 200). Ver 10i e 10r.
 
 **Verificações antes de publicar:** `npx tsc --noEmit` · `npx vitest run` (46 testes) · `npm run build:webos` + `npx es-check@8.0.2 es5 "dist-webos/assets/*.js"` (TV de 2017: sem CSS gap/variáveis/grid; flex com prefixos -webkit-; nada de sintaxe nova no JS final).
 **Testes de tela:** `node test/fake-xtream.mjs` (servidor Xtream falso na porta 8090, usuário `teste` / senha `1234`; também ESPN falsa em `/espn/...`, TMDB falso em `/tmdb/...`, `/updates/` com `UPDATE_DIR`) + `npx vite --port 5173` + roteiros Playwright. O Chromium do ambiente não decodifica H.264: nos testes, segurar as requisições de vídeo (`page.route(... /live/ ..., () => {})`).

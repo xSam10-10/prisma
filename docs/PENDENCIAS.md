@@ -60,7 +60,7 @@ atualização dentro do app, logotipos dos streamings (coloridos + brancos), blo
 ## Depende do Samuel
 - **Secret `TMDB_KEY`** no repositório (Settings › Secrets and variables › Actions › New repository secret, valor = chave v3 do TMDB). Sem ele, os Tops trazem só o ranking oficial da Netflix (títulos em inglês, que casam pouco com a lista) e o ranking de canais. Depois rodar Actions › Tops › Run workflow.
 - **Jogos vazios com a Goldcard**: na 0.18.0, se continuar sem jogos, a tela mostra um diagnóstico (canais consultados, com guia, exemplos de programas) — mandar print.
-- **Repositório `xSam10-10/prisma` ainda PRIVADO** (conferido em 08/11 22h; esta sessão não consegue mudar a visibilidade — o proxy bloqueia). A atualização dentro do app lê as Releases dele e só funciona público: Settings › General › Danger Zone › Change visibility › Public (confirmar até aparecer a etiqueta "Public"). Depois instalar a 0.17.0+ manualmente uma vez em cada aparelho.
+- ✅ Repositório público desde 08/11 23h (atualização dentro do app e tops conferidos: os dois arquivos respondem). Instalar a 0.18.0 manualmente uma vez em cada aparelho; depois, botão Atualizar.
 - Testar na TV LG OLED B7 (webOS 3.5) e no celular/Google TV com a Goldcard: vídeo, PIP com 2 telas, atualização, placar/tabela da ESPN, guias públicos.
 - Conferir o "0 filmes" da Goldcard.
 - Logos de canais que faltam (ex.: ESPN) em `public/logos/custom/`.
