@@ -10,6 +10,25 @@ import { useLayout } from './layout';
 
 export const CAROUSEL_MAX = 10;
 
+/**
+ * Ao focar um card, rola a página (contêiner .scroll-y mais próximo) até a
+ * fileira INTEIRA aparecer — título e card já crescido pelo foco —, para nada
+ * ficar cortado em cima ou embaixo, descendo ou subindo.
+ */
+function revealSection(item: HTMLElement) {
+  let sec: HTMLElement | null = item;
+  while (sec && !(sec.classList && sec.classList.contains('carousel'))) sec = sec.parentElement;
+  let p = sec ? sec.parentElement : null;
+  while (p && !(p.classList.contains('scroll-y') || p.classList.contains('stage'))) p = p.parentElement;
+  if (!sec || !p || !p.classList.contains('scroll-y')) return;
+  const sr = sec.getBoundingClientRect();
+  const pr = p.getBoundingClientRect();
+  const k = pr.height / (p.clientHeight || pr.height) || 1; // escala do palco
+  const m = 10;
+  if (sr.top < pr.top + m) p.scrollTop -= (pr.top + m - sr.top) / k;
+  else if (sr.bottom > pr.bottom - m) p.scrollTop += Math.min(sr.bottom - pr.bottom + m, sr.top - pr.top - m) / k;
+}
+
 interface Props<T> {
   title: string;
   /** Linha menor ao lado do título (ex.: de onde vem a lista). */
@@ -81,6 +100,7 @@ export function Carousel<T>({ title, subtitle, items, keyOf, render, minWidth, e
       {list.length ? (
         <div
           className="carousel-view"
+          data-nav-row=""
           style={{ margin: `${mobile ? 6 : 10}px ${L.px - pad}px 0`, padding: pad }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
@@ -96,7 +116,8 @@ export function Carousel<T>({ title, subtitle, items, keyOf, render, minWidth, e
                 key={keyOf(it)}
                 className="carousel-item"
                 style={{ width: itemW, marginRight: i < list.length - 1 ? gap : 0 }}
-                onFocus={() => {
+                onFocus={(e) => {
+                  revealSection(e.currentTarget);
                   // Foco foi para um card fora da vista: desliza até ele.
                   if (i < s) setStart(i);
                   else if (i >= s + perView) setStart(i - perView + 1);

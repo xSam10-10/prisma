@@ -230,7 +230,7 @@ export interface Shelf {
   items: Ranked[];
 }
 
-/** Fileiras do Início: filmes e séries juntos — em alta e cada streaming. */
+/** Fileiras do Início: em alta (filmes e séries juntos) e, para cada streaming, filmes e séries em fileiras separadas. */
 export function homeShelves(data: TopsData | null, items: Channel[], maxStreams = 6): Shelf[] {
   const mv = matchedLists(data, items, 'movie');
   const tv = matchedLists(data, items, 'tv');
@@ -238,15 +238,17 @@ export function homeShelves(data: TopsData | null, items: Channel[], maxStreams 
   const out: Shelf[] = [];
   const week = interleave(get(mv, (l) => l.id === 'semana-movie'), get(tv, (l) => l.id === 'semana-tv'));
   if (week.length >= 3) out.push({ id: 'semana', title: 'Top 10 da semana', src: 'Filmes e séries em alta, só o que está na sua lista', items: week });
-  const sids = STREAMINGS.map((s) => s.id).filter((sid) => mv.some((l) => l.sid === sid) || tv.some((l) => l.sid === sid));
+  // Cada streaming: "Top 10 Filmes <streaming>" e, logo abaixo, "Top 10 Séries <streaming>".
   let n = 0;
-  for (const sid of sids) {
+  for (const st of STREAMINGS) {
     if (n >= maxStreams) break;
-    const m = mv.find((l) => l.sid === sid);
-    const t = tv.find((l) => l.sid === sid);
-    const merged = interleave(m?.items ?? [], t?.items ?? []);
-    if (merged.length < 4) continue;
-    out.push({ id: 'st-' + sid, title: (m ?? t)!.title, src: (m ?? t)!.src, items: merged });
+    const m = mv.find((l) => l.sid === st.id);
+    const t = tv.find((l) => l.sid === st.id);
+    const rows: Shelf[] = [];
+    if (m && m.items.length >= 4) rows.push({ id: 'st-' + st.id + '-movie', title: `Top 10 Filmes ${st.name}`, src: m.src, items: m.items });
+    if (t && t.items.length >= 4) rows.push({ id: 'st-' + st.id + '-tv', title: `Top 10 Séries ${st.name}`, src: t.src, items: t.items });
+    if (!rows.length) continue;
+    out.push(...rows);
     n++;
   }
   return out;

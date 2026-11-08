@@ -41,7 +41,7 @@ describe('tops: cruzar com a lista', () => {
     const b = [{ item: items[5], rank: 1 }];
     expect(interleave(a, b).map((r) => [r.item.id, r.rank])).toEqual([['m1', 1], ['s1', 2], ['m2', 3]]);
   });
-  it('Início: fileira de streaming só com 4+ títulos', () => {
+  it('Início: filmes e séries de cada streaming em fileiras separadas, só com 4+ títulos', () => {
     const data: TopsData = {
       v: 1, updated: '', at: 0, channels: [],
       lists: [
@@ -51,8 +51,15 @@ describe('tops: cruzar com a lista', () => {
       ],
     };
     const sh = homeShelves(data, items);
-    expect(sh.map((s) => s.id)).toEqual(['st-netflix']);
-    expect(sh[0].items).toHaveLength(4);
+    // HBO tem só 1 filme na lista: não entra; Netflix tem 2 filmes e 2 séries (< 4 cada): não entra.
+    expect(sh.map((s) => s.id)).toEqual([]);
+    const many: TopsData = { ...data, lists: [
+      { id: 'netflix-oficial-movie', kind: 'movie', group: 'streaming', sid: 'netflix', title: 'Top 10 Netflix', src: 's', items: [{ t: 'Rota 66' }, { t: 'Maré Alta' }, { t: 'Duna', y: 2021 }, { t: 'Wandinha' }] },
+      { id: 'netflix-oficial-tv', kind: 'tv', group: 'streaming', sid: 'netflix', title: 'Top 10 Netflix', src: 's', items: [{ t: 'Round 6' }] },
+    ] };
+    const sh2 = homeShelves(many, items);
+    expect(sh2.map((s) => [s.id, s.title])).toEqual([['st-netflix-movie', 'Top 10 Filmes Netflix']]);
+    expect(sh2[0].items.map((r) => r.rank)).toEqual([1, 2, 3, 4]);
   });
 });
 

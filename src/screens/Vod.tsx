@@ -192,12 +192,10 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
       )}
       {showRow && (
         <StreamCarousel style={{ position: 'absolute', left: L.px, right: L.px, top, height: streamRowH }}>
+          <button className={'stream-chip topchip' + (topMode ? ' on' : '')} data-nav="" aria-label="Top: listas de recomendações" onClick={openTop}>
+            🔥 Top
+          </button>
           <button className={'stream-chip' + (!stream ? ' on' : '')} data-nav="" onClick={() => { setStream(''); setCat(''); }}>Todos</button>
-          {(
-            <button className={'stream-chip topchip' + (topMode ? ' on' : '')} data-nav="" aria-label="Top: listas de recomendações" onClick={openTop}>
-              🔥 Top
-            </button>
-          )}
           {streamings.map((s) => (
             <button
               key={s.id}

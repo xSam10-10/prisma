@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.19.2
+- Início: para cada streaming, uma fileira "Top 10 Filmes" e logo abaixo "Top 10 Séries"
+- Filmes e Séries: o botão 🔥 Top vem antes de "Todos"
+- Navegação pelo controle no Início: ◀ ▶ não pulam mais para outra fileira nas pontas dos carrosséis, ▲ não salta para o menu do topo, e a fileira em foco aparece sempre inteira (descendo ou subindo)
+
 ## 0.19.1
 - Coluna de categorias com a mesma largura em todas as abas (Ao vivo, Filmes, Séries e menu da tela cheia), calculada pelo nome mais longo da sua lista: nenhum nome cortado
 

@@ -188,14 +188,17 @@ export function pushBack(h: BackHandler): () => void {
   };
 }
 
-/** Sobe na árvore até um [data-nav-group] (sem Element.closest: a TV de 2017 não tem). */
-function groupOf(el: HTMLElement): HTMLElement | null {
+/** Sobe na árvore até um elemento com o atributo (sem Element.closest: a TV de 2017 não tem). */
+function upTo(el: HTMLElement, attr: string): HTMLElement | null {
   let p: HTMLElement | null = el;
   while (p && p !== document.body) {
-    if (p.hasAttribute && p.hasAttribute('data-nav-group')) return p;
+    if (p.hasAttribute && p.hasAttribute(attr)) return p;
     p = p.parentElement;
   }
   return null;
+}
+function groupOf(el: HTMLElement): HTMLElement | null {
+  return upTo(el, 'data-nav-group');
 }
 
 let installed = false;
@@ -236,7 +239,22 @@ export function installNavigation(): void {
       focusFirst(scope);
       return;
     }
-    let next = findNeighbor(cur, d, scope);
+    // Fileira (carrossel): ◀ ▶ andam só dentro dela; nas pontas, não pulam para outra fileira.
+    const row = d === 'left' || d === 'right' ? upTo(cur, 'data-nav-row') : null;
+    if (row) {
+      const inRow = findNeighbor(cur, d, row);
+      if (inRow) focusEl(inRow);
+      return;
+    }
+    // ▲▼ dentro de uma área que rola (Início, colunas): procura primeiro nela — uma fileira
+    // rolada para cima, escondida sob o cabeçalho, ainda é a de cima, e não o menu do topo.
+    let next: HTMLElement | null = null;
+    if (d === 'up' || d === 'down') {
+      let sc: HTMLElement | null = cur.parentElement;
+      while (sc && sc !== scope && !(sc.classList && sc.classList.contains('scroll-y'))) sc = sc.parentElement;
+      if (sc && sc !== scope) next = findNeighbor(cur, d, sc);
+    }
+    if (!next) next = findNeighbor(cur, d, scope);
     // Entrando num grupo (ex.: coluna de categorias): vai para o item ativo,
     // e não para o vizinho mais próximo (que trocaria a categoria sem querer).
     const grp = next ? groupOf(next) : null;
