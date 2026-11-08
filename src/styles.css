@@ -775,3 +775,22 @@ html:not(.kbd) .flist.prisma .flist-row:hover { background: rgba(255, 255, 255, 
 .flist-rail-in { position: relative; }
 /* barra e menus por cima das janelas PIP */
 .cbar { z-index: 8; }
+
+/* Início: painel à direita do destaque (programação ou resumo da lista) */
+.hero-side { border-radius: 24px; padding: 18px 20px; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.hero-side-head { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; padding-bottom: 12px; margin-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.hero-side-t { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; margin-left: 14px; min-width: 0; }
+.hero-side-t .caps { font-size: 18px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero-side-t .muted { font-size: 13px; font-weight: 600; margin-top: 2px; }
+.hero-prog { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: start; -webkit-align-items: flex-start; align-items: flex-start; padding: 10px 4px; }
+.hero-prog + .hero-prog { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.hero-prog-when { width: 82px; -webkit-flex-shrink: 0; flex-shrink: 0; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: #a6a6b8; padding-top: 3px; }
+.hero-prog.now .hero-prog-when { color: #ff6b3d; }
+.hero-prog-body { -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.hero-prog-time { font-size: 13px; color: #a6a6b8; font-weight: 600; }
+.hero-prog-title { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.hero-prog.now .hero-prog-title { font-size: 19px; }
+.hero-desc { font-size: 15px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; max-width: 640px; }
+.hero-stats { display: -webkit-box; display: -webkit-flex; display: flex; padding-top: 10px; }
+.hero-stat { -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
+.hero-stat-n { font-size: 30px; font-weight: 800; }

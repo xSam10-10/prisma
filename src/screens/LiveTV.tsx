@@ -83,13 +83,14 @@ export function liveGeometry(L: Layout, catW = CAT_W) {
   const left = L.px + listW + 24;
   const width = L.W - left - L.px;
   const avail = L.H - L.top - L.bottom;
-  const height = Math.round(Math.max(300, Math.min((width * 9) / 16, avail - 200)));
+  // O vídeo ocupa a coluna da direita inteira (sem o quadro "A seguir").
+  const height = Math.round(Math.max(300, avail));
   const preview: Rect = { left, top: L.top, width, height, radius: 28 };
   return {
     preview,
     list: { left: L.px, top: L.top, width: listW, bottom: L.bottom },
     info: null,
-    next: { left, right: L.px, top: L.top + height + 16, bottom: L.bottom },
+    next: null as null | { left: number; right: number; top: number; bottom: number },
   };
 }
 
@@ -172,7 +173,6 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
   }, [cat]);
 
   const selected = list[index];
-  const epgSel = useEpg(playlist, selected);
   const epgPlay = useEpg(playlist, playing, 0);
   const now = useClock();
   const curPlay = epgPlay?.[0];
@@ -415,49 +415,6 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
         </>
       )}
 
-      {/* A seguir (do canal selecionado na lista) — só na TV/computador */}
-      {G.next && (
-      <div
-        className="glass gy-12"
-        style={{
-          position: 'absolute', ...G.next, padding: '14px 18px', borderRadius: 26,
-          display: 'flex', flexDirection: 'column', overflow: 'hidden', }}
-      >
-        <div className="gx-18" style={{ display: 'flex', fontSize: 16, fontWeight: 700, alignItems: 'center' }}>
-          <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>A seguir</span>
-          <span className="muted caps" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {selected ? `${selected.number ?? ''} · ${selected.name}` : ''}
-          </span>
-        </div>
-        {epgSel === null && selected ? (
-          <div className="gx-12 cols" style={{ display: 'flex' }}>
-            {(G.preview.width < 560 ? [0, 1] : [0, 1, 2]).map((i) => <div key={i} className="skel" style={{ height: 132 }} />)}
-          </div>
-        ) : epgSel && epgSel.length ? (
-          <div className="gx-12 cols" style={{ display: 'flex' }}>
-            {epgSel.slice(0, G.preview.width < 560 ? 2 : 3).map((e, i) => (
-              <div className="gy-6" key={i} style={{ height: 132, padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: i === 0 ? T.live : T.warn }}>
-                  {i === 0 ? 'Agora · ' : ''}{fmtTime(e.start)} – {fmtTime(e.end)}
-                </span>
-                <span style={{ fontSize: 17, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</span>
-                <span className="muted" style={{ fontSize: 15, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                  {e.description ?? ''}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="gx-14" style={{ display: 'flex', alignItems: 'center', padding: '10px 4px' }}>
-            <span className="badge-live">Ao vivo</span>
-            <span className="muted" style={{ fontSize: 16 }}>
-              {selected ? 'Este canal não tem guia de programação.' : 'Nenhum canal selecionado.'}
-              {playlist.source.type !== 'xtream' && playlist.epgUrl ? ' O guia completo da lista (XMLTV) chega no próximo passo.' : ''}
-            </span>
-          </div>
-        )}
-      </div>
-      )}
       {dialog === 'new' && (
         <NameDialog
           title="Nova seção"

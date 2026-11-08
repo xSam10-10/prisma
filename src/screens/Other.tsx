@@ -137,8 +137,55 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
   const next = epg?.[1];
   const c = last ? colorFor(last.name) : T.primary;
   const isVod = last && last.kind !== 'live';
+  // TV/computador: duas colunas — à esquerda o canal e os botões, à direita a
+  // programação (Agora · A seguir · Depois) ou, sem guia, o resumo da lista.
+  const wide = !mobile;
+  const progs = (epg ?? []).slice(0, 3);
+  const side = wide ? (
+    <div className="hero-side glass">
+      {last && !isVod && progs.length ? (
+        <>
+          <div className="hero-side-head">
+            <ChannelLogo ch={last} size={52} />
+            <div className="hero-side-t">
+              <span className="caps">{last.name}</span>
+              <span className="muted">Na programação</span>
+            </div>
+          </div>
+          {progs.map((e, i) => (
+            <div key={e.start} className={'hero-prog' + (i === 0 ? ' now' : '')}>
+              <span className="hero-prog-when">{i === 0 ? 'Agora' : i === 1 ? 'A seguir' : 'Depois'}</span>
+              <div className="hero-prog-body">
+                <span className="hero-prog-time">{fmtTime(e.start)} – {fmtTime(e.end)}</span>
+                <span className="hero-prog-title">{e.title}</span>
+                {i === 0 && <div className="progress" style={{ marginTop: 8 }}><div style={{ width: `${progressOf(e, now) * 100}%` }} /></div>}
+              </div>
+            </div>
+          ))}
+        </>
+      ) : (
+        <>
+          <div className="hero-side-head">
+            {last ? <ChannelLogo ch={last} size={52} /> : null}
+            <div className="hero-side-t">
+              <span className="caps">{playlist.source.name}</span>
+              <span className="muted">Sua lista</span>
+            </div>
+          </div>
+          <div className="hero-stats">
+            {([['Canais', live.length], ['Filmes', movies], ['Séries', series]] as [string, number][]).map(([k, v]) => (
+              <div key={k} className="hero-stat">
+                <span className="hero-stat-n">{v.toLocaleString('pt-BR')}</span>
+                <span className="muted">{k}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  ) : null;
   const info = (
-    <div className="gy-12" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, maxWidth: 680 }}>
+    <div className="gy-12" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, maxWidth: wide ? undefined : 680 }}>
       <span className="badge-live" style={{ alignSelf: 'flex-start', fontSize: mobile ? 12 : 13 }}>{last ? 'Continuar assistindo' : 'Bem-vindo'}</span>
       <span className="title caps" style={{ fontSize: mobile ? 30 : cinema ? 72 : 46, fontWeight: 800, lineHeight: 1.02 }}>{last ? last.name : 'PRISMA'}</span>
       {last ? (
@@ -146,7 +193,14 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
           {last.number != null ? `Canal ${last.number} · ` : ''}{last.group}
         </span>
       ) : null}
-      {cur ? (
+      {cur && wide ? (
+        <div className="gy-6" style={{ display: 'flex', flexDirection: 'column', marginTop: 4 }}>
+          <span style={{ fontSize: 19, fontWeight: 700 }}>
+            <span style={{ color: T.live }}>Agora · </span>{cur.title}
+          </span>
+          {cur.description && <span className="muted hero-desc">{cur.description}</span>}
+        </div>
+      ) : cur ? (
         <div className="gy-6" style={{ display: 'flex', flexDirection: 'column', marginTop: 4 }}>
           <span style={{ fontSize: mobile ? 16 : 19, fontWeight: 700 }}>
             <span style={{ color: T.live }}>Agora · </span>{cur.title}
@@ -173,7 +227,8 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
     <div style={{ position: 'relative', padding: `${mobile ? 4 : cinema ? 60 : 10}px ${L.px}px ${cinema ? 40 : 0}px`, minHeight: cinema ? L.H * 0.42 : undefined }}>
       <div aria-hidden="true" className="hero-glow" style={{ background: `radial-gradient(ellipse at 70% 40%, ${rgba(c, 0.28)} 0%, rgba(0,0,0,0) 60%)` }} />
       <div style={{ position: 'relative', display: 'flex', flexDirection: mobile ? 'column-reverse' : 'row', alignItems: mobile ? 'stretch' : 'center' }}>
-        <div style={{ flexGrow: 1, minWidth: 0, marginTop: mobile ? 8 : 0 }}>{info}</div>
+        <div style={{ flexGrow: 1, flexBasis: 0, minWidth: 0, marginTop: mobile ? 8 : 0, paddingRight: wide ? 48 : 0 }}>{info}</div>
+        {side && <div style={{ flexBasis: '44%', maxWidth: 720, flexShrink: 0 }}>{side}</div>}
       </div>
     </div>
   );

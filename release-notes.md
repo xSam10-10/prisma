@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.16.3
+- Início: o destaque "Continuar assistindo" usa a largura toda, com a programação (Agora, A seguir, Depois) à direita
+- Ao vivo: o vídeo ocupa toda a coluna da direita (sem os quadros de programação embaixo)
+
 ## 0.16.2
 - Logotipos de Netflix, Prime Video, Disney+, HBO Max, Globoplay, Apple TV, Paramount+ e Crunchyroll em Filmes e Séries
 - Menu da lista em tela cheia rola até os grupos de baixo
