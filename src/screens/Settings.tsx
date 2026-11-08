@@ -158,8 +158,8 @@ export function Settings({
           onChange={set('osd')}
         />
         <Choice
-          label="Barra do canal"
-          help="Visual da barra de baixo em tela cheia. Clássica: logo, número, programa atual e próximo e uma fileira de funções (PIP, qualidade, último canal, formato, favorito, bloqueio). Prisma: o visual anterior."
+          label="Visual da tela cheia"
+          help="Vale para a barra do canal e para a lista de canais por cima do vídeo (OK na tela cheia). Clássica: cinza translúcido, no estilo dos receptores (logo, número, Atual/próximo e a fileira de funções). Prisma: escuro, com as cores do tema escolhido."
           value={st.osdStyle}
           options={[{ v: 'classic', label: 'Clássica' }, { v: 'prisma', label: 'Prisma' }]}
           onChange={set('osdStyle')}

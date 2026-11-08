@@ -27,8 +27,11 @@ export function UpdatePanel({ autoStart }: { autoStart?: CheckResult | null }) {
     setRes(null);
     try {
       setRes(await checkForUpdate());
-    } catch {
-      setErr('Não deu para procurar agora (sem internet ou o canal de atualizações ainda não foi publicado).');
+    } catch (e) {
+      // Canal de atualizações sem nenhuma versão publicada (404): não há atualização.
+      const msg = String((e as Error)?.message || '');
+      if (/\b404\b|não encontrad/i.test(msg)) setRes({ available: false });
+      else setErr('Não deu para procurar agora. Confira a internet e tente de novo.');
     } finally {
       setBusy(false);
     }
@@ -77,7 +80,11 @@ export function UpdatePanel({ autoStart }: { autoStart?: CheckResult | null }) {
           )}
         </div>
       )}
-      {res && !res.available && !res.unsupported && <span style={{ fontSize: 16, color: '#3DD6C4', fontWeight: 700 }}>Você já está na versão mais nova ({res.version}).</span>}
+      {res && !res.available && !res.unsupported && (
+        <span className="upd-none" role="status">
+          <b>Nenhuma atualização disponível.</b> Você está na versão mais nova ({runningVersion()}).
+        </span>
+      )}
       {res && res.available && (
         <div className="upd-box gy-8" style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: 17, fontWeight: 800 }}>Nova versão: {res.version}</span>

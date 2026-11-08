@@ -43,7 +43,7 @@ const IC = {
   list: ic(<><path d="M9 6h12M9 12h12M9 18h12" /><circle cx="4.5" cy="6" r="1" fill="currentColor" /><circle cx="4.5" cy="12" r="1" fill="currentColor" /><circle cx="4.5" cy="18" r="1" fill="currentColor" /></>),
 };
 
-export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, onClose, onOpenGuide }: {
+export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, onClose, onOpenGuide, variant = 'classic' }: {
   playlist: Playlist;
   live: Channel[];
   current?: Channel;
@@ -54,6 +54,8 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   onClose: () => void;
   /** Grade de todos os canais (Guia de 7 dias). */
   onOpenGuide?: (channels: Channel[], index: number) => void;
+  /** Visual: clássico (cinza, igual à barra clássica) ou Prisma (escuro, cores do tema). */
+  variant?: 'classic' | 'prisma';
 }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
@@ -211,7 +213,7 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   const pad = L.safeY;
 
   return (
-    <div ref={root} className={'flist' + (expanded ? ' open' : '')} tabIndex={-1} data-nav-scope="" style={{ paddingTop: pad, paddingBottom: pad }} onClick={(e) => e.stopPropagation()}>
+    <div ref={root} className={'flist' + (expanded ? ' open' : '') + (variant === 'prisma' ? ' prisma' : '')} tabIndex={-1} data-nav-scope="" style={{ paddingTop: pad, paddingBottom: pad }} onClick={(e) => e.stopPropagation()}>
       <div className="flist-rail" style={{ width: railW }}>
         <div className="flist-rail-in">
           {menu.slice(0, expanded ? menu.length : 5).map((m, i) => (

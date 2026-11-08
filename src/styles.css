@@ -740,3 +740,28 @@ html:not(.kbd) .flist-row:hover { background: rgba(30, 167, 232, 0.5); }
 .flist-empty { padding: 24px 20px; font-size: 16px; line-height: 1.4; color: #d3d7de; }
 .flist-hint { margin-top: auto; padding: 10px 18px 14px; font-size: 13px; color: #ff9a2e; border-top: 1px solid rgba(255, 255, 255, 0.15); }
 html.mobile .flist-rail-in { padding-top: 54px; }
+.upd-none { font-size: 16px; color: #3dd6c4; }
+.upd-none b { font-weight: 800; }
+
+/* Lista da tela cheia — clássica: mesmo cinza da barra clássica, translúcido (vídeo aparece por trás) */
+.flist-rail { background: rgba(40, 44, 53, 0.86); }
+.flist-list { background: rgba(58, 62, 72, 0.78); }
+.flist-head { color: #e4e6ea; }
+.flist-mi.on { color: #6fd3ff; }
+.flist-mi.sel, .flist-row.sel { background: #1ea7e8; }
+/* Lista da tela cheia — Prisma: vidro escuro e cores do tema */
+.flist.prisma .flist-rail { background: rgba(11, 11, 18, 0.86); }
+.flist.prisma .flist-list { background: rgba(11, 11, 18, 0.72); }
+.flist.prisma .flist-head { color: #a6a6b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; border-bottom-color: rgba(255, 255, 255, 0.12); }
+.flist.prisma .flist-mi { color: #f4f4f8; border-radius: 12px; margin: 0 8px; }
+.flist.prisma .flist-mi.grp { color: #a6a6b8; }
+.flist.prisma .flist-mi.on { color: #3dd6c4; }
+.flist.prisma .flist-mi.sel, html:not(.kbd) .flist.prisma.open .flist-mi:hover { background: #3dd6c4; color: #0b0b12; }
+.flist.prisma .flist-row { border-bottom-color: rgba(255, 255, 255, 0.06); border-radius: 12px; margin: 0 8px; }
+.flist.prisma .flist-row.playing .flist-name { color: #3dd6c4; }
+.flist.prisma .flist-row.sel { background: #f4f4f8; }
+.flist.prisma .flist-row.sel .flist-name, .flist.prisma .flist-row.sel .flist-num, .flist.prisma .flist-row.sel .flist-ic { color: #0b0b12; }
+html:not(.kbd) .flist.prisma .flist-row:hover { background: rgba(255, 255, 255, 0.1); }
+.flist.prisma .flist-ag-time { color: #3dd6c4; }
+.flist.prisma .flist-search input:focus { border-color: #3dd6c4; }
+.flist.prisma .flist-hint { color: #a6a6b8; border-top-color: rgba(255, 255, 255, 0.08); }

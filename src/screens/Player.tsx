@@ -866,6 +866,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
 
       {full && !vod && listOpen && channel && playlist && (
         <FullList
+          variant={classic ? 'classic' : 'prisma'}
           playlist={playlist}
           live={allLive}
           current={channel}

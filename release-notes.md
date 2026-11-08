@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.16.1
+- "Nenhuma atualização disponível" ao procurar atualização quando não há versão nova
+- Lista de canais da tela cheia no visual Clássico (cinza, como a barra clássica) ou Prisma (cores do tema), em Ajustes › Player › Visual da tela cheia
+
 ## 0.16.0
 - Ao vivo: andar na lista já troca o canal no vídeo; OK abre a tela cheia
 - Tela cheia: OK abre a lista de canais por cima do vídeo
