@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.18.1)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.19.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -396,6 +396,12 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 
 ## 10u. Versão 0.18.1
 - Filmes/Séries: fileira de streamings = os das categorias + os que têm Top com títulos da lista (`streamings` em `Vod.tsx`); streaming sem categoria própria abre direto o Top dele (`pickStream`). Botão Top sempre visível; vazio explica o `TMDB_KEY`. Motivo: as categorias de filmes da Goldcard não têm nome de streaming.
+
+## 10v. Versão 0.19.0 — Top em carrosséis, gêneros por streaming e banner
+- `src/screens/TopRows.tsx`: `StackedRows` (listas empilhadas, cada uma num `Carousel` com subtítulo = fonte; o Carousel recebe um `LayoutContext` com a largura da coluna direita; focar uma lista a alinha no alto — a 1ª deixa o banner à vista) e `StreamBanner` (cores do streaming + desenho `MOTIF`: faixas, brilho, arco ou círculos; logotipo branco em marca-d'água; brilho passando e "aurora" animados, desligados na LG pela classe `lite`; frase `TAGLINE`).
+- Top: "Adicionados recentemente" (10 maiores `added`) + ordem combinada com o usuário: Chegaram ao streaming, Em alta, Aclamados (`GERAL_ORDER` em `tops.ts`), streamings na ordem de `STREAMINGS`, especiais, gêneros. Coluna: ▲▼ mostra a lista à direita, OK entra nela.
+- Streaming escolhido: Top 10 dele + gêneros dele (listas `group: 'stgenero'`, id `<sid>-g<genero>-<tipo>`, até 30 candidatos do TMDB por gênero para completar 10 com o que existe na lista; só aparecem com 3+). Depois "Categorias da lista" (grade antiga).
+- `VirtualGrid`: a fileira em foco fica inteira no alto (antes a de cima ficava cortada).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

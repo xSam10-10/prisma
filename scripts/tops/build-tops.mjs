@@ -24,6 +24,7 @@ const NETFLIX_TSV = process.env.NETFLIX_TSV || 'https://www.netflix.com/tudum/to
 const TMDB = process.env.TMDB_BASE || 'https://api.themoviedb.org/3';
 const KEY = (process.env.TMDB_KEY || '').trim();
 const PER_LIST = 20;
+const ST_GENRE_MAX = 30;
 
 /** Streamings do PRISMA (mesmos ids de src/core/vod.ts) × nome do provedor no TMDB. */
 export const PROVIDERS = [
@@ -110,13 +111,14 @@ export function compact(raw, type) {
   return it;
 }
 
-async function discover(type, params, pages = 1) {
+async function discover(type, params, pages = 1, max = PER_LIST) {
   const out = [];
-  for (let p = 1; p <= pages && out.length < PER_LIST; p++) {
+  for (let p = 1; p <= pages && out.length < max; p++) {
     const r = await tmdb(`/discover/${type}`, { watch_region: 'BR', include_adult: 'false', page: String(p), ...params });
     for (const x of r.results ?? []) if (!out.some((o) => o.i === x.id)) out.push(compact(x));
+    if ((r.total_pages ?? 1) <= p) break;
   }
-  return out.slice(0, PER_LIST);
+  return out.slice(0, max);
 }
 
 async function listOf(path, params = {}) {
@@ -189,6 +191,13 @@ export async function build({ log = console.log } = {}) {
             const items = await discover(type, { with_watch_providers: String(p.provider_id), with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc', 'vote_count.gte': '10' });
             add({ id: `${sid}-${type}`, kind: type, group: 'streaming', sid, title: `Top 10 ${name}`, src: `Mais populares no ${name} no Brasil (TMDB)`, items });
           });
+          // Por gênero dentro do streaming: até 30 candidatos (o app completa os 10 com o que existir na lista)
+          for (const [g, gname] of type === 'movie' ? MOVIE_GENRES : TV_GENRES) {
+            await safe(`${name} ${gname} ${type}`, async () => {
+              const items = await discover(type, { with_watch_providers: String(p.provider_id), with_watch_monetization_types: 'flatrate', with_genres: String(g), sort_by: 'popularity.desc', 'vote_count.gte': '10' }, 2, ST_GENRE_MAX);
+              add({ id: `${sid}-g${g}-${type}`, kind: type, group: 'stgenero', sid, title: gname, src: `${gname} no ${name} (TMDB)`, items: items.map(({ r, ...x }) => x) });
+            });
+          }
         }
       }
     });

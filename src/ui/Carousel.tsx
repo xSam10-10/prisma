@@ -12,6 +12,8 @@ export const CAROUSEL_MAX = 10;
 
 interface Props<T> {
   title: string;
+  /** Linha menor ao lado do título (ex.: de onde vem a lista). */
+  subtitle?: string;
   items: T[];
   keyOf: (item: T) => string;
   render: (item: T, index: number, width: number) => ReactNode;
@@ -20,7 +22,7 @@ interface Props<T> {
   empty?: ReactNode;
 }
 
-export function Carousel<T>({ title, items, keyOf, render, minWidth, empty }: Props<T>) {
+export function Carousel<T>({ title, subtitle, items, keyOf, render, minWidth, empty }: Props<T>) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const gap = mobile ? 14 : 22;
@@ -59,7 +61,8 @@ export function Carousel<T>({ title, items, keyOf, render, minWidth, empty }: Pr
   return (
     <section className="carousel" style={{ marginTop: mobile ? 20 : 30 }}>
       <div className="carousel-head" style={{ padding: `0 ${L.px}px` }}>
-        <span className="title" style={{ fontSize: mobile ? 19 : 22 }}>{title}</span>
+        <span className="title" style={{ fontSize: mobile ? 19 : 22, flexShrink: 0 }}>{title}</span>
+        {subtitle && !mobile ? <span className="carousel-sub">{subtitle}</span> : null}
         <div className="spacer" />
         {pages > 1 && (
           <>

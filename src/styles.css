@@ -901,3 +901,47 @@ html:not(.kbd) .now-card:hover { background: rgba(255, 255, 255, 0.12); }
 .mstat { margin: 3px 0; }
 .mstat-l { font-size: 14px; }
 .mstat-bar { height: 4px; margin-top: 2px; }
+
+/* ---- Filmes/Séries: listas empilhadas e banner do streaming (0.19.0) ---- */
+.stacked { overflow: hidden; }
+.touch .stacked { overflow-y: auto; }
+.stacked .carousel:first-of-type { margin-top: 8px !important; }
+.carousel-sub { margin-left: 14px; font-size: 14px; color: #a6a6b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sbanner {
+  position: relative; overflow: hidden; border-radius: 22px; margin: 4px 0 6px;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+}
+.sb-layer { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
+.sb-arc { position: absolute; width: 1100px; height: 1100px; left: 38%; top: 62%; border-radius: 50%; border: 3px solid; }
+.sb-arc.two { width: 1300px; height: 1300px; left: 33%; top: 58%; border-width: 1px; box-shadow: none; }
+.sb-aurora {
+  position: absolute; width: 520px; height: 520px; right: 8%; top: -260px; border-radius: 50%; opacity: 0.8;
+  -webkit-animation: sbAurora 14s ease-in-out infinite alternate; animation: sbAurora 14s ease-in-out infinite alternate;
+}
+.sb-water {
+  position: absolute; right: -2%; top: 50%; height: 230%; opacity: 0.1;
+  -webkit-transform: translateY(-50%) rotate(-12deg); transform: translateY(-50%) rotate(-12deg);
+}
+.sb-sweep {
+  position: absolute; top: -40%; bottom: -40%; left: 0; width: 22%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.16) 50%, rgba(255, 255, 255, 0) 100%);
+  -webkit-animation: sbSweep 7s ease-in-out infinite; animation: sbSweep 7s ease-in-out infinite;
+}
+.sb-edge { position: absolute; left: 0; right: 0; top: 0; height: 2px; opacity: 0.9; }
+.sb-content {
+  position: relative; height: 100%; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+  -webkit-justify-content: center; justify-content: center; -webkit-align-items: flex-start; align-items: flex-start;
+}
+.sb-logo { display: block; object-fit: contain; -webkit-filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.55)); filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.55)); }
+.sb-tag { margin-top: 12px; color: rgba(255, 255, 255, 0.92); font-weight: 600; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6); }
+.sb-chips { display: -webkit-flex; display: flex; margin-top: 14px; }
+.sb-chips span {
+  margin-right: 8px; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff;
+  background: rgba(0, 0, 0, 0.38); border: 1px solid rgba(255, 255, 255, 0.18);
+}
+@-webkit-keyframes sbSweep { 0% { -webkit-transform: translateX(-150%) skewX(-18deg); } 55%, 100% { -webkit-transform: translateX(560%) skewX(-18deg); } }
+@keyframes sbSweep { 0% { transform: translateX(-150%) skewX(-18deg); } 55%, 100% { transform: translateX(560%) skewX(-18deg); } }
+@-webkit-keyframes sbAurora { 0% { -webkit-transform: translate(0, 0); } 100% { -webkit-transform: translate(-260px, 60px); } }
+@keyframes sbAurora { 0% { transform: translate(0, 0); } 100% { transform: translate(-260px, 60px); } }
+.lite .sb-sweep, .lite .sb-aurora { -webkit-animation: none; animation: none; }
+.lite .sb-sweep { display: none; }

@@ -33,7 +33,8 @@ export interface TopItem {
 export interface TopList {
   id: string;
   kind: 'movie' | 'tv';
-  group: 'streaming' | 'geral' | 'genero' | 'especial';
+  /** stgenero = um gênero dentro de um streaming (aparece ao escolher o streaming). */
+  group: 'streaming' | 'geral' | 'genero' | 'especial' | 'stgenero';
   sid?: string;
   title: string;
   src: string;
@@ -185,17 +186,29 @@ export function matchList(l: TopList, items: Channel[], max = 10): MatchedList {
   return { id: l.id, kind: l.kind, group: l.group, sid: l.sid, title: l.title, src: l.src, items: out };
 }
 
-/** Todas as listas de um tipo, já cruzadas (só as que têm algo para assistir). */
+/** Ordem combinada (08/11): Chegaram ao streaming, Em alta, Aclamados; streamings; especiais; gêneros. */
+const GERAL_ORDER = ['lancamentos', 'semana', 'aclamados'];
+
+/** Todas as listas de um tipo, já cruzadas (só as que têm algo para assistir). Sem os gêneros por streaming. */
 export function matchedLists(data: TopsData | null, items: Channel[], kind: 'movie' | 'tv', min = 1): MatchedList[] {
   if (!data) return [];
   const order = (l: TopList) => {
-    const g = { streaming: 0, geral: 1, especial: 2, genero: 3 }[l.group] ?? 4;
-    const s = l.sid ? STREAMINGS.findIndex((x) => x.id === l.sid) : 0;
+    const g = { geral: 0, streaming: 1, especial: 2, genero: 3 }[l.group as string] ?? 4;
+    const s = l.group === 'geral' ? GERAL_ORDER.findIndex((p) => l.id.startsWith(p)) : l.sid ? STREAMINGS.findIndex((x) => x.id === l.sid) : 0;
     return g * 100 + (s < 0 ? 50 : s);
   };
   return data.lists
-    .filter((l) => l.kind === kind)
+    .filter((l) => l.kind === kind && l.group !== 'stgenero')
     .sort((a, b) => order(a) - order(b))
+    .map((l) => matchList(l, items))
+    .filter((l) => l.items.length >= min);
+}
+
+/** Gêneros dentro de um streaming (ex.: Terror no HBO Max), só com 3+ títulos da lista. */
+export function streamGenreLists(data: TopsData | null, items: Channel[], kind: 'movie' | 'tv', sid: string, min = 3): MatchedList[] {
+  if (!data) return [];
+  return data.lists
+    .filter((l) => l.kind === kind && l.group === 'stgenero' && l.sid === sid)
     .map((l) => matchList(l, items))
     .filter((l) => l.items.length >= min);
 }

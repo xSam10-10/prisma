@@ -1,6 +1,13 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.19.0
+- Filmes e Séries › Top: todas as listas uma embaixo da outra, cada uma em carrossel (como no Início)
+- Nova lista "Adicionados recentemente" (os 10 últimos que chegaram na sua lista)
+- Ordem: Adicionados recentemente, Chegaram ao streaming, Em alta, Mais aclamados, Top 10 de cada streaming, especiais e gêneros — a mesma na coluna da esquerda e nas capas
+- Ao escolher um streaming: banner exclusivo da marca, Top 10 dele e listas por gênero (Terror no HBO Max, Comédia na Netflix…)
+- Correção: ao descer pelas capas, a fileira de cima não fica mais cortada
+
 ## 0.18.1
 - Filmes: a fileira de streamings aparece mesmo quando a lista não separa os filmes por streaming nas categorias — tocar no streaming abre o Top 10 dele
 - O botão 🔥 Top fica sempre visível em Filmes e Séries

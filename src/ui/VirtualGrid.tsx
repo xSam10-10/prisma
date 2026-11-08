@@ -57,8 +57,8 @@ function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, 
   useEffect(() => {
     const r = Math.floor(index / cols);
     const y = r * step + pad;
-    if (y < top + pad) setTop(Math.max(0, y - pad - (r > 0 ? step * 0.25 : 0)));
-    else if (y + cellH > top + size.h - pad) setTop(Math.min(maxTop, y + cellH - size.h + pad + step * 0.25));
+    // Fileira em foco sempre inteira e alinhada no alto (sem a de cima cortada pela metade).
+    if (y < top + pad || y + cellH > top + size.h - pad) setTop(Math.max(0, Math.min(maxTop, y - pad)));
   }, [index, cols, step, size.h]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const t = Math.min(top, maxTop);
