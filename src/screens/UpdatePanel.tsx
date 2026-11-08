@@ -17,6 +17,8 @@ export function UpdatePanel({ autoStart }: { autoStart?: CheckResult | null }) {
   const [res, setRes] = useState<CheckResult | null>(autoStart ?? null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  // Canal de atualizações (repositório público) ainda não existe: não é "sem atualização".
+  const [noFeed, setNoFeed] = useState(false);
   const [prog, setProg] = useState<{ pct: number | null; msg: string } | null>(null);
   const [auto, setAuto] = useState(prefGet<boolean>('updateAuto', true));
   const ota = runningVersion() !== VERSION;
@@ -24,13 +26,14 @@ export function UpdatePanel({ autoStart }: { autoStart?: CheckResult | null }) {
   const check = async () => {
     setBusy(true);
     setErr('');
+    setNoFeed(false);
     setRes(null);
     try {
       setRes(await checkForUpdate());
     } catch (e) {
-      // Canal de atualizações sem nenhuma versão publicada (404): não há atualização.
       const msg = String((e as Error)?.message || '');
-      if (/\b404\b|não encontrad/i.test(msg)) setRes({ available: false });
+      // 404: o canal de atualizações (repositório público prisma-releases) não tem versões.
+      if (/\b404\b|não encontrad/i.test(msg)) setNoFeed(true);
       else setErr('Não deu para procurar agora. Confira a internet e tente de novo.');
     } finally {
       setBusy(false);
@@ -113,6 +116,12 @@ export function UpdatePanel({ autoStart }: { autoStart?: CheckResult | null }) {
             </div>
           )}
         </div>
+      )}
+      {noFeed && (
+        <span className="upd-nofeed" role="status">
+          <b>A atualização pelo app ainda não está ativada.</b> As versões novas estão só no GitHub privado, que o app não consegue ler. Falta criar o
+          canal público de atualizações (repositório “prisma-releases”). Até lá, instale a versão nova pelo arquivo da Release.
+        </span>
       )}
       {err && <span style={{ fontSize: 15, color: '#FF6B3D', fontWeight: 700 }}>{err}</span>}
     </div>

@@ -336,6 +336,11 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Botões todos da mesma largura (164; celular 124); altura do logo entre 20 e 26 (×k, ajuste óptico por marca) e no máximo 130 de largura (`logoSize`). Escolhido: botão claro com o logo escuro.
 - Carrossel (`StreamCarousel` em `Vod.tsx`): setas ‹ › quando não cabe tudo, avançando de botão em botão; pontas esmaecidas; no controle a fileira acompanha o foco; no celular arrasta.
 
+## 10o. Versão 0.16.5 (08/11)
+- Correção de diagnóstico: 404 no canal (`prisma-releases` inexistente/sem versões) agora mostra "A atualização pelo app ainda não está ativada…" (antes a 0.16.1 dizia "Nenhuma atualização disponível", o que escondia o problema). "Nenhuma atualização disponível" só quando o manifesto existe e a versão é a mesma.
+- Workflow: aviso (`::warning`) em cada Release enquanto o secret `RELEASES_TOKEN` não existir.
+- **Pendência do usuário (bloqueia a atualização pelo app):** criar o repositório PÚBLICO `xSam10-10/prisma-releases` **com README** (precisa de 1 commit para receber Releases), token fino só nele com Contents: Read and write, secret `RELEASES_TOKEN` no `prisma`.
+
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11)
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
 **Depois:** 8 qualidade (parcial na 0.13.0, menu HD) · 11 ExoPlayer no Android · 12 voz no Android · 17 multitela em grade (o PIP da 0.13.0 cobre parte) · 18 picture-in-picture do sistema · 31 placar flutuante · 32 tabela do campeonato · 44 onde assistir · 46 trailer no destaque · 47 prévia no pôster · 49 "porque você assistiu" · 50 franquias · 52 novidades e em breve · 55 semelhantes · 63 aviso de novo episódio · 65 pular abertura · 68 velocidade · 69 estilo de legenda / .srt · 75 histórico de assistidos · 80 filtros de busca.

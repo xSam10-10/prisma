@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.16.5
+- Atualizações: quando o canal público de atualizações ainda não existe, o app avisa isso (antes dizia "Nenhuma atualização disponível")
+
 ## 0.16.4
 - Streamings em Filmes e Séries: logotipos brancos do mesmo tamanho, em carrossel com setas
 - Novos: Funimation Now, Lionsgate, Claro Vídeo, SBT+, DirecTV GO, AMC+ (aparecem quando a sua lista tem essas categorias)

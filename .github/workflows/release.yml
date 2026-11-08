@@ -124,6 +124,9 @@ jobs:
       # Atualização automática do Windows: copia os instaladores para o
       # repositório público xSam10-10/prisma-releases (só binários, sem código).
       # Precisa do secret RELEASES_TOKEN (token com acesso a esse repositório).
+      - name: Aviso se a atualização dentro do app não vai receber esta versão
+        if: env.HAS_RT != 'true'
+        run: echo "::warning title=Atualização dentro do app::O secret RELEASES_TOKEN não está configurado. Esta versão NÃO foi publicada em xSam10-10/prisma-releases, então os apps instalados não vão encontrá-la em Procurar atualização."
       - name: Publica para a atualização automática
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
