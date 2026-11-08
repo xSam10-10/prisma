@@ -90,10 +90,10 @@ app.whenReady().then(async () => {
 });
 
 // Atualização dentro do app: procura uma versão nova nas Releases públicas
-// (repositório xSam10-10/prisma-releases, só com os instaladores). A tela
+// do repositório público xSam10-10/prisma. A tela
 // (Ajustes › Sobre, ou o aviso ao abrir) pede para baixar e instalar.
 // Se ninguém pedir, uma versão já baixada é instalada ao fechar o programa.
-const FEED = process.env.PRISMA_UPDATE_FEED || 'https://github.com/xSam10-10/prisma-releases/releases/latest/download';
+const FEED = process.env.PRISMA_UPDATE_FEED || 'https://github.com/xSam10-10/prisma/releases/latest/download';
 function checkUpdates() {
   const { autoUpdater } = updaterPkg;
   const send = (data) => win && !win.isDestroyed() && win.webContents.send('upd:event', data);

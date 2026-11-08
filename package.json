@@ -1,7 +1,7 @@
 {
   "name": "prisma-app",
   "private": true,
-  "version": "0.16.7",
+  "version": "0.16.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -85,7 +85,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://github.com/xSam10-10/prisma-releases/releases/latest/download"
+        "url": "https://github.com/xSam10-10/prisma/releases/latest/download"
       }
     ]
   }

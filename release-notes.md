@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.16.8
+- Atualização dentro do app agora lê as versões direto do GitHub do PRISMA (repositório público)
+
 ## 0.16.7
 - PIP simplificado: uma tela pequena a mais, com só duas opções — Desl/Lig e Trocar PIP
 

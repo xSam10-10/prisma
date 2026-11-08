@@ -97,8 +97,6 @@ jobs:
   release:
     needs: [windows, webos, android]
     runs-on: ubuntu-latest
-    env:
-      HAS_RT: ${{ secrets.RELEASES_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -121,16 +119,12 @@ jobs:
           NOTES="Downloads: PRISMA-Setup (Windows), com.prisma.iptv (TV LG) e PRISMA-Android (celular e Google TV). prisma-update.json e prisma-webos-*.json são da atualização dentro do app. No Windows, na primeira vez: Mais informações › Executar assim mesmo."
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "PRISMA $TAG" --notes "$NOTES" --target "$GITHUB_SHA"
           gh release upload "$TAG" $(find out -maxdepth 1 -type f) --clobber
-      # Atualização automática do Windows: copia os instaladores para o
-      # repositório público xSam10-10/prisma-releases (só binários, sem código).
-      # Precisa do secret RELEASES_TOKEN (token com acesso a esse repositório).
-      - name: Aviso se a atualização dentro do app não vai receber esta versão
-        if: env.HAS_RT != 'true'
-        run: echo "::warning title=Atualização dentro do app::O secret RELEASES_TOKEN não está configurado. Esta versão NÃO foi publicada em xSam10-10/prisma-releases, então os apps instalados não vão encontrá-la em Procurar atualização."
-      - name: Publica para a atualização automática
+      # Atualização dentro do app: os apps leem releases/latest/download deste
+      # repositório, que precisa ser PÚBLICO.
+      - name: Confere se a atualização dentro do app vai enxergar esta versão
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        if: env.HAS_RT == 'true'
+          GH_TOKEN: ${{ github.token }}
         run: |
-          V=$(ls out/PRISMA-Setup-*.exe | sed -E 's/.*Setup-(.*)\.exe/\1/')
-          gh release create "v$V" --repo xSam10-10/prisma-releases --title "PRISMA $V" --notes "Instaladores do PRISMA $V." $(find out -maxdepth 1 -type f) || gh release upload "v$V" --repo xSam10-10/prisma-releases $(find out -maxdepth 1 -type f) --clobber
+          if [ "$(gh api repos/${{ github.repository }} --jq .private)" = "true" ]; then
+            echo "::warning title=Atualização dentro do app::O repositório está PRIVADO: os apps instalados não conseguem ler esta versão em Procurar atualização."
+          fi

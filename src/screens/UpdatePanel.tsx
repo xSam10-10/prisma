@@ -32,7 +32,7 @@ export function UpdatePanel({ autoStart }: { autoStart?: CheckResult | null }) {
       setRes(await checkForUpdate());
     } catch (e) {
       const msg = String((e as Error)?.message || '');
-      // 404: o canal de atualizações (repositório público prisma-releases) não tem versões.
+      // 404: o GitHub não entregou o manifesto (repositório privado ou sem versão publicada).
       if (/\b404\b|não encontrad/i.test(msg)) setNoFeed(true);
       else setErr('Não deu para procurar agora. Confira a internet e tente de novo.');
     } finally {
@@ -119,8 +119,8 @@ export function UpdatePanel({ autoStart }: { autoStart?: CheckResult | null }) {
       )}
       {noFeed && (
         <span className="upd-nofeed" role="status">
-          <b>A atualização pelo app ainda não está ativada.</b> As versões novas estão só no GitHub privado, que o app não consegue ler. Falta criar o
-          canal público de atualizações (repositório “prisma-releases”). Até lá, instale a versão nova pelo arquivo da Release.
+          <b>Não deu para ler as versões no GitHub do PRISMA.</b> O repositório precisa estar público e ter uma Release com o arquivo
+          prisma-update.json. Até lá, instale a versão nova pelo arquivo da Release.
         </span>
       )}
       {err && <span style={{ fontSize: 15, color: '#FF6B3D', fontWeight: 700 }}>{err}</span>}

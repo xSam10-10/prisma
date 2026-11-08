@@ -349,6 +349,10 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 ## 10q. Versão 0.16.7 (08/11) — PIP simplificado
 - A pedido do usuário (plano com 2 telas): **no máximo 1 janela PIP** (`MAX_PIPS = 1`). Menu do PIP só com **Desl/Lig** e **Trocar PIP** (este só aparece com a janela ligada). Removido "Adicionar a.." (favoritos e seção continuam nos ícones da barra). Aviso de conexões só se a assinatura permitir 1 tela. Substitui o descrito em 10f sobre até 3 janelas.
 
+## 10r. Versão 0.16.8 (08/11) — atualização pelo próprio repositório
+- O usuário decidiu tornar o `xSam10-10/prisma` **público**. O feed passou a ser `https://github.com/xSam10-10/prisma/releases/latest/download/` (`DEFAULT_FEED` em `updater.ts`, `FEED` em `desktop/main.mjs`, `build.publish` no package.json). Não há mais `prisma-releases` nem `RELEASES_TOKEN`; o workflow só avisa se o repositório estiver privado.
+- Versões instaladas antes da 0.16.8 apontam para o feed antigo: instalar a 0.16.8 manualmente uma vez.
+
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11)
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
 **Depois:** 8 qualidade (parcial na 0.13.0, menu HD) · 11 ExoPlayer no Android · 12 voz no Android · 17 multitela em grade (o PIP da 0.13.0 cobre parte) · 18 picture-in-picture do sistema · 31 placar flutuante · 32 tabela do campeonato · 44 onde assistir · 46 trailer no destaque · 47 prévia no pôster · 49 "porque você assistiu" · 50 franquias · 52 novidades e em breve · 55 semelhantes · 63 aviso de novo episódio · 65 pular abertura · 68 velocidade · 69 estilo de legenda / .srt · 75 histórico de assistidos · 80 filtros de busca.

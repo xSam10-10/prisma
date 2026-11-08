@@ -1,7 +1,7 @@
 // Atualizar o PRISMA de dentro do próprio app.
 //
 // Todas as versões publicam, nas Releases do repositório PÚBLICO
-// xSam10-10/prisma-releases, um manifesto "prisma-update.json":
+// xSam10-10/prisma (público desde 08/11/2026), um manifesto "prisma-update.json":
 //   { version, date, notes[], files: { windows, android, webos, ipk } }
 // "releases/latest/download/<arquivo>" sempre aponta para a versão mais nova.
 //
@@ -20,7 +20,7 @@ import { IS_ANDROID, IS_WEBOS } from './platform';
 import { idbDel, idbGet, idbSet, prefGet, prefSet } from './storage';
 import { VERSION } from '../version';
 
-export const DEFAULT_FEED = 'https://github.com/xSam10-10/prisma-releases/releases/latest/download/';
+export const DEFAULT_FEED = 'https://github.com/xSam10-10/prisma/releases/latest/download/';
 
 export interface UpdateManifest {
   version: string;
