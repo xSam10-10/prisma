@@ -794,3 +794,22 @@ html:not(.kbd) .flist.prisma .flist-row:hover { background: rgba(255, 255, 255, 
 .hero-stats { display: -webkit-box; display: -webkit-flex; display: flex; padding-top: 10px; }
 .hero-stat { -webkit-box-flex: 1; -webkit-flex: 1 1 0; flex: 1 1 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; }
 .hero-stat-n { font-size: 30px; font-weight: 800; }
+
+/* Streamings: carrossel com todos os botões do mesmo tamanho e logos brancos */
+.stream-carousel { position: absolute; }
+.stream-carousel .stream-row { position: relative; }
+.stream-chip.logo { width: 150px; padding: 0; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; }
+.mobile .stream-chip.logo { width: 120px; }
+.stream-chip.logo img { -webkit-filter: none; filter: none; }
+.stream-chip.logo.on { background: #f4f4f8; border: 1px solid transparent; }
+.stream-chip.logo.on img { -webkit-filter: brightness(0); filter: brightness(0); }
+.stream-arrow { position: absolute; top: 50%; width: 40px; height: 40px; margin-top: -20px; border-radius: 20px; border: 0; z-index: 3; cursor: pointer; background: rgba(11, 11, 18, 0.85); color: #f4f4f8; font-size: 26px; line-height: 36px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 6px 20px rgba(0, 0, 0, 0.5); }
+.stream-arrow.left { left: -6px; }
+.stream-arrow.right { right: -6px; }
+html:not(.kbd) .stream-arrow:hover { background: #f4f4f8; color: #0b0b12; }
+.stream-chip.logo { width: 164px; }
+.mobile .stream-chip.logo { width: 124px; }
+/* pontas do carrossel esmaecidas (botão cortado não fica "pela metade" seco) */
+.stream-row.fade-r { -webkit-mask-image: -webkit-linear-gradient(left, #000 0, #000 calc(100% - 90px), transparent 100%); -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 90px), transparent 100%); mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 90px), transparent 100%); }
+.stream-row.fade-l { -webkit-mask-image: -webkit-linear-gradient(left, transparent 0, #000 90px, #000 100%); -webkit-mask-image: linear-gradient(to right, transparent 0, #000 90px, #000 100%); mask-image: linear-gradient(to right, transparent 0, #000 90px, #000 100%); }
+.stream-row.fade-l.fade-r { -webkit-mask-image: -webkit-linear-gradient(left, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%); -webkit-mask-image: linear-gradient(to right, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%); }

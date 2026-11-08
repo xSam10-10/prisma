@@ -34,7 +34,10 @@ for (let i = 0; i < 400; i++) live.push({ num: 100 + i, name: `Canal Extra ${i +
 
 // ---- Filmes e séries de teste ----
 const VOD_CATS = [['101', 'FILMES | NETFLIX'], ['102', 'FILMES | HBO MAX'], ['103', 'FILMES | DISNEY+'], ['104', 'LANÇAMENTOS 2026'], ['105', 'FILMES | AÇÃO']];
-const SER_CATS = [['201', 'SÉRIES | NETFLIX'], ['202', 'SÉRIES | PRIME VIDEO'], ['203', 'ANIMES | CRUNCHYROLL'], ['204', 'SÉRIES | GLOBOPLAY']];
+const SER_CATS = [['201', 'SÉRIES | NETFLIX'], ['202', 'SÉRIES | PRIME VIDEO'], ['203', 'ANIMES | CRUNCHYROLL'], ['204', 'SÉRIES | GLOBOPLAY'],
+  // Mais streamings (para testar o carrossel de logotipos)
+  ['205', 'SÉRIES | HBO MAX'], ['206', 'SÉRIES | DISNEY+'], ['207', 'SÉRIES | APPLE TV+'], ['208', 'SÉRIES | PARAMOUNT+'], ['209', 'SÉRIES | STAR+'], ['210', 'SÉRIES | DISCOVERY+'],
+  ['211', 'ANIMES | FUNIMATION NOW'], ['212', 'SÉRIES | LIONSGATE+'], ['213', 'CLARO VIDEO'], ['214', 'SBT+'], ['215', 'DIRECTV GO'], ['216', 'AMC+']];
 const TITLES = ['Horizonte Perdido', 'A Última Estação', 'Código Vermelho', 'Noite em Lisboa', 'O Jardim de Inverno', 'Fronteira Sul', 'Maré Alta', 'Cidade de Vidro', 'O Sétimo Andar', 'Luz do Norte', 'Rota 66', 'O Relojoeiro', 'Ventos de Agosto', 'Plano B', 'Sombras do Rio', 'Estrela Cadente'];
 const PAL = ['#C8264B', '#2B5BD7', '#7A2E9C', '#B4531F', '#0E7490', '#1F8A5B', '#8A6D1F'];
 const vods = Array.from({ length: 64 }, (_, i) => ({
@@ -48,6 +51,7 @@ const seriesList = Array.from({ length: 30 }, (_, i) => ({
   series_id: 4000 + i, cover: `http://127.0.0.1:${PORT}/poster/s${i}.svg`, category_id: SER_CATS[(i % SERIES_NAMES.length) >= 5 && (i % SERIES_NAMES.length) <= 6 ? 2 : i % 2 === 0 ? 0 : (i % 3 === 0 ? 3 : 1)][0],
   rating: (6 + (i % 4)).toFixed(1), last_modified: String(1790000000 - i * 7200), releaseDate: `${2015 + (i % 10)}-03-01`,
 }));
+for (let k = 4; k < SER_CATS.length; k++) seriesList.push({ name: `Série ${SER_CATS[k][1].split('|').pop().trim()}`, series_id: 4100 + k, cover: `http://127.0.0.1:${PORT}/poster/s${k}.svg`, category_id: SER_CATS[k][0], rating: '7.5', last_modified: String(1789000000 - k), releaseDate: '2024-01-01' });
 function poster(id) {
   const n = Number(id.slice(1)); const c = PAL[n % PAL.length];
   const name = (id[0] === 'm' ? vods[n]?.name : seriesList[n]?.name) || 'PRISMA';

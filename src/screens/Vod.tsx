@@ -123,7 +123,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
         <div aria-hidden="true" className="stream-art" style={{ background: `radial-gradient(ellipse 60% 70% at 85% 10%, ${rgba(st.accent, 0.45)} 0%, rgba(0,0,0,0) 70%), radial-gradient(ellipse 50% 60% at 10% 90%, ${rgba(st.accent2, 0.35)} 0%, rgba(0,0,0,0) 70%), ${st.bg}` }} />
       )}
       {streamings.length > 0 && (
-        <div className="scroll-x stream-row" style={{ position: 'absolute', left: L.px, right: L.px, top, height: streamRowH }}>
+        <StreamCarousel style={{ position: 'absolute', left: L.px, right: L.px, top, height: streamRowH }}>
           <button className={'stream-chip' + (!stream ? ' on' : '')} data-nav="" onClick={() => { setStream(''); setCat(''); }}>Todos</button>
           {streamings.map((s) => (
             <button
@@ -133,10 +133,11 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
               aria-label={s.name}
               title={s.name}
               style={stream === s.id && !s.logo ? { background: s.accent, color: '#fff' } : undefined}
+              data-sid={s.id}
               onClick={() => { setStream(s.id); setCat(''); setQuery(''); }}
             >
               {s.logo ? (
-                <img src={logoUrl(s.id)} alt={s.name} style={logoSize(s.logo)} draggable={false} />
+                <img src={logoUrl(s.id)} alt={s.name} style={mobile ? logoSize(s.logo, 1900, 100, 22, 16) : logoSize(s.logo)} draggable={false} />
               ) : (
                 <>
                   <i style={{ background: s.accent }} />
@@ -145,7 +146,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
               )}
             </button>
           ))}
-        </div>
+        </StreamCarousel>
       )}
 
       {!mobile && (
@@ -465,5 +466,59 @@ export function MyList({ playlist, onPlay }: { playlist: Playlist; onPlay: (item
         />
       )}
     </>
+  );
+}
+
+/** Fileira de streamings em carrossel: setas ‹ › quando não cabe tudo
+ * (no controle, a fileira acompanha o foco; no celular, arrasta com o dedo). */
+function StreamCarousel({ style, children }: { style: React.CSSProperties; children: React.ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [edge, setEdge] = useState({ l: false, r: false });
+  const update = () => {
+    const b = box.current;
+    if (!b) return;
+    setEdge({ l: b.scrollLeft > 4, r: b.scrollLeft + b.clientWidth < b.scrollWidth - 4 });
+  };
+  useEffect(() => {
+    update();
+    const t = setTimeout(update, 400);
+    window.addEventListener('resize', update);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', update);
+    };
+  });
+  const go = (dir: number) => {
+    const b = box.current;
+    if (!b) return;
+    // Avança de botão em botão (sem parar no meio de um logotipo).
+    const chips = Array.prototype.slice.call(b.children) as HTMLElement[];
+    if (!chips.length) return;
+    const base = chips[0].offsetLeft;
+    // primeiro botão inteiro à vista
+    let first = 0;
+    while (first < chips.length - 1 && chips[first].offsetLeft - base < b.scrollLeft - 2) first++;
+    const step = chips.length > 2 ? chips[2].offsetLeft - chips[1].offsetLeft : 170;
+    const per = Math.max(1, Math.floor((b.clientWidth - 60) / step));
+    const to = Math.max(0, Math.min(chips.length - 1, first + dir * per));
+    b.scrollLeft = Math.max(0, Math.min(b.scrollWidth - b.clientWidth, to === 0 ? 0 : chips[to].offsetLeft - base - 44));
+    update();
+  };
+  return (
+    <div className="stream-carousel" style={style}>
+      <div ref={box} className={'scroll-x stream-row' + (edge.l ? ' fade-l' : '') + (edge.r ? ' fade-r' : '')} style={{ height: '100%' }} onScroll={update} onFocus={() => setTimeout(update, 0)}>
+        {children}
+      </div>
+      {edge.l && (
+        <button className="stream-arrow left" aria-label="Streamings anteriores" onClick={() => go(-1)}>
+          ‹
+        </button>
+      )}
+      {edge.r && (
+        <button className="stream-arrow right" aria-label="Mais streamings" onClick={() => go(1)}>
+          ›
+        </button>
+      )}
+    </div>
   );
 }

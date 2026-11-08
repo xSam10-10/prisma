@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.16.4
+- Streamings em Filmes e Séries: logotipos brancos do mesmo tamanho, em carrossel com setas
+- Novos: Funimation Now, Lionsgate, Claro Vídeo, SBT+, DirecTV GO, AMC+ (aparecem quando a sua lista tem essas categorias)
+
 ## 0.16.3
 - Início: o destaque "Continuar assistindo" usa a largura toda, com a programação (Agora, A seguir, Depois) à direita
 - Ao vivo: o vídeo ocupa toda a coluna da direita (sem os quadros de programação embaixo)
