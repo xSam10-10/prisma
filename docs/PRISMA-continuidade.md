@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (08/11/2026, 23h · versão 0.18.0)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.18.1)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -393,6 +393,9 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - **Filmes/Séries**: botão "🔥 Top" na fileira de streamings → coluna com as listas agrupadas (Streamings, Em alta, Especiais, Por gênero), grade com a posição original do ranking. Ao escolher um streaming, "🔥 Top 10 <streaming>" no alto das categorias. **Início**: "Top 10 canais agora" (card com posição, motivo e "Agora: programa"), "Top 10 da semana" e um Top por streaming (até 6), filmes e séries alternados. Ajustes › Serviços › "Tops e recomendações" (situação + Atualizar agora).
 - **Jogos** (`loadGames`): guia rápido do Xtream de até 120 canais de esporte — primeiro os com `epg_channel_id` e marcas conhecidas (antes: os 80 primeiros da lista, o que deixava a Goldcard sem jogos) — + guia completo XMLTV de todos (também vale para M3U) + placar do dia da ESPN para jogos fora do guia, com "canais prováveis" por competição (`LIKELY`). Títulos com futebol/brasileiro/rodada/partida contam como jogo. Sem jogos: diagnóstico na tela (`gamesStats`).
 - **Aparência**: Estrutura só "Menu Horizontal" (A) e "Menu Vertical" (C); B · Cinema removida (quem usava vira A). Tema padrão **Apple TV**; migração única (`settings.v18`) passa quem estava no Prisma para o Apple TV.
+
+## 10u. Versão 0.18.1
+- Filmes/Séries: fileira de streamings = os das categorias + os que têm Top com títulos da lista (`streamings` em `Vod.tsx`); streaming sem categoria própria abre direto o Top dele (`pickStream`). Botão Top sempre visível; vazio explica o `TMDB_KEY`. Motivo: as categorias de filmes da Goldcard não têm nome de streaming.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

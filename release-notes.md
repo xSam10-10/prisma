@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.18.1
+- Filmes: a fileira de streamings aparece mesmo quando a lista não separa os filmes por streaming nas categorias — tocar no streaming abre o Top 10 dele
+- O botão 🔥 Top fica sempre visível em Filmes e Séries
+
 ## 0.18.0
 - Filmes e Séries: novo botão 🔥 Top com o Top 10 oficial da Netflix, os mais populares de cada streaming, Top 10 por gênero (terror, comédia, ação…), lançamentos, aclamados, doramas, novelas turcas, animes e nacionais — só o que está na sua lista
 - Ao escolher um streaming, o Top 10 dele aparece no alto das categorias
