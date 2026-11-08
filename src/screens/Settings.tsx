@@ -11,7 +11,8 @@ import { clearTmdbCache, testKey, tmdbKey } from '../core/tmdb';
 import { prefSet } from '../core/storage';
 import { ConfirmButton } from '../ui/Dialog';
 import { applyBackup, exportBackup, pickBackupFile } from '../core/backup';
-import { guideCoverage } from '../core/schedule';
+import { clearScheduleCache, guideCoverage } from '../core/schedule';
+import { PUBLIC_GUIDES, extraGuides, extraStatus, loadXmltv, setExtraGuides } from '../core/xmltv';
 import { runningVersion } from '../core/updater';
 import { UpdatePanel } from './UpdatePanel';
 import { clearEpgCache } from '../core/epg';
@@ -266,6 +267,7 @@ export function Settings({
           <button className="btn" data-nav="" onClick={onChange}>Trocar lista</button>
           <button className="btn" data-nav="" onClick={onRemove}>Remover lista</button>
         </div>
+        <ExtraGuides playlist={playlist} />
       </>
     );
   } else if (sec === 'servicos') {
@@ -492,4 +494,55 @@ function archiveSummary(pl: Playlist): string {
   if (!rec.length) return 'nenhum canal da lista grava';
   const max = Math.max(...rec.map((i) => i.catchupDays!));
   return `${rec.length.toLocaleString('pt-BR')} canais gravam · até ${max} ${max === 1 ? 'dia' : 'dias'}`;
+}
+
+/** Ajustes › Lista: guias de programação extras (XMLTV) para canais sem guia. */
+function ExtraGuides({ playlist }: { playlist: Playlist }) {
+  const [list, setList] = useState(extraGuides());
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [, force] = useState(0);
+  const apply = async (next: string[]) => {
+    setExtraGuides(next);
+    setList(extraGuides());
+    setBusy(true);
+    try {
+      clearScheduleCache();
+      await loadXmltv(playlist, true);
+    } finally {
+      setBusy(false);
+      force((x) => x + 1);
+    }
+  };
+  return (
+    <div className="opt-row gy-10" style={{ display: 'flex', flexDirection: 'column', marginTop: 16 }}>
+      <span style={{ fontSize: 18, fontWeight: 700 }}>Guia de programação extra</span>
+      <span className="muted" style={{ fontSize: 15, lineHeight: 1.4 }}>
+        Endereços de guias XMLTV (.xml ou .xml.gz) para completar os canais que a sua lista deixa sem programação. O guia da lista tem prioridade; os extras só preenchem o que falta, pelo nome do canal.
+      </span>
+      {list.map((u) => (
+        <div key={u} className="xg-row">
+          <span className="xg-url">{u}</span>
+          <span className="muted xg-st">{busy ? 'lendo…' : extraStatus[u] ?? ''}</span>
+          <button className="btn" data-nav="" onClick={() => apply(list.filter((x) => x !== u))}>Remover</button>
+        </div>
+      ))}
+      <div className="field" style={{ display: 'flex' }}>
+        <input data-nav="" value={url} placeholder="https://…/guia.xml.gz" onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => { if ((e.key === 'Enter' || e.keyCode === 13) && url.trim()) { apply([...list, url.trim()]); setUrl(''); } }} />
+      </div>
+      <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+        <button className="btn primary" data-nav="" disabled={!url.trim() || busy} onClick={() => { apply([...list, url.trim()]); setUrl(''); }}>Adicionar guia</button>
+        {list.length > 0 && <button className="btn" data-nav="" disabled={busy} onClick={() => apply(list)}>{busy ? 'Lendo os guias…' : 'Ler de novo'}</button>}
+      </div>
+      <span className="muted" style={{ fontSize: 14, fontWeight: 700, marginTop: 6 }}>Guias públicos sugeridos (Brasil) — podem mudar de endereço ou sair do ar:</span>
+      <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+        {PUBLIC_GUIDES.map((g) => (
+          <button key={g.url} className="btn" data-nav="" disabled={busy || list.includes(g.url)} onClick={() => apply([...list, g.url])}>
+            {list.includes(g.url) ? '✓ ' : '+ '}
+            {g.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }

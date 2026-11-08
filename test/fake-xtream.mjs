@@ -80,6 +80,7 @@ const cats = [
 ].map(([category_id, category_name]) => ({ category_id, category_name, parent_id: 0 }));
 
 let limitG = 4;
+let extraGoals = 0;
 let lastTimeshift = '';
 function epgFor(id) {
   const now = Math.floor(Date.now() / 1000);
@@ -161,11 +162,45 @@ createServer((req, res) => {
     if (/^3\/(movie|tv)\/\d+\/videos$/.test(path)) return j({ results: [{ site: 'YouTube', type: 'Trailer', key: 'dQw4w9WgXcQ' }] });
     return j({});
   }
+  // ESPN falsa: gol de teste (/espn/gol soma um gol do Flamengo), tabela, estatísticas, próximos jogos
+  if (u.pathname === '/espn/gol') { extraGoals++; return res.writeHead(200, { 'access-control-allow-origin': '*' }).end('ok'); }
+  if (u.pathname.startsWith('/espn/') && u.pathname.endsWith('/standings')) {
+    const teams = ['Flamengo', 'Palmeiras', 'Botafogo', 'São Paulo', 'Corinthians', 'Fluminense', 'Grêmio', 'Internacional', 'Atlético Mineiro', 'Cruzeiro'];
+    const entries = teams.map((t, i) => ({ team: { displayName: t, abbreviation: t.slice(0, 3).toUpperCase() }, stats: [{ name: 'rank', value: i + 1 }, { name: 'points', value: 70 - i * 4 }, { name: 'gamesPlayed', value: 34 }, { name: 'wins', value: 21 - i }, { name: 'ties', value: 7 }, { name: 'losses', value: 6 + i }, { name: 'pointDifferential', value: 30 - i * 6 }] }));
+    return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }).end(JSON.stringify({ children: [{ name: 'Brasileirão Série A', standings: { entries } }] }));
+  }
+  if (u.pathname.startsWith('/espn/') && u.pathname.endsWith('/summary')) {
+    const st = (n, v) => ({ name: n, displayValue: String(v) });
+    return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }).end(JSON.stringify({
+      boxscore: { teams: [
+        { team: { displayName: 'Flamengo' }, statistics: [st('possessionPct', 58.4), st('totalShots', 14), st('shotsOnTarget', 6), st('wonCorners', 7), st('foulsCommitted', 9), st('yellowCards', 2)] },
+        { team: { displayName: 'Palmeiras' }, statistics: [st('possessionPct', 41.6), st('totalShots', 8), st('shotsOnTarget', 3), st('wonCorners', 3), st('foulsCommitted', 13), st('yellowCards', 3)] },
+      ] },
+      keyEvents: [
+        { type: { text: 'Goal' }, scoringPlay: true, clock: { displayValue: "12'" }, team: { displayName: 'Flamengo' }, participants: [{ athlete: { displayName: 'Pedro' } }] },
+        { type: { text: 'Yellow Card' }, clock: { displayValue: "30'" }, team: { displayName: 'Palmeiras' }, participants: [{ athlete: { displayName: 'Gómez' } }] },
+        { type: { text: 'Goal' }, scoringPlay: true, clock: { displayValue: "51'" }, team: { displayName: 'Palmeiras' }, participants: [{ athlete: { displayName: 'Estêvão' } }] },
+        { type: { text: 'Goal' }, scoringPlay: true, clock: { displayValue: "63'" }, team: { displayName: 'Flamengo' }, participants: [{ athlete: { displayName: 'Arrascaeta' } }] },
+      ],
+      rosters: [
+        { team: { displayName: 'Flamengo' }, formation: '4-2-3-1', roster: ['Rossi', 'Varela', 'Léo Ortiz', 'Léo Pereira', 'Ayrton Lucas', 'Pulgar', 'Gerson', 'Arrascaeta', 'De la Cruz', 'Luiz Araújo', 'Pedro', 'Bruno Henrique'].map((n, i) => ({ athlete: { displayName: n }, starter: i < 11, jersey: String(i + 1) })) },
+        { team: { displayName: 'Palmeiras' }, formation: '4-4-2', roster: ['Weverton', 'Mayke', 'Gómez', 'Murilo', 'Piquerez', 'Aníbal', 'Richard Ríos', 'Raphael Veiga', 'Estêvão', 'Flaco López', 'Vitor Roque', 'Dudu'].map((n, i) => ({ athlete: { displayName: n }, starter: i < 11, jersey: String(i + 1) })) },
+      ],
+    }));
+  }
   if (u.pathname.startsWith('/espn/')) {
     const now = Date.now();
     const start = new Date(now - (now % 1800000) - 900000).toISOString();
-    const ev = (h, a, hs, as, state, short) => ({ date: start, status: { type: { state, shortDetail: short } }, competitions: [{ competitors: [{ homeAway: 'home', score: hs, team: { displayName: h } }, { homeAway: 'away', score: as, team: { displayName: a } }] }] });
-    const events = u.pathname.includes('bra.1') ? [ev('Flamengo', 'Palmeiras', '2', '1', 'in', "67'"), ev('Corinthians', 'São Paulo', '0', '0', 'pre', '21:30')]
+    let n = 0;
+    const ev = (h, a, hs, as, state, short, date = start) => ({ id: 'e' + (++n), date, status: { type: { state, shortDetail: short } }, competitions: [{ competitors: [{ homeAway: 'home', score: hs, team: { displayName: h } }, { homeAway: 'away', score: as, team: { displayName: a } }] }] });
+    if (u.searchParams.get('dates') && u.pathname.includes('bra.1')) {
+      const day = (d, h) => new Date(Math.floor(now / 86400000) * 86400000 + d * 86400000 + h * 3600000).toISOString();
+      return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }).end(JSON.stringify({ events: [
+        ev('Flamengo', 'Palmeiras', String(2 + extraGoals), '1', 'in', "67'"), ev('Corinthians', 'São Paulo', '0', '0', 'pre', '21:30', day(0, 23)),
+        ev('Botafogo', 'Fluminense', '', '', 'pre', '', day(1, 22)), ev('Grêmio', 'Internacional', '', '', 'pre', '', day(2, 19)), ev('Cruzeiro', 'Flamengo', '', '', 'pre', '', day(4, 21)),
+      ] }));
+    }
+    const events = u.pathname.includes('bra.1') ? [ev('Flamengo', 'Palmeiras', String(2 + extraGoals), '1', 'in', "67'"), ev('Corinthians', 'São Paulo', '0', '0', 'pre', '21:30')]
       : u.pathname.includes('libertadores') ? [ev('River Plate', 'Grêmio', '1', '1', 'in', 'HT')] : [];
     return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }).end(JSON.stringify({ events }));
   }

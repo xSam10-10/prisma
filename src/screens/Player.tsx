@@ -16,6 +16,7 @@ import { useClock, useEpg } from '../ui/useEpg';
 import { BarIcon, BarMenu, BarTop, ClassicBar, MenuItem, MenuToggle, PinDialog, PipWindow, pipSlotStyle, type BarAction } from './ChannelBar';
 import { FullList } from './FullList';
 import { Guide } from './Guide';
+import { NowOnTV } from './NowOnTV';
 import { checkPin, hasPin, isLockMarked, isLocked, setLocked, setPin, unlockForSession } from '../core/parental';
 
 export type PlayerMode = 'off' | 'preview' | 'full';
@@ -112,8 +113,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const barNavRef = useRef(false);
   listOpenRef.current = listOpen;
   const [guideOpen, setGuideOpen] = useState<null | { channels: Channel[]; index: number }>(null);
+  const [nowOpen, setNowOpen] = useState<null | { channels: Channel[]; title: string }>(null);
   const guideOpenRef = useRef(false);
-  guideOpenRef.current = !!guideOpen;
+  guideOpenRef.current = !!guideOpen || !!nowOpen;
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const padX = L.px;
@@ -304,6 +306,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     if (mode !== 'full') {
       setListOpen(false);
       setGuideOpen(null);
+      setNowOpen(null);
     }
   }, [mode]);
 
@@ -871,6 +874,10 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
           current={channel}
           isFav={isFav}
           onClose={() => setListOpen(false)}
+          onOpenNow={(chs, title) => {
+            setListOpen(false);
+            setNowOpen({ channels: chs, title });
+          }}
           onOpenGuide={(chs, i) => {
             setListOpen(false);
             setGuideOpen({ channels: chs, index: i });
@@ -882,6 +889,25 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
           onPick={(c, list) => {
             setListOpen(false);
             if (c.id !== channel.id) {
+              if (onPickList) onPickList(c, list);
+              else onZap(c);
+            }
+            showOverlay();
+          }}
+        />
+      )}
+
+      {full && nowOpen && playlist && (
+        <NowOnTV
+          playlist={playlist}
+          title={nowOpen.title}
+          channels={nowOpen.channels}
+          current={channel}
+          onClose={() => setNowOpen(null)}
+          onWatch={(c) => {
+            const list = nowOpen.channels;
+            setNowOpen(null);
+            if (c.id !== channel?.id) {
               if (onPickList) onPickList(c, list);
               else onZap(c);
             }

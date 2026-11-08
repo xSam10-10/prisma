@@ -16,6 +16,9 @@ export interface Score {
   detail: string; // "45'", "Intervalo", "Encerrado"…
   start: number;
   league: string;
+  /** Id do jogo na ESPN e o caminho da liga (para estatísticas e escalações). */
+  id?: string;
+  path?: string;
 }
 
 const LEAGUES: [string, string][] = [
@@ -33,6 +36,9 @@ const LEAGUES: [string, string][] = [
   ['football/nfl', 'NFL'],
   ['mma/ufc', 'UFC'],
 ];
+
+/** Ligas com tabela de classificação (futebol). */
+export const TABLE_LEAGUES: [string, string][] = LEAGUES.filter(([p]) => p.startsWith('soccer/'));
 
 function base(): string {
   // Permite apontar para outro servidor (testes).
@@ -73,6 +79,8 @@ export async function loadScores(force = false): Promise<Score[]> {
             detail: detailPt(state, String(get(ev, 'status.type.shortDetail') ?? '')),
             start: Date.parse(String(ev.date ?? '')),
             league,
+            id: ev.id != null ? String(ev.id) : undefined,
+            path,
           });
         }
       } catch {
@@ -122,4 +130,158 @@ export function scoreFor(g: Game, scores: Score[]): Score | undefined {
 export function orderedScore(g: Game, s: Score): [string, string] {
   const first = matchOf(g.title).split(/\s+(?:x|vs\.?|versus|×)\s+/i)[0];
   return sameTeam(first, s.home) ? [s.homeScore, s.awayScore] : [s.awayScore, s.homeScore];
+}
+
+// ---------------------------------------------------------------- Tabela
+export interface TableRow {
+  rank: number;
+  team: string;
+  short: string;
+  logo?: string;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  gd: number;
+  points: number;
+}
+export interface Table {
+  name: string;
+  rows: TableRow[];
+}
+
+function standingsBase(): string {
+  const b = base();
+  return b.includes('/apis/site/v2/') ? b.replace('/apis/site/v2/', '/apis/v2/') : b;
+}
+
+const stat = (stats: Obj[], ...names: string[]): number => {
+  for (const n of names) {
+    const s = stats.find((x) => x.name === n || x.type === n || x.abbreviation === n);
+    if (s) return Number(s.value ?? s.displayValue ?? 0) || 0;
+  }
+  return 0;
+};
+
+/** Classificação da liga (ESPN). Ligas com grupos (Libertadores) devolvem várias tabelas. */
+export async function loadStandings(path: string): Promise<Table[]> {
+  const r = JSON.parse(await fetchText(`${standingsBase()}/${path}/standings`, 15000)) as Obj;
+  const groups: Obj[] = ((r.children as Obj[]) ?? []).length ? (r.children as Obj[]) : [r];
+  return groups
+    .map((g) => {
+      const entries = (get(g, 'standings.entries') as Obj[]) ?? [];
+      const rows = entries.map((e, i): TableRow => {
+        const st = (e.stats as Obj[]) ?? [];
+        const logos = (get(e, 'team.logos') as Obj[]) ?? [];
+        return {
+          rank: stat(st, 'rank') || i + 1,
+          team: String(get(e, 'team.displayName') ?? ''),
+          short: String(get(e, 'team.abbreviation') ?? get(e, 'team.shortDisplayName') ?? ''),
+          logo: logos[0] ? String(logos[0].href) : undefined,
+          played: stat(st, 'gamesPlayed', 'GP'),
+          wins: stat(st, 'wins', 'W'),
+          draws: stat(st, 'ties', 'draws', 'T', 'D'),
+          losses: stat(st, 'losses', 'L'),
+          gd: stat(st, 'pointDifferential', 'GD'),
+          points: stat(st, 'points', 'P'),
+        };
+      });
+      rows.sort((a, b) => a.rank - b.rank);
+      return { name: String(g.name ?? g.abbreviation ?? ''), rows };
+    })
+    .filter((t) => t.rows.length);
+}
+
+/** Próximos jogos da liga (hoje e os próximos dias). */
+export async function loadFixtures(path: string, days = 7): Promise<Score[]> {
+  const d = (t: number) => {
+    const x = new Date(t);
+    return `${x.getFullYear()}${String(x.getMonth() + 1).padStart(2, '0')}${String(x.getDate()).padStart(2, '0')}`;
+  };
+  const now = Date.now();
+  const league = LEAGUES.find(([p]) => p === path)?.[1] ?? '';
+  const r = JSON.parse(await fetchText(`${base()}/${path}/scoreboard?dates=${d(now)}-${d(now + days * 86400000)}`, 15000)) as Obj;
+  const out: Score[] = [];
+  for (const ev of (r.events as Obj[]) ?? []) {
+    const comp = ((ev.competitions as Obj[]) ?? [])[0] ?? {};
+    const cs = (comp.competitors as Obj[]) ?? [];
+    const home = cs.find((c) => c.homeAway === 'home') ?? cs[0];
+    const away = cs.find((c) => c.homeAway === 'away') ?? cs[1];
+    if (!home || !away) continue;
+    const state = String(get(ev, 'status.type.state') ?? 'pre') as Score['state'];
+    out.push({
+      home: String(get(home, 'team.displayName') ?? ''),
+      away: String(get(away, 'team.displayName') ?? ''),
+      homeScore: String(home.score ?? ''),
+      awayScore: String(away.score ?? ''),
+      state,
+      detail: detailPt(state, String(get(ev, 'status.type.shortDetail') ?? '')),
+      start: Date.parse(String(ev.date ?? '')),
+      league,
+      id: ev.id != null ? String(ev.id) : undefined,
+      path,
+    });
+  }
+  return out.sort((a, b) => a.start - b.start);
+}
+
+// ---------------------------------------------------------------- Estatísticas do jogo
+export interface MatchStats {
+  /** [rótulo, casa, fora] */
+  stats: [string, string, string][];
+  events: { minute: string; kind: 'goal' | 'yellow' | 'red' | 'sub' | 'other'; team: string; text: string }[];
+  lineups: { team: string; formation?: string; starters: string[]; bench: string[] }[];
+}
+
+const STAT_PT: Record<string, string> = {
+  possessionPct: 'Posse de bola (%)',
+  totalShots: 'Finalizações',
+  shotsOnTarget: 'No gol',
+  wonCorners: 'Escanteios',
+  foulsCommitted: 'Faltas',
+  offsides: 'Impedimentos',
+  yellowCards: 'Cartões amarelos',
+  redCards: 'Cartões vermelhos',
+  saves: 'Defesas',
+};
+
+export async function loadMatchStats(s: Score): Promise<MatchStats | null> {
+  if (!s.id || !s.path) return null;
+  const r = JSON.parse(await fetchText(`${base()}/${s.path}/summary?event=${encodeURIComponent(s.id)}`, 15000)) as Obj;
+  const teams = (get(r, 'boxscore.teams') as Obj[]) ?? [];
+  const byTeam = (name: string) => teams.find((t) => teamKey(String(get(t, 'team.displayName') ?? '')) === teamKey(name));
+  const h = byTeam(s.home) ?? teams[0];
+  const a = byTeam(s.away) ?? teams[1];
+  const stats: MatchStats['stats'] = [];
+  if (h && a) {
+    const hs = (h.statistics as Obj[]) ?? [];
+    const as = (a.statistics as Obj[]) ?? [];
+    for (const [key, label] of Object.entries(STAT_PT)) {
+      const x = hs.find((q) => q.name === key);
+      const y = as.find((q) => q.name === key);
+      if (x || y) stats.push([label, String(x?.displayValue ?? '0'), String(y?.displayValue ?? '0')]);
+    }
+  }
+  const events: MatchStats['events'] = ((r.keyEvents as Obj[]) ?? []).map((e) => {
+    const t = String(get(e, 'type.text') ?? get(e, 'type.type') ?? '').toLowerCase();
+    const kind: MatchStats['events'][number]['kind'] = e.scoringPlay || /goal|gol/.test(t) ? 'goal' : /red/.test(t) ? 'red' : /yellow/.test(t) ? 'yellow' : /sub/.test(t) ? 'sub' : 'other';
+    const who = ((e.participants as Obj[]) ?? []).map((p) => String(get(p, 'athlete.displayName') ?? '')).filter(Boolean).join(', ');
+    return { minute: String(get(e, 'clock.displayValue') ?? ''), kind, team: String(get(e, 'team.displayName') ?? ''), text: who || String(e.text ?? e.shortText ?? '') };
+  }).filter((e) => e.kind !== 'other');
+  const lineups: MatchStats['lineups'] = ((r.rosters as Obj[]) ?? []).map((ro) => {
+    const players = (ro.roster as Obj[]) ?? [];
+    const fmt = (p: Obj) => `${p.jersey ? p.jersey + ' ' : ''}${String(get(p, 'athlete.displayName') ?? '')}`;
+    return {
+      team: String(get(ro, 'team.displayName') ?? ''),
+      formation: ro.formation ? String(ro.formation) : undefined,
+      starters: players.filter((p) => p.starter).map(fmt),
+      bench: players.filter((p) => !p.starter).map(fmt),
+    };
+  });
+  return { stats, events, lineups };
+}
+
+/** O time está na lista de "Meus times"? */
+export function isMyTeam(name: string, mine: string[]): boolean {
+  return mine.some((m) => sameTeam(m, name));
 }

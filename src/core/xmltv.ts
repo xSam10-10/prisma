@@ -2,7 +2,7 @@ import { gunzipSync, strFromU8 } from 'fflate';
 import { logoKey } from './logos';
 import { fetchBytes } from './net';
 import { LITE } from './platform';
-import { idbGet, idbSet } from './storage';
+import { idbGet, idbSet, prefGet, prefSet } from './storage';
 import type { Channel, EpgEntry, Playlist } from './types';
 import { normalizeServer } from './xtream';
 
@@ -118,10 +118,40 @@ export function parseXmltv(xml: string, wanted: (id: string, names: string[]) =>
   return { guide, names };
 }
 
+// ---- Guias extras (Ajustes › Lista): completam canais sem programação ----
+
+/** Endereços de guias XMLTV extras (valem para todos os perfis). */
+export function extraGuides(): string[] {
+  return prefGet<string[]>('epgExtra', []);
+}
+export function setExtraGuides(list: string[]): void {
+  prefSet('epgExtra', [...new Set(list.map((u) => u.trim()).filter(Boolean))]);
+}
+/** Guias públicos sugeridos (Brasil). Podem sair do ar; teste em Ajustes. */
+export const PUBLIC_GUIDES: { name: string; url: string }[] = [
+  { name: 'Brasil 1 (epgshare01)', url: 'https://epgshare01.online/epgshare01/epg_ripper_BR1.xml.gz' },
+  { name: 'Brasil 2 (epgshare01)', url: 'https://epgshare01.online/epgshare01/epg_ripper_BR2.xml.gz' },
+  { name: 'Pluto TV Brasil (i.mjh.nz)', url: 'https://i.mjh.nz/PlutoTV/br.xml.gz' },
+];
+
+async function fetchGuide(url: string, pl: Playlist): Promise<Omit<Stored, 'url' | 'at'>> {
+  const bytes = await fetchBytes(url);
+  const raw = bytes[0] === 0x1f && bytes[1] === 0x8b ? gunzipSync(bytes) : bytes;
+  const xml = strFromU8(raw);
+  const ids = new Set(pl.items.filter((c) => c.kind === 'live' && c.epgId).map((c) => c.epgId!));
+  const nameKeys = new Set(pl.items.filter((c) => c.kind === 'live').map((c) => logoKey(c.fullName ?? c.name)));
+  return parseXmltv(xml, (id, dn) => ids.has(id) || dn.some((n) => nameKeys.has(logoKey(n))));
+}
+
+/** Resultado da última leitura de cada guia extra (para Ajustes). */
+export const extraStatus: Record<string, string> = {};
+
 /** Baixa (ou usa o guardado) e devolve o guia. */
 export function loadXmltv(pl: Playlist, force = false): Promise<Stored | null> {
-  const url = xmltvUrl(pl);
-  if (!url) return Promise.resolve(null);
+  const main = xmltvUrl(pl);
+  const extras = extraGuides();
+  if (!main && !extras.length) return Promise.resolve(null);
+  const url = [main ?? '', ...extras].join('|');
   if (!force && mem && mem.url === url && Date.now() - mem.at < REFRESH) return Promise.resolve(mem);
   if (loading) return loading;
   loading = (async () => {
@@ -130,12 +160,31 @@ export function loadXmltv(pl: Playlist, force = false): Promise<Stored | null> {
         const saved = await idbGet<Stored>(KEY);
         if (saved && saved.url === url && Date.now() - saved.at < REFRESH) return (mem = saved);
       }
-      const bytes = await fetchBytes(url);
-      const raw = bytes[0] === 0x1f && bytes[1] === 0x8b ? gunzipSync(bytes) : bytes;
-      const xml = strFromU8(raw);
-      const ids = new Set(pl.items.filter((c) => c.kind === 'live' && c.epgId).map((c) => c.epgId!));
-      const nameKeys = new Set(pl.items.filter((c) => c.kind === 'live').map((c) => logoKey(c.fullName ?? c.name)));
-      const parsed = parseXmltv(xml, (id, dn) => ids.has(id) || dn.some((n) => nameKeys.has(logoKey(n))));
+      let parsed: Omit<Stored, 'url' | 'at'> = { guide: {}, names: {} };
+      if (main) {
+        try {
+          parsed = await fetchGuide(main, pl);
+        } catch {
+          /* guia da lista fora do ar: seguem os extras */
+        }
+      }
+      // Extras: só completam (o guia da lista tem prioridade).
+      for (const x of extras) {
+        try {
+          const g = await fetchGuide(x, pl);
+          let added = 0;
+          for (const [id, progs] of Object.entries(g.guide)) {
+            if (parsed.guide[id]) continue;
+            parsed.guide[id] = progs;
+            added++;
+          }
+          for (const [n, id] of Object.entries(g.names)) if (!parsed.names[n] && parsed.guide[id]) parsed.names[n] = id;
+          extraStatus[x] = `${Object.keys(g.guide).length} canais da sua lista no guia · ${added} novos`;
+        } catch (e) {
+          extraStatus[x] = 'não respondeu' + ((e as Error)?.message ? ` (${(e as Error).message})` : '');
+        }
+      }
+      if (!Object.keys(parsed.guide).length && !main) throw new Error('vazio');
       const st: Stored = { url, at: Date.now(), ...parsed };
       mem = st;
       await idbSet(KEY, st);

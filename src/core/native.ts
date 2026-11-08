@@ -82,3 +82,16 @@ export async function syncNativeReminders(list: Reminder[]): Promise<void> {
     /* sem permissão: os avisos continuam só com o app aberto */
   }
 }
+
+/** Aviso imediato do sistema (ex.: gol do seu time) — Android. */
+export async function notifyNow(title: string, body: string): Promise<void> {
+  if (!IS_ANDROID) return;
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    const perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== 'granted') return;
+    await LocalNotifications.schedule({ notifications: [{ id: Math.floor(Date.now() % 2000000000), title, body, schedule: { at: new Date(Date.now() + 500) } }] });
+  } catch {
+    /* sem permissão */
+  }
+}

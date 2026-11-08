@@ -4,8 +4,9 @@ import { askOnStart, chosenThisSession, currentProfile, switchProfile } from './
 import { WhoIsWatching } from './screens/Profiles';
 import { MyList, VodScreen, type VodTab } from './screens/Vod';
 import { Games } from './screens/Games';
-import { dueReminders, reminders, type Reminder } from './core/games';
-import { installNative, syncNativeReminders } from './core/native';
+import { cachedGames, dueReminders, ensureReminder, loadGames, myTeams, reminders, teamsOf, type Reminder } from './core/games';
+import { isMyTeam, loadScores, scoreFor } from './core/scores';
+import { installNative, notifyNow, syncNativeReminders } from './core/native';
 import { checkForUpdate, markBootOk, shouldAutoCheck, type CheckResult } from './core/updater';
 import type { Section } from './screens/Settings';
 import { pushVodRecent } from './core/vod';
@@ -117,6 +118,57 @@ export function App() {
     }, 8000);
     return () => clearTimeout(t);
   }, [phase]);
+  // Meus times: lembretes automáticos dos jogos e aviso de gol (com o app aberto).
+  const [goal, setGoal] = useState<null | { title: string; detail: string; channel?: Channel; list?: Channel[] }>(null);
+  const goalsRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    if (phase !== 'app' || !playlist) return;
+    let alive = true;
+    const remindMine = () => {
+      const mt = myTeams();
+      if (!mt.length || playlist.source.type !== 'xtream') return;
+      loadGames(playlist).then((gs) => {
+        for (const g of gs) if (g.start > Date.now() && teamsOf(g).some((t) => isMyTeam(t, mt))) ensureReminder(g);
+      }, () => {});
+    };
+    const checkGoals = () => {
+      // Acompanha o placar de todos os jogos desde que o app abre (para não perder
+      // o 1º gol depois de escolher os times) e avisa só os de "Meus times".
+      loadScores().then((sc) => {
+        if (!alive) return;
+        const mt = myTeams();
+        for (const x of sc) {
+          if (x.state === 'pre') continue;
+          const key = x.id ?? `${x.home}|${x.away}|${x.start}`;
+          const total = (parseInt(x.homeScore, 10) || 0) + (parseInt(x.awayScore, 10) || 0);
+          const before = goalsRef.current[key];
+          goalsRef.current[key] = total;
+          if (!mt.length || !(isMyTeam(x.home, mt) || isMyTeam(x.away, mt))) continue;
+          if (before !== undefined && total > before) {
+            const g = cachedGames().find((gg) => scoreFor(gg, [x]));
+            const title = `⚽ Gol! ${x.home} ${x.homeScore} × ${x.awayScore} ${x.away}`;
+            setGoal({ title, detail: `${x.league} · ${x.detail}`, channel: g?.channels[0], list: g?.channels });
+            void notifyNow(title, `${x.league} · ${x.detail}`);
+          }
+        }
+      }, () => {});
+    };
+    const t1 = setTimeout(remindMine, 20000);
+    const t2 = setInterval(remindMine, 2 * 3600 * 1000);
+    checkGoals();
+    const t3 = setInterval(checkGoals, 60000);
+    return () => {
+      alive = false;
+      clearTimeout(t1);
+      clearInterval(t2);
+      clearInterval(t3);
+    };
+  }, [phase, playlist]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!goal) return;
+    const t = setTimeout(() => setGoal(null), 15000);
+    return () => clearTimeout(t);
+  }, [goal]);
   // Android: Voltar do controle, toque na notificação e lembretes agendados.
   useEffect(() => {
     void installNative((r) => setToast(r));
@@ -401,6 +453,19 @@ export function App() {
               if (i >= 0 && queue[i + 1]) playVod(queue[i + 1], 0);
             }}
           />
+        )}
+        {goal && (
+          <div className="toast gy-10" style={{ right: L.px, top: 24 + L.safeY, display: 'flex', flexDirection: 'column' }} role="alert">
+            <span className="badge-live" style={{ alignSelf: 'flex-start' }}>Meu time</span>
+            <span style={{ fontSize: 20, fontWeight: 800 }}>{goal.title}</span>
+            <span className="muted" style={{ fontSize: 15 }}>{goal.detail}</span>
+            <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+              {goal.channel && (
+                <button className="btn primary" data-nav="" onClick={() => { watchFull(goal.channel!, goal.list ?? []); setGoal(null); }}>▶ Assistir</button>
+              )}
+              <button className="btn" data-nav="" onClick={() => setGoal(null)}>Fechar</button>
+            </div>
+          </div>
         )}
         {updInfo && !toast && (
           <div className="toast gy-10" style={{ right: L.px, top: 24 + L.safeY, display: 'flex', flexDirection: 'column' }} role="alert">

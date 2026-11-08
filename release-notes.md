@@ -1,6 +1,14 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.17.0
+- Agora na TV: mosaico com o que está passando em cada canal (menu da tela cheia)
+- Grupo Gravações no menu da tela cheia (canais que gravam)
+- Meus times: lembrete automático dos jogos e aviso de gol
+- Jogos: tabela do campeonato, próximos jogos, estatísticas e escalações
+- Início: Destaques de hoje (jogos, filmes e grandes programas)
+- Ajustes › Lista: guia de programação extra (XMLTV) e guias públicos sugeridos
+
 ## 0.16.8
 - Atualização dentro do app agora lê as versões direto do GitHub do PRISMA (repositório público)
 

@@ -120,3 +120,35 @@ export function dueReminders(): Reminder[] {
   if (due.length) prefSet('reminders', all.map((r) => (due.some((d) => d.key === r.key) ? { ...r, fired: true } : r)));
   return due;
 }
+
+// ---- Meus times ----
+
+/** Times escolhidos (por perfil). */
+export function myTeams(): string[] {
+  return prefGet<string[]>('myTeams', []);
+}
+export function setMyTeams(list: string[]): void {
+  prefSet('myTeams', [...new Set(list.map((t) => t.trim()).filter(Boolean))]);
+}
+
+/** Os dois times de um jogo ("Brasileirão: Flamengo x Palmeiras" → ["Flamengo", "Palmeiras"]). */
+export function teamsOf(g: Game | string): string[] {
+  const t = matchOf(typeof g === 'string' ? g : g.title);
+  const p = t.split(/\s+(?:x|vs\.?|versus|×)\s+/i).map((x) => x.replace(/\s*[-–(].*$/, '').trim());
+  return p.length === 2 && p[0] && p[1] ? p : [];
+}
+
+/** Jogos já lidos do guia (sem buscar de novo). */
+export function cachedGames(): Game[] {
+  return cache ? cache.games : [];
+}
+
+/** Liga o lembrete (sem desligar se já existir). */
+export function ensureReminder(g: Game): boolean {
+  const cur = reminders();
+  if (cur.some((r) => r.key === g.key)) return false;
+  const next = [...cur, { key: g.key, title: g.title, start: g.start, channelId: g.channels[0]?.id }];
+  prefSet('reminders', next);
+  void syncNativeReminders(next);
+  return true;
+}

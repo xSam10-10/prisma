@@ -1,6 +1,9 @@
 import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Channel, Playlist } from '../core/types';
+import { hasReminder, toggleReminder } from '../core/games';
+import { todayHighlights } from '../core/highlights';
+import { hasXmltv, loadXmltv } from '../core/xmltv';
 import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol, colorFor, fmtTime, rgba } from '../ui/bits';
 import { progressOf } from '../core/epg';
 import { useClock, useEpg } from '../ui/useEpg';
@@ -58,6 +61,18 @@ export function Home({
   useEffect(() => {
     requestAnimationFrame(() => focusFirst(root.current));
   }, []);
+  // Destaques do dia (do guia): espera o guia completo carregar.
+  const [hlTick, force] = useState(0);
+  const [guideReady, setGuideReady] = useState(hasXmltv());
+  useEffect(() => {
+    if (guideReady) return;
+    let alive = true;
+    loadXmltv(playlist).then(() => alive && setGuideReady(true), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [playlist]); // eslint-disable-line react-hooks/exhaustive-deps
+  const highlights = useMemo(() => todayHighlights(live, favs.map((f) => f.id)), [live, favs, guideReady, hlTick]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }}>
       <Hero
@@ -84,6 +99,44 @@ export function Home({
               <PosterCard item={v} w={w} />
             </button>
           )}
+        />
+      )}
+
+      {highlights.length > 0 && (
+        <Carousel
+          title="Destaques de hoje"
+          items={highlights}
+          keyOf={(h) => h.ch.id + h.e.start}
+          minWidth={mobile ? 170 : 260}
+          render={(h, _i, w) => {
+            const live = h.e.start <= Date.now();
+            const key = `g:${h.ch.id}:${h.e.start}`;
+            return (
+              <button
+                className="tile grow hl-card"
+                data-nav=""
+                style={{ width: w }}
+                aria-label={`${h.e.title}, ${h.ch.name}`}
+                onClick={() => {
+                  if (live) onWatch(h.ch, live ? [h.ch] : []);
+                  else {
+                    toggleReminder({ key, title: `${h.e.title} · ${h.ch.name}`, league: '', start: h.e.start, end: h.e.end, channels: [h.ch] });
+                    force((x) => x + 1);
+                  }
+                }}
+              >
+                <span className={'hl-when' + (live ? ' live' : '')}>
+                  {live ? '● AO VIVO' : fmtTime(h.e.start)} · {h.kind === 'jogo' ? 'Jogo' : h.kind === 'filme' ? 'Filme' : 'Programa'}
+                </span>
+                <span className="hl-title">{h.e.title}</span>
+                <span className="hl-ch">
+                  <ChannelLogo ch={h.ch} size={28} />
+                  <span>{h.ch.name}</span>
+                  {!live && <b>{hasReminder(key) ? '⏰ agendado' : '⏰ lembrar'}</b>}
+                </span>
+              </button>
+            );
+          }}
         />
       )}
 

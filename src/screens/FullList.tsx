@@ -21,12 +21,14 @@ import { SchedulePanel } from './Schedule';
 
 const FAV = '__fav__';
 const ALL = '__all__';
+/** Canais que gravam (voltar na programação) — como o grupo "Playback" do app de referência. */
+const REC = '__rec__';
 type Col = 'menu' | 'list' | 'sched';
 interface Item {
   id: string;
   label: string;
   icon?: ReactNode;
-  kind: 'search' | 'agenda' | 'group' | 'guide';
+  kind: 'search' | 'agenda' | 'group' | 'guide' | 'now';
   lock?: boolean;
 }
 
@@ -39,11 +41,13 @@ const IC = {
   search: ic(<><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>),
   clock: ic(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>),
   star: ic(<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />),
+  rec: ic(<><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" fill="currentColor" /></>),
+  mosaic: ic(<><rect x="3" y="4" width="8" height="7" rx="1" /><rect x="13" y="4" width="8" height="7" rx="1" /><rect x="3" y="13" width="8" height="7" rx="1" /><rect x="13" y="13" width="8" height="7" rx="1" /></>),
   grid: ic(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M9 4v16" /></>),
   list: ic(<><path d="M9 6h12M9 12h12M9 18h12" /><circle cx="4.5" cy="6" r="1" fill="currentColor" /><circle cx="4.5" cy="12" r="1" fill="currentColor" /><circle cx="4.5" cy="18" r="1" fill="currentColor" /></>),
 };
 
-export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, onClose, onOpenGuide, variant = 'classic' }: {
+export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, onClose, onOpenGuide, onOpenNow, variant = 'classic' }: {
   playlist: Playlist;
   live: Channel[];
   current?: Channel;
@@ -54,6 +58,8 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   onClose: () => void;
   /** Grade de todos os canais (Guia de 7 dias). */
   onOpenGuide?: (channels: Channel[], index: number) => void;
+  /** "Agora na TV": mosaico do grupo. */
+  onOpenNow?: (channels: Channel[], title: string) => void;
   /** Visual: clássico (cinza, igual à barra clássica) ou Prisma (escuro, cores do tema). */
   variant?: 'classic' | 'prisma';
 }) {
@@ -68,6 +74,8 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
       { id: 'agenda', label: 'Agendar programação', icon: IC.clock, kind: 'agenda' },
       { id: FAV, label: 'Favoritos', icon: IC.star, kind: 'group' },
       { id: ALL, label: 'Lista de canais', icon: IC.list, kind: 'group' },
+      { id: REC, label: 'Gravações', icon: IC.rec, kind: 'group' },
+      { id: 'now', label: 'Agora na TV', icon: IC.mosaic, kind: 'now' },
       { id: 'guide', label: 'Guia de 7 dias', icon: IC.grid, kind: 'guide' },
       ...sections.map((s) => ({ id: s.id, label: s.name, kind: 'group' as const, lock: /adult|\+18|xxx/i.test(s.name) })),
     ],
@@ -77,7 +85,7 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   // Grupo inicial: o mesmo escolhido na tela Ao vivo.
   const [group, setGroup] = useState<string>(() => {
     const g = prefGet<string>('live.cat', ALL);
-    return g === FAV || g === ALL || sections.some((s) => s.id === g) ? g : ALL;
+    return g === FAV || g === ALL || g === REC || sections.some((s) => s.id === g) ? g : ALL;
   });
   const [view, setView] = useState<'group' | 'search' | 'agenda'>('group');
   const [query, setQuery] = useState('');
@@ -97,6 +105,7 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
     }
     if (group === FAV) return live.filter((c) => isFav(c));
     if (group === ALL) return live;
+    if (group === REC) return live.filter(canCatchup);
     return sectionChannels(group, live, secData);
   }, [view, query, group, live, secData, isFav]);
   const agenda = useMemo(() => (view === 'agenda' ? [...reminders()].sort((a, b) => a.start - b.start) : []), [view, col]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -131,7 +140,7 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
   }, [mi, col]);
 
   const count = view === 'agenda' ? agenda.length : channels.length;
-  const title = view === 'search' ? 'Buscar' : view === 'agenda' ? 'Agendar programação' : group === FAV ? 'Favoritos' : group === ALL ? 'Lista de canais' : sections.find((s) => s.id === group)?.name ?? '';
+  const title = view === 'search' ? 'Buscar' : view === 'agenda' ? 'Agendar programação' : group === FAV ? 'Favoritos' : group === ALL ? 'Lista de canais' : group === REC ? 'Gravações' : sections.find((s) => s.id === group)?.name ?? '';
 
   const chooseMenu = (i: number, enter: boolean) => {
     const it = menu[i];
@@ -143,6 +152,8 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
     } else if (it.kind === 'agenda') {
       setView('agenda');
       if (enter) setCol('list');
+    } else if (it.kind === 'now') {
+      if (enter) onOpenNow?.(channels.length ? channels : live, title);
     } else if (it.kind === 'guide') {
       if (enter) onOpenGuide?.(channels.length ? channels : live, Math.max(0, idx));
     } else if (it.kind === 'search') {
@@ -232,7 +243,7 @@ export function FullList({ playlist, live, current, isFav, onPick, onPlayVod, on
     <div ref={root} className={'flist' + (expanded ? ' open' : '') + (variant === 'prisma' ? ' prisma' : '')} tabIndex={-1} data-nav-scope="" style={{ paddingTop: pad, paddingBottom: pad }} onClick={(e) => e.stopPropagation()}>
       <div className="flist-rail" style={{ width: railW }}>
         <div className="flist-rail-in" ref={railRef}>
-          {menu.slice(0, expanded ? menu.length : 5).map((m, i) => (
+          {menu.slice(0, expanded ? menu.length : 7).map((m, i) => (
             <button
               key={m.id}
               className={'flist-mi' + (i === mi && expanded ? ' sel' : '') + ((m.kind === 'group' && view === 'group' && group === m.id) || (m.kind !== 'group' && view === m.kind) ? ' on' : '') + (m.icon ? '' : ' grp')}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { hasReminder, isSportsChannel, loadGames, matchOf, toggleReminder, type Game } from '../core/games';
+import { ensureReminder, hasReminder, isSportsChannel, loadGames, matchOf, myTeams, setMyTeams, teamsOf, toggleReminder, type Game } from '../core/games';
+import { TABLE_LEAGUES, isMyTeam, loadFixtures, loadMatchStats, loadStandings, teamKey, type MatchStats, type Table } from '../core/scores';
 import type { Channel, Playlist } from '../core/types';
 import { loadScores, orderedScore, scoreFor, type Score } from '../core/scores';
 import { ChannelLogo, fmtTime } from '../ui/bits';
@@ -8,7 +9,10 @@ import { useLayout } from '../ui/layout';
 import { T } from '../ui/tokens';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 
-type Filter = 'agora' | 'hoje' | 'amanha' | 'todos';
+type Filter = 'agora' | 'hoje' | 'amanha' | 'todos' | 'meus';
+
+/** Clubes sugeridos em "Meus times" (além dos que aparecem no guia). */
+const POPULAR = ['Flamengo', 'Palmeiras', 'Corinthians', 'São Paulo', 'Santos', 'Grêmio', 'Internacional', 'Atlético Mineiro', 'Cruzeiro', 'Botafogo', 'Fluminense', 'Vasco', 'Bahia', 'Fortaleza', 'Athletico Paranaense', 'Vitória', 'Sport', 'Ceará', 'Juventude', 'Bragantino', 'Real Madrid', 'Barcelona', 'Manchester City', 'Liverpool', 'Arsenal', 'Chelsea', 'Bayern', 'PSG', 'Inter de Milão', 'Juventus'];
 
 function dayKey(ms: number): number {
   const d = new Date(ms);
@@ -31,6 +35,10 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
   const [index, setIndex] = useState(0);
   const [, force] = useState(0);
   const [open, setOpen] = useState<Game | null>(null);
+  const [mode, setMode] = useState<'jogos' | 'tabela'>('jogos');
+  const [teamsDlg, setTeamsDlg] = useState(false);
+  const [mine, setMine] = useState<string[]>(myTeams());
+  const isMine = (g: Game) => mine.length > 0 && teamsOf(g).some((t) => isMyTeam(t, mine));
   const listRef = useRef<VirtualListHandle>(null);
   // Placar ao vivo (ESPN): atualiza a cada minuto enquanto a tela está aberta.
   const [scores, setScores] = useState<Score[]>([]);
@@ -52,6 +60,9 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
     loadGames(playlist, (done, total) => alive && setProg({ done, total })).then((g) => {
       if (!alive) return;
       setGames(g);
+      // Meus times: lembrete automático de todos os jogos deles.
+      const mt = myTeams();
+      if (mt.length) for (const x of g) if (x.start > Date.now() && teamsOf(x).some((t) => isMyTeam(t, mt))) ensureReminder(x);
       // Sem jogo ao vivo agora: começa em "Hoje".
       if (!g.some((x) => status(x, Date.now()) === 'live')) setFilter('hoje');
       requestAnimationFrame(() => listRef.current?.focus());
@@ -67,9 +78,10 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
     if (filter === 'agora') l = l.filter((g) => status(g, now) === 'live');
     else if (filter === 'hoje') l = l.filter((g) => dayKey(g.start) === today || status(g, now) === 'live');
     else if (filter === 'amanha') l = l.filter((g) => dayKey(g.start) === today + 86400000);
+    else if (filter === 'meus') l = l.filter(isMine);
     if (league) l = l.filter((g) => g.league === league);
     return l;
-  }, [games, filter, league, now, today]);
+  }, [games, filter, league, now, today, mine]); // eslint-disable-line react-hooks/exhaustive-deps
   const leagues = useMemo(() => [...new Set((games ?? []).map((g) => g.league))].slice(0, 12), [games]);
   useEffect(() => setIndex(0), [filter, league]);
   const sel = list[index];
@@ -93,6 +105,7 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
     ['hoje', 'Hoje', games.filter((g) => dayKey(g.start) === today || status(g, now) === 'live').length],
     ['amanha', 'Amanhã', games.filter((g) => dayKey(g.start) === today + 86400000).length],
     ['todos', 'Todos', games.length],
+    ['meus', '★ Meus times', games.filter(isMine).length],
   ];
 
   const detail = (g: Game) => <GameDetail g={g} score={scoreFor(g, scores)} now={now} onWatch={(c) => onWatch(c, g.channels)} onReminder={() => { toggleReminder(g); force((x) => x + 1); }} />;
@@ -108,12 +121,32 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
             {label} · {n}
           </button>
         ))}
-        {leagues.length > 1 && <span className="muted" style={{ margin: '0 4px 0 14px', fontSize: 14, flexShrink: 0 }}>Ligas</span>}
-        {leagues.length > 1 && leagues.map((l) => (
+        <button className={'chip' + (mode === 'tabela' ? ' on' : '')} data-nav="" onClick={() => setMode(mode === 'tabela' ? 'jogos' : 'tabela')} style={{ height: 40, marginLeft: 14 }}>▦ Tabela e próximos jogos</button>
+        <button className="chip" data-nav="" onClick={() => setTeamsDlg(true)} style={{ height: 40 }}>☆ Escolher meus times{mine.length ? ` (${mine.length})` : ''}</button>
+        {mode === 'jogos' && leagues.length > 1 && <span className="muted" style={{ margin: '0 4px 0 14px', fontSize: 14, flexShrink: 0 }}>Ligas</span>}
+        {mode === 'jogos' && leagues.length > 1 && leagues.map((l) => (
           <button key={l} className={'chip' + (league === l ? ' on' : '')} data-nav="" onClick={() => setLeague(league === l ? '' : l)} style={{ height: 40 }}>{l}</button>
         ))}
       </div>
 
+      {teamsDlg && (
+        <MyTeamsDialog
+          games={games}
+          initial={mine}
+          onClose={() => setTeamsDlg(false)}
+          onSave={(list) => {
+            setMyTeams(list);
+            setMine(list);
+            setTeamsDlg(false);
+            for (const x of games) if (x.start > Date.now() && teamsOf(x).some((t) => isMyTeam(t, list))) ensureReminder(x);
+            force((n) => n + 1);
+          }}
+        />
+      )}
+      {mode === 'tabela' ? (
+        <StandingsView games={games} mine={mine} onWatch={(c, list) => onWatch(c, list)} />
+      ) : (
+      <>
       <div className={mobile ? '' : 'glass'} style={{ position: 'absolute', left: L.px, top: L.top + 60, bottom: L.bottom, width: listW, borderRadius: T.radiusPanel, padding: mobile ? 0 : 14, display: 'flex' }}>
         <VirtualList
           ref={listRef}
@@ -146,6 +179,7 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
                     </span>
                   );
                 })()}
+                {isMine(g) && <span title="Meu time" style={{ color: T.warn }}>★</span>}
                 {hasReminder(g.key) && <span title="Lembrete" style={{ color: T.warn }}>⏰</span>}
               </>
             );
@@ -169,6 +203,8 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
           {detail(open)}
         </Modal>
       )}
+      </>
+      )}
     </>
   );
 }
@@ -179,6 +215,8 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
   const teams = matchOf(g.title).split(/\s+(?:x|vs\.?|versus|×)\s+/i);
   const pct = Math.max(0, Math.min(1, (now - g.start) / Math.max(1, g.end - g.start)));
   const rem = hasReminder(g.key);
+  const [tab, setTab] = useState<'onde' | 'stats' | 'escal'>('onde');
+  useEffect(() => setTab('onde'), [g.key]);
   return (
     <div className="gy-16" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <span className="muted caps" style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>{g.league}</span>
@@ -208,7 +246,16 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
       <span className="muted" style={{ fontSize: 13 }}>
         {score ? `Placar: ESPN · atualiza a cada minuto${score.state === 'pre' ? ' (ainda não começou)' : ''}` : 'Placar indisponível para este jogo (a fonte cobre as principais ligas de futebol, NBA, NFL e UFC).'}
       </span>
-      <span className="title" style={{ fontSize: 19, marginTop: 4 }}>Onde assistir</span>
+      <div className="gx-8" style={{ display: 'flex', marginTop: 4, flexShrink: 0 }}>
+        {(['onde', 'stats', 'escal'] as const).map((t) => (
+          <button key={t} className={'chip' + (tab === t ? ' on' : '')} data-nav="" style={{ height: 36 }} onClick={() => setTab(t)}>
+            {t === 'onde' ? 'Onde assistir' : t === 'stats' ? 'Estatísticas' : 'Escalações'}
+          </button>
+        ))}
+      </div>
+      {tab !== 'onde' ? (
+        <MatchInfo score={score} tab={tab} />
+      ) : (
       <div className="gy-8 scroll-y" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flexGrow: 1, flexShrink: 1 }}>
         {g.channels.map((c) => (
           <button key={c.id} className="where-row" data-nav="" onClick={() => onWatch(c)}>
@@ -218,6 +265,7 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
           </button>
         ))}
       </div>
+      )}
       <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', flexShrink: 0, marginBottom: -12 }}>
         <button className="btn primary" data-nav="" onClick={() => g.channels[0] && onWatch(g.channels[0])}>▶ {st === 'live' ? 'Assistir agora' : 'Ir para o canal'}</button>
         {st !== 'live' && (
@@ -237,5 +285,202 @@ function Info({ L, title, text, children }: { L: ReturnType<typeof useLayout>; t
       <span className="muted" style={{ fontSize: 18, lineHeight: 1.5 }}>{text}</span>
       {children}
     </div>
+  );
+}
+
+/** Estatísticas e escalações do jogo (ESPN). */
+function MatchInfo({ score, tab }: { score?: Score; tab: 'stats' | 'escal' }) {
+  const [data, setData] = useState<MatchStats | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    setData(undefined);
+    if (!score?.id) {
+      setData(null);
+      return;
+    }
+    const load = () => loadMatchStats(score).then((d) => alive && setData(d), () => alive && setData(null));
+    load();
+    // Ao vivo: atualiza a cada minuto.
+    const t = score.state === 'in' ? setInterval(load, 60000) : undefined;
+    return () => {
+      alive = false;
+      if (t) clearInterval(t);
+    };
+  }, [score?.id, score?.state]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (data === undefined) return <span className="muted" style={{ fontSize: 15 }}>Carregando…</span>;
+  if (!data) return <span className="muted" style={{ fontSize: 15 }}>Sem estatísticas para este jogo (a fonte cobre as principais ligas de futebol).</span>;
+  if (tab === 'escal') {
+    if (!data.lineups.length) return <span className="muted" style={{ fontSize: 15 }}>As escalações saem perto do início do jogo.</span>;
+    return (
+      <div className="lineups scroll-y">
+        {data.lineups.map((l) => (
+          <div key={l.team} className="lineup">
+            <span className="lineup-team">{l.team}{l.formation ? ` · ${l.formation}` : ''}</span>
+            {l.starters.map((p) => <span key={p} className="lineup-p">{p}</span>)}
+            {l.bench.length > 0 && <span className="lineup-bench">Reservas: {l.bench.join(', ')}</span>}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="mstats scroll-y">
+      {data.events.length > 0 && (
+        <div className="mevents">
+          {data.events.map((e, i) => (
+            <span key={i} className="mevent">
+              <b>{e.minute}</b> {e.kind === 'goal' ? '⚽' : e.kind === 'yellow' ? '🟨' : e.kind === 'red' ? '🟥' : '⇄'} {e.text} <i>· {e.team}</i>
+            </span>
+          ))}
+        </div>
+      )}
+      {data.stats.map(([label, h, a]) => {
+        const x = parseFloat(h) || 0;
+        const y = parseFloat(a) || 0;
+        const pct = x + y > 0 ? (x / (x + y)) * 100 : 50;
+        return (
+          <div key={label} className="mstat">
+            <div className="mstat-l"><b>{h}</b><span>{label}</span><b>{a}</b></div>
+            <div className="mstat-bar"><div style={{ width: pct + '%' }} /></div>
+          </div>
+        );
+      })}
+      {!data.stats.length && !data.events.length && <span className="muted" style={{ fontSize: 15 }}>As estatísticas aparecem quando o jogo começa.</span>}
+    </div>
+  );
+}
+
+/** Tabela de classificação e próximos jogos da liga. */
+function StandingsView({ games, mine, onWatch }: { games: Game[]; mine: string[]; onWatch: (c: Channel, list: Channel[]) => void }) {
+  const L = useLayout();
+  const mobile = L.form === 'mobile';
+  const [path, setPath] = useState(TABLE_LEAGUES[0][0]);
+  const [tables, setTables] = useState<Table[] | null | undefined>(undefined);
+  const [fixtures, setFixtures] = useState<Score[] | null>(null);
+  const [, force] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    setTables(undefined);
+    setFixtures(null);
+    loadStandings(path).then((t) => alive && setTables(t), () => alive && setTables(null));
+    loadFixtures(path).then((f) => alive && setFixtures(f.filter((x) => x.state !== 'post')), () => alive && setFixtures([]));
+    return () => {
+      alive = false;
+    };
+  }, [path]);
+  // Jogo do guia correspondente (para "onde assistir" e lembrete).
+  const guideGame = (f: Score) =>
+    games.find((g) => {
+      const t = teamsOf(g);
+      if (t.length !== 2 || Math.abs(g.start - f.start) > 4 * 3600000) return false;
+      const k = [teamKey(f.home), teamKey(f.away)];
+      return t.some((x) => k.some((y) => teamKey(x).split(' ')[0] === y.split(' ')[0]));
+    });
+  const top = L.top + 60;
+  const leftW = mobile ? L.W - L.px * 2 : Math.round((L.W - L.px * 2) * 0.56);
+  return (
+    <>
+      <div className="scroll-x" style={{ position: 'absolute', left: L.px, right: L.px, top, height: 44, alignItems: 'center' }}>
+        {TABLE_LEAGUES.map(([p, name]) => (
+          <button key={p} className={'chip' + (p === path ? ' on' : '')} data-nav="" style={{ height: 38 }} onClick={() => setPath(p)}>{name}</button>
+        ))}
+      </div>
+      <div className="glass table-box scroll-y" style={{ position: 'absolute', left: L.px, top: top + 56, bottom: mobile ? '45%' : L.bottom, width: leftW, borderRadius: T.radiusPanel }}>
+        {tables === undefined ? (
+          <span className="muted" style={{ padding: 20, display: 'block' }}>Carregando a tabela…</span>
+        ) : !tables || !tables.length ? (
+          <span className="muted" style={{ padding: 20, display: 'block' }}>Tabela indisponível agora (fonte: ESPN).</span>
+        ) : (
+          tables.map((t) => (
+            <table key={t.name} className="stand">
+              <thead>
+                <tr><th className="l" colSpan={2}>{tables.length > 1 ? t.name : 'Classificação'}</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th></tr>
+              </thead>
+              <tbody>
+                {t.rows.map((r) => (
+                  <tr key={r.team} className={isMyTeam(r.team, mine) ? 'mine' : ''}>
+                    <td className="pos">{r.rank}</td>
+                    <td className="l team">{r.team}{isMyTeam(r.team, mine) ? ' ★' : ''}</td>
+                    <td className="pts">{r.points}</td><td>{r.played}</td><td>{r.wins}</td><td>{r.draws}</td><td>{r.losses}</td><td>{r.gd > 0 ? '+' + r.gd : r.gd}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ))
+        )}
+      </div>
+      <div className="glass fixtures scroll-y" style={mobile ? { position: 'absolute', left: L.px, right: L.px, top: '57%', bottom: L.bottom, borderRadius: T.radiusPanel } : { position: 'absolute', left: L.px + leftW + 20, right: L.px, top: top + 56, bottom: L.bottom, borderRadius: T.radiusPanel }}>
+        <span className="fix-title">Próximos jogos</span>
+        {fixtures === null ? (
+          <span className="muted">Carregando…</span>
+        ) : !fixtures.length ? (
+          <span className="muted">Sem jogos nos próximos 7 dias.</span>
+        ) : (
+          fixtures.map((f) => {
+            const g = guideGame(f);
+            const live = f.state === 'in';
+            return (
+              <div key={(f.id ?? '') + f.home} className={'fix' + (isMyTeam(f.home, mine) || isMyTeam(f.away, mine) ? ' mine' : '')}>
+                <span className="fix-when">{live ? <span className="badge-live" style={{ fontSize: 11, padding: '3px 7px' }}>{f.detail}</span> : `${new Date(f.start).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} ${fmtTime(f.start)}`}</span>
+                <span className="fix-teams">{f.home} {live ? `${f.homeScore} × ${f.awayScore}` : '×'} {f.away}</span>
+                {g ? (
+                  <span className="fix-acts">
+                    <button className="btn" data-nav="" style={{ height: 34, fontSize: 14 }} onClick={() => g.channels[0] && onWatch(g.channels[0], g.channels)}>▶ {g.channels[0]?.name}</button>
+                    {!live && (
+                      <button className="btn" data-nav="" style={{ height: 34, fontSize: 14, color: hasReminder(g.key) ? T.warn : undefined }} onClick={() => { toggleReminder(g); force((x) => x + 1); }}>⏰</button>
+                    )}
+                  </span>
+                ) : (
+                  <span className="muted fix-none">sem canal no guia</span>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+}
+
+/** Escolher os times: lembrete automático, aviso de gol e destaque nos jogos. */
+function MyTeamsDialog({ games, initial, onClose, onSave }: { games: Game[]; initial: string[]; onClose: () => void; onSave: (list: string[]) => void }) {
+  const [sel, setSel] = useState<string[]>(initial);
+  const [extra, setExtra] = useState('');
+  const fromGuide = [...new Set(games.flatMap((g) => teamsOf(g)))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const options = [...new Set([...sel, ...POPULAR, ...fromGuide])];
+  const has = (t: string) => sel.some((x) => teamKey(x) === teamKey(t));
+  const toggle = (t: string) => setSel((cur) => (has(t) ? cur.filter((x) => teamKey(x) !== teamKey(t)) : [...cur, t]));
+  return (
+    <Modal title="Meus times" onClose={onClose} width={760}>
+      <span className="muted" style={{ fontSize: 15, lineHeight: 1.4 }}>
+        Os jogos dos times escolhidos ganham ★, lembrete automático (no Android vira notificação) e aviso de gol enquanto o app está aberto.
+      </span>
+      <div className="team-grid scroll-y">
+        {options.map((t) => (
+          <button key={t} className={'chip team-chip' + (has(t) ? ' on' : '')} data-nav="" onClick={() => toggle(t)}>
+            {has(t) ? '★ ' : '☆ '}
+            {t}
+          </button>
+        ))}
+      </div>
+      <div className="field" style={{ display: 'flex' }}>
+        <input
+          data-nav=""
+          value={extra}
+          placeholder="Outro time (ex.: Remo, Paysandu)"
+          onChange={(e) => setExtra(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.keyCode === 13) && extra.trim()) {
+              toggle(extra.trim());
+              setExtra('');
+            }
+          }}
+        />
+      </div>
+      <div className="wrap-row" style={{ display: 'flex' }}>
+        <button className="btn primary" data-nav="" onClick={() => onSave(sel)}>Salvar ({sel.length})</button>
+        <button className="btn" data-nav="" onClick={onClose}>Cancelar</button>
+      </div>
+    </Modal>
   );
 }
