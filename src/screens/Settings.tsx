@@ -6,6 +6,10 @@ import { useLayout } from '../ui/layout';
 import { dirOf, focusFirst } from '../ui/nav';
 import { T } from '../ui/tokens';
 import { VERSION } from '../version';
+import { THEMES } from '../ui/themes';
+import { ProfilesPanel } from './Profiles';
+import { clearTmdbCache, testKey, tmdbKey } from '../core/tmdb';
+import { prefSet } from '../core/storage';
 import { ConfirmButton } from '../ui/Dialog';
 import { clearEpgCache } from '../core/epg';
 import { clearXmltv } from '../core/xmltv';
@@ -13,13 +17,15 @@ import { clearXmltv } from '../core/xmltv';
 // Ajustes do PRISMA: Tela · Player · Aparência · Lista · Sobre.
 // Cada opção é um seletor: OK (ou clique) avança; ◀ ▶ no controle trocam.
 
-type Section = 'tela' | 'player' | 'aparencia' | 'lista' | 'dados' | 'sobre';
+type Section = 'tela' | 'player' | 'aparencia' | 'perfis' | 'lista' | 'servicos' | 'dados' | 'sobre';
 
 const SECTIONS: { id: Section; label: string; hint: string }[] = [
   { id: 'tela', label: 'Tela', hint: 'Tamanho, margens e formato da interface' },
   { id: 'player', label: 'Player', hint: 'Vídeo e informações na tela cheia' },
   { id: 'aparencia', label: 'Aparência', hint: 'Estrutura e tema' },
+  { id: 'perfis', label: 'Perfis', hint: 'Quem está assistindo' },
   { id: 'lista', label: 'Lista', hint: 'Sua assinatura IPTV' },
+  { id: 'servicos', label: 'Serviços', hint: 'TMDB (capas, trailers, Top 10) e placar' },
   { id: 'dados', label: 'Dados e limpeza', hint: 'Histórico, favoritos e cache' },
   { id: 'sobre', label: 'Sobre', hint: 'Versão e diagnóstico da tela' },
 ];
@@ -181,11 +187,28 @@ export function Settings({
       <>
         <Choice
           label="Estrutura"
-          help="A · Vidro Líquido está pronta. B · Cinema e C · Hub chegam no passo 5 da Fase 1."
-          value="A"
-          options={[{ v: 'A', label: 'A · Vidro Líquido' }]}
-          onChange={() => {}}
+          help="A · Vidro Líquido: menu em pílula no topo. B · Cinema: abas de texto com destaque grande. C · Hub: menu lateral de ícones. No celular é sempre a A."
+          value={st.structure}
+          options={[{ v: 'A', label: 'A · Vidro Líquido' }, { v: 'B', label: 'B · Cinema' }, { v: 'C', label: 'C · Hub' }]}
+          onChange={set('structure')}
         />
+        <Choice
+          label="Tema"
+          help="Só muda a aparência (cores, botões e cantos). Vale para este perfil."
+          value={st.theme}
+          options={THEMES.map((t) => ({ v: t.id, label: t.name }))}
+          onChange={set('theme')}
+        />
+        <div className="opt-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+          {THEMES.map((t) => (
+            <button key={t.id} className={'theme-swatch' + (st.theme === t.id ? ' on' : '')} data-nav="" onClick={() => update({ theme: t.id })} style={{ background: t.bg, borderColor: st.theme === t.id ? t.text : 'rgba(255,255,255,0.15)' }}>
+              <span style={{ background: t.primary }} />
+              <span style={{ background: t.live }} />
+              <span style={{ background: t.ambient[0] }} />
+              <b style={{ color: t.text, fontFamily: t.titleFont }}>{t.name}</b>
+            </button>
+          ))}
+        </div>
         <Choice
           label="Logotipos dos canais"
           help="Oficiais: usa os logos embutidos no PRISMA (e os que você escolher) antes dos que vieram na lista. Da lista: o contrário."
@@ -193,15 +216,10 @@ export function Settings({
           options={[{ v: 'official', label: 'Oficiais primeiro' }, { v: 'list', label: 'Da lista primeiro' }]}
           onChange={set('logoSource')}
         />
-        <Choice
-          label="Tema"
-          help="Prisma é o padrão. O tema Netflix (já desenhado) e outros chegam no passo 5."
-          value="prisma"
-          options={[{ v: 'prisma', label: 'Prisma' }]}
-          onChange={() => {}}
-        />
       </>
     );
+  } else if (sec === 'perfis') {
+    panel = <ProfilesPanel />;
   } else if (sec === 'lista') {
     const s = playlist.source;
     const a = playlist.account;
@@ -229,6 +247,8 @@ export function Settings({
         </div>
       </>
     );
+  } else if (sec === 'servicos') {
+    panel = <Services />;
   } else if (sec === 'dados') {
     const n = data.counts;
     const Row = ({ label, help, children }: { label: string; help: string; children: React.ReactNode }) => (
@@ -333,4 +353,56 @@ function proportion(w: number, h: number): string {
   for (const k of known) if (Math.abs(k[0] - r) < Math.abs(best[0] - r)) best = k;
   const name = Math.abs(best[0] - r) < 0.06 ? best[1] : `${r.toFixed(2)}:1`;
   return `${name}${h > w ? ' · em pé' : ''}`;
+}
+
+/** Ajustes › Serviços: chave do TMDB (capas, trailers, Top 10) e informação do placar. */
+function Services() {
+  const { settings: st, update } = useSettings();
+  const [key, setKey] = useState(st.tmdbKey || tmdbKey());
+  const [state, setState] = useState<'idle' | 'testing' | 'ok' | 'bad'>(st.tmdbKey ? 'ok' : 'idle');
+  const L = useLayout();
+  const mobile = L.form === 'mobile';
+  const save = async () => {
+    const k = key.trim();
+    if (!k) {
+      update({ tmdbKey: '' });
+      prefSet('tmdbKey', '');
+      setState('idle');
+      return;
+    }
+    setState('testing');
+    const ok = await testKey(k);
+    setState(ok ? 'ok' : 'bad');
+    if (ok) {
+      update({ tmdbKey: k });
+      prefSet('tmdbKey', k); // vale para todos os perfis
+      clearTmdbCache();
+    }
+  };
+  return (
+    <>
+      <div className="opt-row gy-10" style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: mobile ? 16 : 18, fontWeight: 700 }}>TMDB · capas, sinopses, trailers e Top 10</span>
+        <span className="muted" style={{ fontSize: 15, lineHeight: 1.45 }}>
+          Crie uma conta grátis em <b>themoviedb.org</b> › Configurações › API › “Chave da API (v3)” e cole aqui. Fica salva só neste aparelho.
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="field" style={{ flexGrow: 1, minWidth: 260, marginRight: 12 }}>
+            <input data-nav="" value={key} placeholder="Chave da API (v3), 32 caracteres" autoCapitalize="off" autoCorrect="off" onChange={(e) => { setKey(e.target.value); setState('idle'); }} />
+          </div>
+          <button className="btn primary" data-nav="" onClick={save} disabled={state === 'testing'} style={{ marginTop: mobile ? 10 : 0 }}>
+            {state === 'testing' ? 'Testando…' : key.trim() ? 'Salvar e testar' : 'Remover chave'}
+          </button>
+        </div>
+        {state === 'ok' && <span style={{ color: T.primary, fontWeight: 700, fontSize: 15 }}>✓ TMDB ligado: capas, trailers e Top 10 ativados.</span>}
+        {state === 'bad' && <span style={{ color: T.live, fontWeight: 700, fontSize: 15 }}>Chave recusada pelo TMDB (ou sem internet). Confira se é a “Chave da API (v3)”.</span>}
+      </div>
+      <div className="opt-row gy-6" style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: mobile ? 16 : 18, fontWeight: 700 }}>Placar ao vivo</span>
+        <span className="muted" style={{ fontSize: 15, lineHeight: 1.45 }}>
+          Automático, sem chave: placares públicos da ESPN (Brasileirão, Libertadores, Copa do Brasil, Champions, ligas europeias, NBA, NFL, UFC), cruzados com os jogos do guia.
+        </span>
+      </div>
+    </>
+  );
 }

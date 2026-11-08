@@ -154,8 +154,8 @@ Ver seção 4.
 
 Telas no tema Netflix já desenhadas: Ajustes › Aparência, Quem está assistindo, Player, Início nas estruturas A, B e C, Ao vivo (B), Detalhe (B), Celular.
 
-### Próximos temas (pendente)
-Sugeridos: **HBO Max, Disney+, Prime Video, Apple TV, Globoplay**. Método: pesquisar a identidade atual do app na web (ou usar prints que o usuário enviar: tela inicial, detalhe e player) e criar o tema com o nome do streaming. Para uso pessoal, nomes de streaming nos temas estão OK; se um dia o app for para loja, trocar por nomes próprios.
+### Outros temas (feitos na 0.11.0)
+HBO Max, Disney+, Prime Video, Apple TV e Globoplay estão em `src/ui/themes.ts` (cores aproximadas da identidade de cada app). Para ajustar, mandar prints do app original. Texto original da sugestão: **HBO Max, Disney+, Prime Video, Apple TV, Globoplay**. Método: pesquisar a identidade atual do app na web (ou usar prints que o usuário enviar: tela inicial, detalhe e player) e criar o tema com o nome do streaming. Para uso pessoal, nomes de streaming nos temas estão OK; se um dia o app for para loja, trocar por nomes próprios.
 
 ---
 
@@ -263,6 +263,12 @@ Com LG webOS + Roku + Android + computador:
 - Voltar na programação (`src/core/catchup.ts`): Xtream timeshift no fuso do servidor; M3U catchup-source/append/shift.
 - Placar ao vivo (`src/core/scores.ts`): placar público da ESPN (sem chave) cruzado pelos times; lista e painel dos Jogos.
 
+## 10c. Versão 0.11.0 (08/11)
+- TMDB (`src/core/tmdb.ts`, `src/ui/useTmdb.ts`): capas e fundos, sinopse em português, trailer (YouTube) no detalhe, Top 10 da semana no Início e em Filmes/Séries (só o que existe na lista). Chave v3 grátis em Ajustes › Serviços (themoviedb.org › Configurações › API). Cache no IndexedDB.
+- Temas (`src/ui/themes.ts`): Prisma, Netflix, HBO Max, Disney+, Prime Video, Apple TV, Globoplay. Sem variáveis CSS (TV de 2017): as cores-base são trocadas direto nas regras carregadas + `<style id="prisma-theme">`.
+- Estruturas: A Vidro Líquido (barra em pílula), B Cinema (abas em texto, destaque maior), C Hub (menu lateral de 96 px). No celular é sempre A. Ajustes › Aparência.
+- Perfis (`src/core/profiles.ts`, `src/screens/Profiles.tsx`): "Quem está assistindo?" ao abrir; cada perfil com favoritos, histórico, seções, Minha lista, progresso, lembretes, estrutura e tema. O 1º perfil usa as chaves antigas (nada se perde). Ajustes › Perfis.
+
 ## 11. Pendências (07–08/11/2026)
 
 **Precisa de você / testes reais**
@@ -272,13 +278,13 @@ Com LG webOS + Roku + Android + computador:
 4. Microfone: funciona no navegador (Chrome/Edge) e no Android; no programa de Windows não (o Electron não tem o serviço de voz do Google); na LG, usar o microfone do teclado da TV.
 
 **Funcionalidades**
-5. Guia completo XMLTV (listas M3U) e grade de 7 dias; "voltar na programação" (catch-up) quando a lista oferece.
-6. Placar ao vivo e estatísticas nos Jogos — precisa de um serviço esportivo (ex.: API-Football, TheSportsDB) com chave.
-7. TMDB: capas/fundos melhores, trailers, "Top 10 da semana" — precisa de chave TMDB.
-8. Estruturas B (Cinema) e C (Hub), tema Netflix (já desenhado) e outros temas; Perfis ("Quem está assistindo"), estrutura por perfil, atalho no botão colorido.
+5. ✅ (0.10.0) Guia completo XMLTV (listas M3U) e grade de 7 dias; "voltar na programação" (catch-up) quando a lista oferece.
+6. ✅ (0.10.0) Placar ao vivo (ESPN, sem chave). Estatísticas detalhadas: pendente.
+7. ✅ (0.11.0) TMDB: capas/fundos melhores, trailers, "Top 10 da semana" — precisa de chave TMDB.
+8. ✅ (0.11.0) Estruturas B (Cinema) e C (Hub), tema Netflix (já desenhado) e outros temas; Perfis ("Quem está assistindo"), estrutura por perfil, atalho no botão colorido.
 9. Controle parental: esconder categorias adultas com PIN (a Goldcard tem "ADULTOS +18").
-10. Player: próximo episódio automático, escolha de áudio/legenda e qualidade; reconectar sozinho quando o canal cai.
-11. Séries em listas M3U (agrupar episódios soltos por nome) e busca geral incluindo filmes/séries.
+10. ✅ (0.10.0, exceto qualidade) Player: próximo episódio automático, escolha de áudio/legenda e qualidade; reconectar sozinho quando o canal cai.
+11. ✅ (0.10.0) Séries em listas M3U (agrupar episódios soltos por nome) e busca geral incluindo filmes/séries.
 12. Lembretes de jogos só avisam com o app aberto (notificação do sistema virá com o app Android).
 13. Sincronizar favoritos/seções/Minha lista entre aparelhos (hoje ficam em cada aparelho).
 

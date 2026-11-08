@@ -8,6 +8,9 @@ import { focusFirst, pushBack } from '../ui/nav';
 import { VirtualGrid, type VirtualGridHandle } from '../ui/VirtualGrid';
 import { VirtualList } from '../ui/VirtualList';
 import { VoiceButton, voiceSupported } from '../ui/Voice';
+import { useTmdb } from '../ui/useTmdb';
+import { trailerOf, weeklyTop, tmdbKey } from '../core/tmdb';
+import { Modal } from '../ui/Dialog';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
 // grade de capas com busca; OK abre o detalhe (sinopse, elenco, episódios).
@@ -19,19 +22,22 @@ function norm(s: string) {
 }
 
 /** Capa (2:3) com título, ano/nota e progresso. Sem imagem: arte com o nome. */
-export function PosterCard({ item, w, selected }: { item: Channel; w: number; selected?: boolean }) {
+export function PosterCard({ item, w, selected, rank }: { item: Channel; w: number; selected?: boolean; rank?: number }) {
   const [broken, setBroken] = useState(false);
-  useEffect(() => setBroken(false), [item.logo]);
+  const tm = useTmdb(item);
+  const img = tm?.poster || item.logo;
+  useEffect(() => setBroken(false), [img]);
   const p = getProgress(item.id);
   const c = colorFor(item.name);
   return (
     <div className={'poster' + (selected ? ' sel' : '')}>
       <div className="poster-art" style={{ height: Math.round(w * 1.5), background: `linear-gradient(160deg, ${rgba(c, 0.55)} 0%, #15151F 85%)` }}>
-        {item.logo && !broken ? (
-          <img src={item.logo} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+        {img && !broken ? (
+          <img src={img} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
         ) : (
-          <span className="poster-fallback caps">{item.name}</span>
+          <span className="poster-fallback caps" style={rank ? { left: rank > 9 ? 84 : 52 } : undefined}>{item.name}</span>
         )}
+        {rank ? <span className="poster-rank">{rank}</span> : null}
         {item.rating ? <span className="poster-rate">★ {item.rating.toFixed(1).replace('.', ',')}</span> : null}
         {p && p.dur ? <span className="poster-prog"><span style={{ width: `${(p.pos / p.dur) * 100}%` }} /></span> : null}
       </div>
@@ -42,6 +48,7 @@ export function PosterCard({ item, w, selected }: { item: Channel; w: number; se
 }
 
 type Sort = 'recent' | 'az' | 'rating';
+const TOP = '__top10__';
 
 export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: VodTab; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const L = useLayout();
@@ -63,15 +70,27 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const st: Streaming | undefined = STREAMINGS.find((s) => s.id === stream);
 
   const inStream = useMemo(() => (st ? all.filter((i) => st.match.test(i.group)) : all), [all, st]);
+  // Top 10 da semana (TMDB), só com títulos da lista
+  const [top10, setTop10] = useState<Channel[]>([]);
+  useEffect(() => {
+    let alive = true;
+    setTop10([]);
+    if (!tmdbKey() || tab === 'anime') return;
+    weeklyTop(playlist.items, tab === 'filmes' ? 'movie' : 'series').then((r) => alive && setTop10(r.map((x) => x.item)));
+    return () => {
+      alive = false;
+    };
+  }, [playlist, tab]);
   const cats = useMemo(() => countCats(inStream), [inStream]);
   const q = norm(query.trim());
   const list = useMemo(() => {
+    if (!q && cat === TOP) return top10;
     let l = q ? all.filter((i) => norm(i.fullName ?? i.name).includes(q)) : cat ? inStream.filter((i) => i.group === cat) : inStream;
     if (sort === 'az') l = [...l].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     else if (sort === 'rating') l = [...l].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else l = [...l].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
     return l;
-  }, [all, inStream, cat, q, sort]);
+  }, [all, inStream, cat, q, sort, top10]);
 
   useEffect(() => setIndex(0), [stream, cat, q, sort]);
   useEffect(() => {
@@ -127,6 +146,12 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
             <span className="cat-name">{st ? st.name : 'Todos'}</span>
             <span className="cat-count">{inStream.length.toLocaleString('pt-BR')}</span>
           </button>
+          {top10.length > 0 && !st && (
+            <button className={'cat' + (cat === TOP ? ' on' : '')} data-nav="" data-nav-active={cat === TOP ? '' : undefined} onClick={() => { setCat(TOP); setQuery(''); gridRef.current?.focus(); }}>
+              <span className="cat-name">🔥 Top 10 da semana</span>
+              <span className="cat-count">{top10.length}</span>
+            </button>
+          )}
           {cats.map((c) => (
             <button key={c.name} className={'cat' + (cat === c.name ? ' on' : '')} data-nav="" data-nav-active={cat === c.name ? '' : undefined} onClick={() => { setCat(c.name); setQuery(''); gridRef.current?.focus(); }}>
               <span className="cat-name" title={c.name}>{c.name}</span>
@@ -168,7 +193,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
           )}
         </div>
         <div className="muted caps" style={{ fontSize: 14, fontWeight: 600, margin: '10px 4px 0', display: 'flex', justifyContent: 'space-between' }}>
-          <span>{q ? `Busca: “${query.trim()}”` : cat || (st ? st.name : `Todos os ${kindLabel}`)}</span>
+          <span>{q ? `Busca: “${query.trim()}”` : cat === TOP ? 'Top 10 da semana (TMDB) — disponíveis na sua lista' : cat || (st ? st.name : `Todos os ${kindLabel}`)}</span>
           <span>{list.length.toLocaleString('pt-BR')} {kindLabel}</span>
         </div>
         {mobile && cats.length > 0 && (
@@ -191,7 +216,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
             extraH={mobile ? 58 : 56}
             gap={mobile ? 10 : 18}
             label={title}
-            render={(it, _i, sel, w) => <PosterCard item={it} w={w} selected={sel} />}
+            render={(it, i, sel, w) => <PosterCard item={it} w={w} selected={sel} rank={cat === TOP && !q ? i + 1 : undefined} />}
             empty={<div className="muted" style={{ padding: 20, fontSize: 16 }}>Nada encontrado. Tente outra palavra ou outra categoria.</div>}
           />
         </div>
@@ -273,7 +298,10 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
   // Próximo episódio a assistir: o último com progresso, ou o 1º.
   const allEps = info && 'episodes' in info ? info.episodes : [];
   const resumeEp = allEps.find((e) => getProgress(e.id)) ?? allEps[0];
-  const backdrop = info?.backdrop || info?.cover || item.logo;
+  const tm = useTmdb(item);
+  const backdrop = tm?.backdrop || info?.backdrop || info?.cover || item.logo;
+  const plot = info?.plot || tm?.overview;
+  const [trailer, setTrailer] = useState<string | null>(null);
 
   return (
     <div className="vod-detail" data-nav-scope="" ref={box}>
@@ -293,7 +321,7 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
               .join('  ·  ')}
           </span>
           {!info && !failed && <span className="muted">Carregando informações…</span>}
-          {info?.plot && <p className="vd-plot">{info.plot}</p>}
+          {plot && <p className="vd-plot">{plot}</p>}
           {info?.cast && <span className="muted" style={{ fontSize: 15 }}><b style={{ color: '#D6D6E0' }}>Elenco:</b> {info.cast}</span>}
           {info?.director && <span className="muted" style={{ fontSize: 15 }}><b style={{ color: '#D6D6E0' }}>Direção:</b> {info.director}</span>}
 
@@ -310,6 +338,9 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
               <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onPlay(asChannel(resumeEp), getProgress(resumeEp.id)?.pos, allEps.map(asChannel))}>
                 ▶ {getProgress(resumeEp.id) ? 'Continuar' : 'Assistir'} T{resumeEp.season} E{resumeEp.number}
               </button>
+            )}
+            {tm && (
+              <button className="btn" data-nav="" onClick={async () => setTrailer((await trailerOf(tm)) ?? '')}>▶ Trailer</button>
             )}
             <button className="btn" data-nav="" onClick={() => setSaved(toggleMyList(item))}>{saved ? '✓ Na Minha lista' : '+ Minha lista'}</button>
             <button className="btn" data-nav="" onClick={onClose}>Voltar</button>
@@ -355,6 +386,25 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
         </div>
       </div>
       {!backdrop && <span aria-hidden="true" className="vd-ghost">{initials(item.name)}</span>}
+      {trailer !== null && (
+        <Modal title={`Trailer · ${item.name}`} onClose={() => setTrailer(null)} width={Math.min(1100, L.W - 40)}>
+          {trailer ? (
+            <iframe
+              className="trailer"
+              src={`https://www.youtube.com/embed/${trailer}?autoplay=1&rel=0`}
+              title="Trailer"
+              allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
+              style={{ height: Math.round((Math.min(1100, L.W - 40) - 56) * 0.5625) }}
+            />
+          ) : (
+            <span className="muted">O TMDB não tem trailer para este título.</span>
+          )}
+          <div className="wrap-row" style={{ display: 'flex' }}>
+            <button className="btn primary" data-nav="" data-nav-default="" onClick={() => setTrailer(null)}>Fechar</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

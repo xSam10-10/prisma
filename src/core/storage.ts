@@ -54,9 +54,28 @@ export async function idbDel(key: string): Promise<void> {
   }
 }
 
+// Preferências por perfil: cada perfil tem os seus. O 1º perfil usa as chaves
+// antigas (sem prefixo), para não perder nada de quem já usava o app.
+const PER_PROFILE = new Set(['favs', 'recents', 'sections', 'myList', 'progress', 'vodRecents', 'reminders', 'settings', 'live.cat', 'tab', 'lastKind']);
+
+function profileId(): string {
+  try {
+    const v = localStorage.getItem('prisma.profile');
+    return v ? (JSON.parse(v) as string) : 'p1';
+  } catch {
+    return 'p1';
+  }
+}
+
+function fullKey(key: string): string {
+  if (!PER_PROFILE.has(key)) return 'prisma.' + key;
+  const id = profileId();
+  return id === 'p1' ? 'prisma.' + key : `prisma.p.${id}.${key}`;
+}
+
 export function prefGet<T>(key: string, fallback: T): T {
   try {
-    const v = localStorage.getItem('prisma.' + key);
+    const v = localStorage.getItem(fullKey(key));
     return v == null ? fallback : (JSON.parse(v) as T);
   } catch {
     return fallback;
@@ -65,7 +84,19 @@ export function prefGet<T>(key: string, fallback: T): T {
 
 export function prefSet(key: string, value: unknown): void {
   try {
-    localStorage.setItem('prisma.' + key, JSON.stringify(value));
+    localStorage.setItem(fullKey(key), JSON.stringify(value));
+  } catch {
+    /* ignora */
+  }
+}
+
+/** Apaga todas as preferências de um perfil (ao excluir o perfil). */
+export function dropProfilePrefs(id: string): void {
+  try {
+    const prefix = id === 'p1' ? null : `prisma.p.${id}.`;
+    for (const k of Object.keys(localStorage)) {
+      if (prefix ? k.startsWith(prefix) : PER_PROFILE.has(k.replace(/^prisma\./, ''))) localStorage.removeItem(k);
+    }
   } catch {
     /* ignora */
   }

@@ -22,6 +22,12 @@ export interface Settings {
   resumeLast: boolean;
   /** Logotipos: oficiais do PRISMA primeiro, ou os que vieram na lista. */
   logoSource: 'official' | 'list';
+  /** Chave da API do TMDB (v3) — capas, trailers e Top 10. */
+  tmdbKey: string;
+  /** Estrutura: A Vidro Líquido · B Cinema · C Hub (no celular sempre A). */
+  structure: 'A' | 'B' | 'C';
+  /** Tema (só aparência). */
+  theme: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +40,9 @@ export const DEFAULT_SETTINGS: Settings = {
   liveFormat: 'auto',
   resumeLast: false,
   logoSource: 'official',
+  tmdbKey: '',
+  structure: 'A',
+  theme: 'prisma',
 };
 
 export function loadSettings(): Settings {

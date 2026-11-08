@@ -122,6 +122,19 @@ createServer((req, res) => {
     if (a === 'get_short_epg') { limitG = u.searchParams.get('limit'); return send({ epg_listings: epgFor(u.searchParams.get('stream_id')) }); }
     return send([]);
   }
+  if (u.pathname.startsWith('/tmdb/')) {
+    const j = (o) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(o));
+    const path = u.pathname.slice(6);
+    if (!path.startsWith('img/') && u.searchParams.get('api_key') !== 'chave-teste') return res.writeHead(401).end('{}');
+    if (path === '3/configuration') return j({ images: {} });
+    if (path.startsWith('img/')) return res.writeHead(200, { 'content-type': 'image/svg+xml' }).end(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450"><rect width="300" height="450" fill="#123a6b"/><text x="20" y="420" font-size="34" font-family="sans-serif" font-weight="800" fill="#fff">TMDB</text></svg>`);
+    const q = (u.searchParams.get('query') || '').toLowerCase();
+    if (path === '3/search/movie' || path === '3/search/tv') return j({ results: q ? [{ id: q.length, title: u.searchParams.get('query'), name: u.searchParams.get('query'), poster_path: '/p.svg', backdrop_path: '/b.svg', overview: 'Sinopse vinda do TMDB em português.', release_date: '2020-01-01', vote_average: 8.4 }] : [] });
+    if (path === '3/trending/movie/week') return j({ results: ['Rota 66', 'Inexistente', 'Maré Alta', 'Luz do Norte', 'Plano B'].map((t, i) => ({ id: 100 + i, title: t, poster_path: '/p.svg' })) });
+    if (path === '3/trending/tv/week') return j({ results: ['Turno da Noite', 'Os Herdeiros'].map((t, i) => ({ id: 200 + i, name: t, poster_path: '/p.svg' })) });
+    if (/^3\/(movie|tv)\/\d+\/videos$/.test(path)) return j({ results: [{ site: 'YouTube', type: 'Trailer', key: 'dQw4w9WgXcQ' }] });
+    return j({});
+  }
   if (u.pathname.startsWith('/espn/')) {
     const now = Date.now();
     const start = new Date(now - (now % 1800000) - 900000).toISOString();

@@ -1,3 +1,4 @@
+import { T } from '../ui/tokens';
 import { useState } from 'react';
 import { useMemo } from 'react';
 import { categoriesOf } from '../core/source';
@@ -44,7 +45,7 @@ export function OrganizeSections({ views, onClose }: { views: SectionView[]; onC
         <span className="muted" style={{ fontSize: 15, marginRight: 12 }}>Ordenar por</span>
         <button className={'chip' + (data.sort === 'priority' ? ' on' : '')} data-nav="" data-nav-default="" onClick={() => set((d) => ({ ...d, sort: 'priority' }))}>Prioridade (1, 2, 3…)</button>
         <button className={'chip' + (data.sort === 'alpha' ? ' on' : '')} data-nav="" onClick={() => set((d) => ({ ...d, sort: 'alpha' }))}>Ordem alfabética</button>
-        <button className="chip" data-nav="" style={{ background: 'rgba(61,214,196,0.18)', color: '#3DD6C4' }} onClick={() => setNaming({ name: '' })}>+ Nova seção</button>
+        <button className="chip" data-nav="" style={{ background: 'rgba(61,214,196,0.18)', color: T.primary }} onClick={() => setNaming({ name: '' })}>+ Nova seção</button>
       </div>
       <span className="muted" style={{ fontSize: 14 }}>
         {data.sort === 'alpha'
@@ -108,7 +109,7 @@ export function SectionPicker({ ch, live, onClose }: { ch: Channel; live: Channe
   return (
     <Modal title="Adicionar à seção" onClose={onClose} width={600}>
       <span className="muted caps" style={{ fontSize: 15 }}>{ch.name}</span>
-      <button className="btn" data-nav="" data-nav-default="" style={{ alignSelf: 'flex-start', color: '#3DD6C4' }} onClick={() => setNaming(true)}>+ Criar nova seção com este canal</button>
+      <button className="btn" data-nav="" data-nav-default="" style={{ alignSelf: 'flex-start', color: T.primary }} onClick={() => setNaming(true)}>+ Criar nova seção com este canal</button>
       <div className="scroll-y sec-list" style={{ maxHeight: 380 }}>
         {views.map((v) => {
           const own = ch.group === v.id; // seção de origem do canal (não dá para tirar)

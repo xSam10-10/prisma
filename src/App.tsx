@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { applyTheme, themeById } from './ui/themes';
+import { askOnStart, chosenThisSession, currentProfile, switchProfile } from './core/profiles';
+import { WhoIsWatching } from './screens/Profiles';
 import { MyList, VodScreen, type VodTab } from './screens/Vod';
 import { Games } from './screens/Games';
 import { dueReminders, type Reminder } from './core/games';
@@ -45,6 +48,12 @@ export function App() {
   const L = useViewportLayout(settings);
   const scale = L.scale;
   const mobileForm = L.form === 'mobile';
+  // Estrutura (A, B, C) e tema. No celular é sempre a A.
+  const structure = mobileForm ? 'A' : settings.structure;
+  const railW = structure === 'C' ? 96 : 0;
+  // Layout das telas: na C o conteúdo fica à direita do menu lateral e começa mais em cima.
+  const Ls = useMemo<Layout>(() => (railW ? { ...L, W: L.W - railW, top: 44 + L.safeY } : L), [L, railW]);
+  useLayoutEffect(() => applyTheme(themeById(settings.theme)), [settings.theme]);
 
   // Classes globais: forma da interface e toque.
   useEffect(() => {
@@ -53,7 +62,7 @@ export function App() {
     const touch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
     html.classList.toggle('touch', touch || mobileForm);
   }, [mobileForm]);
-  const [phase, setPhase] = useState<'boot' | 'add' | 'app'>('boot');
+  const [phase, setPhase] = useState<'boot' | 'who' | 'add' | 'app'>(() => (askOnStart() && !chosenThisSession() ? 'who' : 'boot'));
   const [playlist, setPlaylist] = useState<Playlist>();
   const [progress, setProgress] = useState('');
   const [bootError, setBootError] = useState<SourceError | null>(null);
@@ -86,6 +95,7 @@ export function App() {
 
   // Abre a lista salva; se não houver, vai para "Adicionar lista".
   useEffect(() => {
+    if (phase === 'who') return;
     Promise.all([loadSavedPlaylist(), loadLogoCatalogs()]).then(([p]) => {
       if (p?.items?.length) {
         setPlaylist(p);
@@ -101,7 +111,7 @@ export function App() {
         }
       } else setPhase('add');
     });
-  }, []);
+  }, [phase === 'who']); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => prefSet('tab', tab === 'busca' || tab === 'ajustes' ? 'inicio' : tab), [tab]);
   useEffect(() => prefSet('favs', favIds), [favIds]);
@@ -202,7 +212,22 @@ export function App() {
   const mode: PlayerMode = !playing ? 'off' : full ? 'full' : tab === 'aovivo' && playing.kind === 'live' ? 'preview' : 'off';
 
   let body: React.ReactNode = null;
-  if (phase === 'boot') {
+  if (phase === 'who') {
+    body = (
+      <WhoIsWatching
+        onPick={(p) => {
+          if (p.id === currentProfile().id) {
+            try {
+              sessionStorage.setItem('prisma.chosen', '1');
+            } catch {
+              /* ignora */
+            }
+            setPhase('boot');
+          } else switchProfile(p.id);
+        }}
+      />
+    );
+  } else if (phase === 'boot') {
     body = (
       <div className="gy-24" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <Ambient variant="home" />
@@ -283,8 +308,19 @@ export function App() {
     body = (
       <>
         <Ambient variant={tab === 'inicio' ? 'home' : 'live'} />
-        {!full && (mobileForm ? <MobileBars tab={tab} onTab={setTab} L={L} /> : <TopBar tab={tab} onTab={setTab} L={L} />)}
-        <div key={tab}>{screen}</div>
+        {!full &&
+          (mobileForm ? (
+            <MobileBars tab={tab} onTab={setTab} L={L} />
+          ) : structure === 'C' ? (
+            <SideRail tab={tab} onTab={setTab} L={L} />
+          ) : structure === 'B' ? (
+            <CinemaBar tab={tab} onTab={setTab} L={L} />
+          ) : (
+            <TopBar tab={tab} onTab={setTab} L={L} />
+          ))}
+        <div key={tab} style={railW ? { position: 'absolute', left: railW, top: 0, bottom: 0, width: L.W - railW } : undefined}>
+          <LayoutContext.Provider value={Ls}>{screen}</LayoutContext.Provider>
+        </div>
       </>
     );
   }
@@ -303,7 +339,10 @@ export function App() {
             zapList={zapList.length ? zapList : live}
             allLive={live}
             mode={mode}
-            rect={liveGeometry(L, catColumnWidth(live)).preview}
+            rect={(() => {
+              const r = liveGeometry(Ls, catColumnWidth(live)).preview;
+              return { ...r, left: r.left + railW };
+            })()}
             isFav={isFav}
             toggleFav={toggleFav}
             onMode={onPlayerMode}
@@ -359,7 +398,7 @@ function TopBar({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Layou
       <div style={{ flexGrow: 1 }} />
       <button className={'round' + (tab === 'busca' ? ' on' : '')} data-nav="" aria-label="Buscar" onClick={() => onTab('busca')}>{Icon.search}</button>
       <button className={'round' + (tab === 'lista' ? ' on' : '')} data-nav="" aria-label="Minha lista" onClick={() => onTab('lista')}>{Icon.bookmark}</button>
-      <button className="round avatar" data-nav="" aria-label="Perfil e ajustes" onClick={() => onTab('ajustes')}>S</button>
+      <ProfileButton onClick={() => onTab('ajustes')} />
     </div>
   );
 }
@@ -372,7 +411,7 @@ function MobileBars({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: L
         <Brand size={26} />
         <div className="spacer" />
         <button className={'round' + (tab === 'busca' ? ' on' : '')} data-nav="" aria-label="Buscar" onClick={() => onTab('busca')}>{Icon.search}</button>
-        <button className="round avatar" data-nav="" aria-label="Perfil e ajustes" onClick={() => onTab('ajustes')}>S</button>
+        <ProfileButton onClick={() => onTab('ajustes')} />
       </div>
       <nav className="m-tabs glass" aria-label="Menu" style={{ left: L.px, right: L.px, bottom: 12 + L.safeY }}>
         {TABS.map(([id, label]) => (
@@ -383,5 +422,54 @@ function MobileBars({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: L
         ))}
       </nav>
     </>
+  );
+}
+
+/** Estrutura B · Cinema: abas de texto no topo, sublinhado na cor do tema. */
+function CinemaBar({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Layout }) {
+  return (
+    <div className="top cinema" style={{ left: L.px, right: L.px, top: 26 + L.safeY }}>
+      <Brand />
+      <nav className="tabs-b" aria-label="Menu">
+        {TABS.map(([id, label]) => (
+          <button key={id} data-nav="" className={id === tab ? 'on' : ''} aria-current={id === tab ? 'page' : undefined} onClick={() => onTab(id)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+      <div style={{ flexGrow: 1 }} />
+      <button className={'round' + (tab === 'busca' ? ' on' : '')} data-nav="" aria-label="Buscar" onClick={() => onTab('busca')}>{Icon.search}</button>
+      <button className={'round' + (tab === 'lista' ? ' on' : '')} data-nav="" aria-label="Minha lista" onClick={() => onTab('lista')}>{Icon.bookmark}</button>
+      <ProfileButton onClick={() => onTab('ajustes')} />
+    </div>
+  );
+}
+
+const RAIL_ICON: Record<string, string> = { inicio: '⌂', aovivo: '●', jogos: '◎', filmes: '▶', series: '▤', anime: '✦', busca: '⌕', lista: '❏' };
+
+/** Estrutura C · Hub: menu lateral de ícones (96). */
+function SideRail({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Layout }) {
+  const items: [Tab, string][] = [...TABS, ['busca', 'Busca'], ['lista', 'Lista']];
+  return (
+    <nav className="rail" aria-label="Menu" style={{ paddingTop: 24 + L.safeY, paddingBottom: 20 + L.safeY }}>
+      <span className="rail-logo"><Symbol size={44} /></span>
+      {items.map(([id, label]) => (
+        <button key={id} data-nav="" className={id === tab ? 'on' : ''} aria-current={id === tab ? 'page' : undefined} onClick={() => onTab(id)}>
+          <span className="ic" aria-hidden="true">{RAIL_ICON[id]}</span>
+          <span>{label}</span>
+        </button>
+      ))}
+      <div style={{ flexGrow: 1 }} />
+      <ProfileButton onClick={() => onTab('ajustes')} />
+    </nav>
+  );
+}
+
+function ProfileButton({ onClick }: { onClick: () => void }) {
+  const p = currentProfile();
+  return (
+    <button className="round avatar" data-nav="" aria-label={`Perfil ${p.name} e ajustes`} onClick={onClick} style={{ background: p.color }}>
+      {p.name.slice(0, 1).toUpperCase()}
+    </button>
   );
 }

@@ -416,6 +416,11 @@ html:not(.kbd) .tile:focus .tile-art { box-shadow: inset 0 1px 0 rgba(255, 255, 
   position: absolute; left: 10px; right: 10px; bottom: 14px; font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 17px; line-height: 1.15;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
 }
+.poster-rank {
+  position: absolute; left: 6px; bottom: 2px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 64px; line-height: 1;
+  color: #f4f4f8; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9);
+}
+.trailer { width: 100%; border: 0; border-radius: 14px; background: #000; }
 .poster-rate { position: absolute; right: 8px; top: 8px; padding: 2px 7px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(0, 0, 0, 0.65); color: #f5b83d; }
 .poster-prog { position: absolute; left: 8px; right: 8px; bottom: 8px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.3); overflow: hidden; }
 .poster-prog span, .ep-prog span { display: block; height: 100%; background: #ff6b3d; }
@@ -499,6 +504,45 @@ html:not(.kbd) .tile:focus .tile-art { box-shadow: inset 0 1px 0 rgba(255, 255, 
 .guide-prog.sel { background: #f4f4f8; color: #0b0b12; opacity: 1; box-shadow: 0 0 0 3px #f4f4f8; z-index: 2; }
 .guide-prog.sel small { color: #4a4a5a; }
 .guide-grid:not(:focus) .guide-prog.sel { background: rgba(255, 255, 255, 0.3); color: #f4f4f8; box-shadow: none; }
+
+/* ---- Estrutura B · Cinema ---- */
+.tabs-b { display: -webkit-flex; display: flex; margin-left: 36px; }
+.tabs-b button {
+  height: 46px; padding: 0 14px; border: 0; background: transparent; cursor: pointer; color: #a6a6b8; font-size: 18px; font-weight: 700;
+  border-bottom: 3px solid transparent; border-radius: 0 !important;
+}
+.tabs-b button.on { color: #f4f4f8; border-bottom-color: #3dd6c4; }
+.tabs-b button:focus { color: #f4f4f8; box-shadow: none; background: rgba(255, 255, 255, 0.1); border-radius: 8px !important; }
+
+/* ---- Estrutura C · Hub (menu lateral) ---- */
+.rail {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 96px; z-index: 12; background: rgba(21, 21, 31, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center;
+}
+.rail > * + * { margin-top: 6px; }
+.rail-logo { margin-bottom: 14px; }
+.rail button:not(.avatar) {
+  width: 78px; height: 62px; border: 0; border-radius: 16px; cursor: pointer; background: transparent; color: #a6a6b8; font-size: 12px; font-weight: 700;
+  display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+}
+.rail button .ic { font-size: 20px; line-height: 24px; margin-bottom: 2px; }
+.rail button.on { background: rgba(255, 255, 255, 0.12); color: #f4f4f8; }
+.rail button.on .ic { color: #3dd6c4; }
+
+/* ---- Perfis e temas ---- */
+.who { border: 0; background: transparent; cursor: pointer; margin: 14px 20px; padding: 8px; border-radius: 20px; color: #f4f4f8;
+  display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; }
+.who-face { border-radius: 24%; color: #fff; font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; -webkit-flex-shrink: 0; flex-shrink: 0;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  box-shadow: inset 0 -10px 30px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.35); }
+.who-name { margin-top: 12px; font-size: 18px; font-weight: 700; color: #a6a6b8; }
+.who:focus .who-name, .who:hover .who-name { color: #f4f4f8; }
+.who:focus { box-shadow: none; }
+.who:focus .who-face { box-shadow: 0 0 0 4px #f4f4f8; }
+.theme-swatch { width: 150px; height: 74px; margin: 0 10px 10px 0; border-radius: 14px; border: 2px solid; cursor: pointer; padding: 10px; text-align: left; position: relative; }
+.theme-swatch span { display: inline-block; width: 18px; height: 18px; border-radius: 9px; margin-right: 6px; }
+.theme-swatch b { position: absolute; left: 12px; bottom: 8px; font-size: 14px; }
 
 /* Espaçamento entre filhos (substitui "gap"; no fim para valer sobre as regras acima) */
 .gx-2 > * + * { margin-left: 2px; }   .gy-2 > * + * { margin-top: 2px; }

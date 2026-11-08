@@ -1,3 +1,4 @@
+import { T } from './tokens';
 import { useEffect, useState } from 'react';
 import { logoCandidates } from '../core/logos';
 import { useSettings } from '../core/settings';
@@ -108,15 +109,15 @@ export function Ambient({ variant = 'live' }: { variant?: 'live' | 'home' | 'sof
   const spots =
     variant === 'live'
       ? [
-          { left: 700, top: 40, w: 560, h: 460, c: '#7A2E9C', blur: 110, o: 0.6 },
-          { left: 160, top: 380, w: 560, h: 420, c: '#3DD6C4', blur: 130, o: 0.2 },
+          { left: 700, top: 40, w: 560, h: 460, c: T.ambient[0], blur: 110, o: 0.6 },
+          { left: 160, top: 380, w: 560, h: 420, c: T.ambient[1], blur: 130, o: 0.2 },
         ]
       : variant === 'home'
         ? [
-            { left: -80, top: -120, w: 620, h: 520, c: '#FF6B3D', blur: 140, o: 0.28 },
-            { left: 760, top: 260, w: 620, h: 520, c: '#3DD6C4', blur: 140, o: 0.22 },
+            { left: -80, top: -120, w: 620, h: 520, c: T.ambient[2], blur: 140, o: 0.28 },
+            { left: 760, top: 260, w: 620, h: 520, c: T.ambient[1], blur: 140, o: 0.22 },
           ]
-        : [{ left: 420, top: 200, w: 640, h: 480, c: '#3D2BFF', blur: 150, o: 0.25 }];
+        : [{ left: 420, top: 200, w: 640, h: 480, c: T.ambient[0], blur: 150, o: 0.25 }];
   // Gradiente radial em vez de blur: funciona na TV de 2017 e pesa menos.
   return (
     <div className="ambient" aria-hidden="true">

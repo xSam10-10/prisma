@@ -245,7 +245,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
         <div className={mobile ? 'gy-8' : 'gy-12'} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
         {mobile && (
         <div ref={chipsRef} className="scroll-x" role="tablist" aria-label="Categorias">
-          <button className="chip" data-nav="" style={{ color: '#3DD6C4' }} onClick={() => setDialog('new')}>+ Nova</button>
+          <button className="chip" data-nav="" style={{ color: T.primary }} onClick={() => setDialog('new')}>+ Nova</button>
           <button className="chip" data-nav="" onClick={() => setDialog('organize')}>⇅</button>
           <button className="chip" data-nav="" onClick={() => setGuide(true)}>▦ Guia</button>
           {chips.map((c) => (
@@ -411,7 +411,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
           display: 'flex', flexDirection: 'column', overflow: 'hidden', }}
       >
         <div className="gx-18" style={{ display: 'flex', fontSize: 16, fontWeight: 700, alignItems: 'center' }}>
-          <span>A seguir</span>
+          <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>A seguir</span>
           <button className="chip" data-nav="" onClick={() => setGuide(true)} style={{ height: 32, flexShrink: 0 }}>▦ Guia de 7 dias</button>
           <span className="muted caps" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selected ? `${selected.number ?? ''} · ${selected.name}` : ''}
