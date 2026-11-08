@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.16.7
+- PIP simplificado: uma tela pequena a mais, com só duas opções — Desl/Lig e Trocar PIP
+
 ## 0.16.6
 - Logotipos coloridos em alta definição dos 14 streamings (Netflix, HBO Max, Disney+, Apple TV, Prime Video, Paramount+, Globoplay, Crunchyroll, +SBT, AMC+, LIONSGATE+, FunimationNow, DIRECTV, Claro video)
 - Opção em Ajustes › Aparência › Logotipos dos streamings: Coloridos (padrão) ou Brancos

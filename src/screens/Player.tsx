@@ -57,7 +57,8 @@ interface Props {
 }
 
 type Status = 'loading' | 'playing' | 'error' | 'locked';
-const MAX_PIPS = IS_WEBOS ? 1 : 3;
+// PIP: uma tela pequena a mais (o plano do usuário permite 2 telas ao mesmo tempo).
+const MAX_PIPS = 1;
 const FIT_LABEL: Record<string, string> = { contain: 'Normal', fill: 'Esticar', cover: 'Zoom' };
 const FIT_NEXT: Record<string, 'contain' | 'fill' | 'cover'> = { contain: 'fill', fill: 'cover', cover: 'contain' };
 
@@ -569,7 +570,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     setMenu(null);
     showOverlay(false);
     setOverlayKind('controls');
-    if (id) focusIcon(id === 'add' ? 'pip' : id);
+    if (id) focusIcon(id);
   };
   const acc = playlist?.account;
   const addPip = (c: Channel) => {
@@ -580,7 +581,8 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const connNote = acc?.maxConnections
     ? `Sua assinatura: ${acc.maxConnections} ${acc.maxConnections === 1 ? 'tela' : 'telas'} ao mesmo tempo. Cada janela usa 1.`
     : 'Cada janela usa 1 conexão da sua assinatura.';
-  const overLimit = !!acc?.maxConnections && pips.length + 1 >= acc.maxConnections;
+  // Aviso só quando a assinatura permite 1 tela (a janela pequena usaria a 2ª conexão).
+  const overLimit = !!acc?.maxConnections && acc.maxConnections < 2;
   const barActions: BarAction[] = [];
   if (channel && !vod) {
     if (mobile) {
@@ -594,33 +596,16 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       onClick: () => (menu === 'pip' ? closeMenu() : openMenu('pip')),
       menu: (
         <BarMenu>
-          {/* Depois de ligar/trocar, o menu fecha: ▲▼ voltam a trocar o canal principal. */}
+          {/* Só duas funções: ligar/desligar a tela pequena e trocar com a principal.
+              Depois de usar, o menu fecha: ▲▼ voltam a trocar o canal principal. */}
           <MenuToggle on={pips.length > 0} onClick={() => { if (pips.length) onPips?.([]); else addPip(channel); closeMenu(); }} />
-          {pips.length <= 1 ? (
-            <MenuItem def onClick={() => { if (pips.length) onSwapPip?.(0); else addPip(channel); closeMenu(); }}>Trocar PIP</MenuItem>
-          ) : (
-            pips.map((p, i) => (
-              <MenuItem key={p.id} def={i === 0} onClick={() => { onSwapPip?.(i); closeMenu(); }}>Trocar com {p.number ? p.number + ' ' : ''}{p.name}</MenuItem>
-            ))
+          {pips.length > 0 && (
+            <MenuItem def onClick={() => { onSwapPip?.(0); closeMenu(); }}>Trocar PIP</MenuItem>
           )}
-          <MenuItem onClick={() => openMenu('add')}>Adicionar a..</MenuItem>
           {overLimit && <span className="cbar-pop-note">{connNote}</span>}
         </BarMenu>
       ),
     });
-    // "Adicionar a.." abre no mesmo lugar do PIP
-    if (menu === 'add') {
-      barActions[barActions.length - 1].menu = (
-        <BarMenu>
-          <MenuItem def onClick={() => { addPip(channel); closeMenu(); }}>
-            {pips.length >= MAX_PIPS ? `Janelas cheias (${MAX_PIPS})` : pips.some((p) => p.id === channel.id) ? 'Já está numa janela' : `Nova janela PIP (${pips.length + 1} de ${MAX_PIPS})`}
-          </MenuItem>
-          <MenuItem onClick={() => { toggleFav(channel); closeMenu(); }}>{isFav(channel) ? 'Tirar dos favoritos' : 'Favoritos'}</MenuItem>
-          <MenuItem onClick={() => { setMenu(null); setPicker(true); }}>Uma seção…</MenuItem>
-          <span className="cbar-pop-note">{IS_WEBOS ? 'Na TV LG: 1 janela (experimental). ' : ''}{connNote}</span>
-        </BarMenu>
-      );
-    }
     const qs = engine.current?.qualities() ?? [];
     const q = engine.current?.quality() ?? -1;
     barActions.push({
@@ -866,7 +851,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
             quality={resLabel}
             fitLabel={FIT_LABEL[S.videoFit]}
             actions={barActions}
-            openMenu={menu === 'add' ? 'pip' : menu}
+            openMenu={menu}
             mobile={mobile}
             padX={padX}
             padB={Math.max(14, padB - 12)}
