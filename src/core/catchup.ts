@@ -48,7 +48,7 @@ export function catchupUrl(pl: Playlist, ch: Channel, e: EpgEntry, now = Date.no
   if (live ? !(canCatchup(ch) && e.start <= now && now < e.end) : !inArchive(ch, e, now)) return null;
   if (pl.source.type === 'xtream') {
     const c = pl.source;
-    const id = ch.id.replace(/^l/, '');
+    const id = ch.id.replace(/^l/, '').replace(/@.*$/, '');
     const minutes = Math.max(1, Math.round((e.end - e.start) / 60000));
     return `${normalizeServer(c.server)}/timeshift/${encodeURIComponent(c.username)}/${encodeURIComponent(c.password)}/${minutes}/${serverTime(e.start, pl.account?.timezone)}/${id}.ts`;
   }

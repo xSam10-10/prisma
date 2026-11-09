@@ -1,4 +1,4 @@
-# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 09/11/2026, versão 0.24.3)
+# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 09/11/2026, versão 0.24.4)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.

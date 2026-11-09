@@ -9,13 +9,30 @@ const QUALITY = /^(SD|HD|FHD|UHD|4K|8K|HQ|FULLHD|FULL\s?HD)$/i;
 
 export function simplifyName(name: string): string {
   // Tira o que está entre colchetes ou parênteses: [ALT], [H265], (BACKUP)...
-  const base = name.replace(/\[[^\]]*\]|\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  // — menos numeração ("(1)", "[02]"), que diferencia canais ("XXX 01", "XXX 02").
+  const base = name
+    .replace(/\[\s*(\d{1,3})\s*\]|\(\s*(\d{1,3})\s*\)/g, ' $1$2 ')
+    .replace(/\[[^\]]*\]|\([^)]*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   const words = base.split(' ');
   for (let i = 1; i < words.length; i++) {
     const w = words[i].replace(/[^A-Za-z0-9]/g, '');
-    if (QUALITY.test(w)) return words.slice(0, i + 1).join(' ');
+    if (QUALITY.test(w)) {
+      // Número depois da qualidade continua no nome: "CANAL HD 02".
+      const num = words.slice(i + 1).filter((x) => /^#?\d{1,3}$/.test(x));
+      return [...words.slice(0, i + 1), ...num].join(' ');
+    }
   }
   return base || name.trim();
+}
+
+/** Marcas de "outra fonte do mesmo canal": só elas podem juntar dois canais num só. */
+const ALT_MARK = /\[[^\]]*\b(alt|alternativ[oa]|backup|bkp|reserva|op[cç][aã]o\s*\d*|fonte\s*\d*|sinal\s*\d+|h\.?\s?26[45]|hevc|x26[45])\b[^\]]*\]|\([^)]*\b(alt|alternativ[oa]|backup|bkp|reserva|op[cç][aã]o\s*\d*|fonte\s*\d*|h\.?\s?26[45]|hevc|x26[45])\b[^)]*\)|\b(alt|backup|bkp|reserva|h\.?\s?26[45]|hevc|x26[45])\b/gi;
+
+/** Chave para juntar fontes do mesmo canal: o nome completo sem as marcas de fonte reserva/codec. */
+export function sameChannelKey(full: string): string {
+  return full.replace(ALT_MARK, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase();
 }
 
 /** Termos técnicos de codificação que não ajudam a escolher a categoria. */

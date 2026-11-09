@@ -1,6 +1,6 @@
 import { detectXtreamFromUrl, parseM3U } from './m3u';
 import { cleanLabel } from './logos';
-import { parseEpisodeName, simplifyGroups, simplifyName } from './names';
+import { parseEpisodeName, sameChannelKey, simplifyGroups, simplifyName } from './names';
 import { fetchText } from './net';
 import { idbDel, idbGet, idbSet } from './storage';
 import { SourceError, type Category, type Channel, type ItemKind, type Playlist, type SourceConfig } from './types';
@@ -29,7 +29,8 @@ export function tidyPlaylist(p: Playlist): Playlist {
     it.fullName = full;
     it.name = simplifyName(full);
     if (it.kind === 'live') {
-      const key = it.group + '|' + it.name.toLowerCase();
+      // Junta só fontes do mesmo canal ([ALT], BACKUP, H265…); canais numerados ou de nome parecido ficam separados.
+      const key = it.group + '|' + sameChannelKey(full);
       const first = seen.get(key);
       if (first) {
         const extra = [it.url, ...(it.altUrls ?? [])].filter((u) => u && u !== first.url && !(first.altUrls ?? []).includes(u));

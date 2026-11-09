@@ -28,8 +28,10 @@ const live = [
 [['70', 'REDE BANDEIRANTES', ['BAND SP FHD', 'BAND RJ FHD [ALT]', 'BAND NEWS HD']], ['71', 'CANAIS | UHD 4K', ['GLOBO SP 4K FHDR', 'AXN 4K']],
  ['72', 'GLOBO | CAPITAIS', ['GLOBO RJ FHD', 'GLOBO RJ FHD [ALT]', 'GLOBO RJ HD', 'GLOBO RJ SD']], ['73', 'A FAZENDA 2026', ['A FAZENDA 18 SINAL 01']],
  ['74', 'PPV | AMAZON PRIME', ['PRIME VIDEO 01 FHD']], ['76', 'CANAIS 24H | DESENHOS', ['Zé Buscapé', 'Zatch Bell', 'YU-YU-Hakusho', 'Xuxa só para Baixinhos 2', 'X-Men 2']],
- ['77', 'CANAIS 24H | PREMIERE', ['Premiere 24h Clássicos']], ['78', 'EVENTOS EM DESTAQUE', ['Evento 01 FHD']], ['79', 'CANAIS 24H | SERIES', ['Chaves 24h']], ['80', 'CANAIS 24H | LIVE SHOWS', ['Show Ao Vivo 01']], ['75', 'FILMES E SÉRIES', ['A&E FHD', 'AMC FHD', 'ANIMAL PLANET FHD']], ['81', 'ADULTOS +18', ['Canal Adulto 01', 'Canal Adulto 02']]]
+ ['77', 'CANAIS 24H | PREMIERE', ['Premiere 24h Clássicos']], ['78', 'EVENTOS EM DESTAQUE', ['Evento 01 FHD']], ['79', 'CANAIS 24H | SERIES', ['Chaves 24h']], ['80', 'CANAIS 24H | LIVE SHOWS', ['Show Ao Vivo 01']], ['75', 'FILMES E SÉRIES', ['A&E FHD', 'AMC FHD', 'ANIMAL PLANET FHD']], ['81', 'ADULTOS +18', ['ADULTOS HD 01', 'ADULTOS HD 02', 'ADULTOS HD 03', 'XXX (1)', 'XXX (2)', 'XXX FHD [ALT]', 'XXX FHD']]]
   .forEach(([cid, , names], k) => names.forEach((name, j) => live.push({ num: 900 + k * 10 + j, name, stream_id: 7000 + k * 10 + j, category_id: cid, epg_channel_id: '', dir: 'prisma1' })));
+// ESPN HD também em Abertos (painéis XUI mandam category_ids)
+live.find((c) => c.stream_id === 30).category_ids = ['20', '10'];
 for (let i = 0; i < 400; i++) live.push({ num: 100 + i, name: `Canal Extra ${i + 1}`, stream_id: 100 + i, category_id: '50', epg_channel_id: '', dir: ['prisma1', 'prisma2', 'prisma3', 'prisma4'][i % 4] });
 
 // ---- Filmes e séries de teste ----

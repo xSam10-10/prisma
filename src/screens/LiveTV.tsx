@@ -108,13 +108,14 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
   const list = useMemo(() => {
     if (q) {
       const num = /^\d+$/.test(q) ? Number(q) : NaN;
-      return live.filter((c) => c.number === num || normalizeText(c.fullName ?? c.name).includes(q));
+      return live.filter((c) => c.id.indexOf('@') < 0 && (c.number === num || normalizeText(c.fullName ?? c.name).includes(q)));
     }
     if (cat === FAV) {
       const set = new Set(favIds);
       return live.filter((c) => set.has(c.id));
     }
-    if (cat === ALL) return live;
+    // Todos: cada canal uma vez (cópias de outras categorias têm '@' no id).
+    if (cat === ALL) return live.filter((c) => c.id.indexOf('@') < 0);
     return sectionChannels(cat, live, secData);
   }, [cat, live, favIds, q, secData]);
 

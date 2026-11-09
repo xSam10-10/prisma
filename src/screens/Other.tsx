@@ -621,7 +621,7 @@ export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; o
       clearTimeout(t);
     };
   }, [qt, playlist]);
-  const live = results.filter((r) => r.kind === 'live').slice(0, 30);
+  const live = results.filter((r) => r.kind === 'live' && r.id.indexOf('@') < 0).slice(0, 30);
   const movies = collapseVersions(results.filter((r) => r.kind === 'movie'));
   const series = collapseVersions(results.filter((r) => r.kind === 'series'));
   const genre = useMemo(() => genreMatches(tops, qt, playlist.items), [tops, qt, playlist]);

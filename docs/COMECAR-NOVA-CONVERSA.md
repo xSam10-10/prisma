@@ -10,7 +10,7 @@ Este arquivo existe para trocar de conversa sem perder nada. Tudo o que importa 
 
 ## 2. Mensagem para colar (primeira mensagem da nova conversa)
 
-> Vamos continuar o projeto PRISMA (meu player de IPTV). Antes de qualquer coisa, leia `docs/PRISMA-continuidade.md` (comece pela seção 0), `docs/PENDENCIAS.md` e `release-notes.md`, e confirme que entendeu: o estado atual (versão 0.24.3), como publicar uma versão (workflow `release.yml`), as verificações antes de publicar e o servidor falso de testes (`test/fake-xtream.mjs`).
+> Vamos continuar o projeto PRISMA (meu player de IPTV). Antes de qualquer coisa, leia `docs/PRISMA-continuidade.md` (comece pela seção 0), `docs/PENDENCIAS.md` e `release-notes.md`, e confirme que entendeu: o estado atual (versão 0.24.4), como publicar uma versão (workflow `release.yml`), as verificações antes de publicar e o servidor falso de testes (`test/fake-xtream.mjs`).
 >
 > Regras: responda sempre em português; os dados da minha assinatura Goldcard eu passo por aqui quando precisar — nunca grave nenhuma credencial no repositório; a chave do TMDB fica só no secret `TMDB_KEY`.
 >

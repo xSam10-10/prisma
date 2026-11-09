@@ -31,6 +31,8 @@ interface XLive {
   stream_icon?: string;
   epg_channel_id?: string | null;
   category_id?: string | null;
+  /** Painéis XUI: o canal pode estar em várias categorias. */
+  category_ids?: (number | string)[] | null;
   tv_archive?: number;
   tv_archive_duration?: number | string;
 }
@@ -127,18 +129,21 @@ export async function loadAll(c: XtreamCreds, liveFormat: LiveFormat = 'm3u8'): 
   const out: Channel[] = [];
 
   (Array.isArray(live) ? live : []).forEach((s, i) => {
-    out.push({
-      id: 'l' + s.stream_id,
+    // Canal em mais de uma categoria (category_ids): aparece em todas; o id extra leva a categoria.
+    const cats = [String(s.category_id ?? '')];
+    if (Array.isArray(s.category_ids)) for (const c of s.category_ids) if (!cats.includes(String(c))) cats.push(String(c));
+    cats.forEach((cat, k) => out.push({
+      id: 'l' + s.stream_id + (k ? '@' + cat : ''),
       kind: 'live',
       name: s.name?.trim() || `Canal ${s.stream_id}`,
       number: s.num ?? i + 1,
-      group: lc.get(String(s.category_id)) ?? 'Sem categoria',
+      group: lc.get(cat) ?? (k ? lc.get(String(s.category_id)) ?? 'Sem categoria' : 'Sem categoria'),
       logo: s.stream_icon || undefined,
       epgId: s.epg_channel_id || undefined,
       url: `${base}/live/${u}/${p}/${s.stream_id}.${liveFormat}`,
       altUrls: [`${base}/live/${u}/${p}/${s.stream_id}.${liveFormat === 'm3u8' ? 'ts' : 'm3u8'}`],
       catchupDays: s.tv_archive ? Number(s.tv_archive_duration) || undefined : undefined,
-    });
+    }));
   });
   (Array.isArray(vod) ? vod : []).forEach((s) => {
     out.push({
@@ -182,7 +187,7 @@ function b64(s: string): string {
 
 /** Guia curto (agora e a seguir) de um canal. */
 export async function shortEpg(c: XtreamCreds, streamId: string, limit = 4): Promise<EpgEntry[]> {
-  const id = streamId.replace(/^l/, '');
+  const id = streamId.replace(/^l/, '').replace(/@.*$/, '');
   const r = await fetchJson<{ epg_listings?: Array<Record<string, string | number>> }>(
     api(c, 'get_short_epg', { stream_id: id, limit: String(limit) }),
     15000,
@@ -202,7 +207,7 @@ export async function shortEpg(c: XtreamCreds, streamId: string, limit = 4): Pro
  * servidor tem — em geral os dias de gravação para trás e alguns dias à frente.
  */
 export async function fullEpg(c: XtreamCreds, streamId: string): Promise<EpgEntry[]> {
-  const id = streamId.replace(/^l/, '');
+  const id = streamId.replace(/^l/, '').replace(/@.*$/, '');
   const r = await fetchJson<{ epg_listings?: Array<Record<string, string | number>> }>(api(c, 'get_simple_data_table', { stream_id: id }), 30000);
   return (r.epg_listings ?? [])
     .map((e) => ({

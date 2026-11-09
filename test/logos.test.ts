@@ -57,3 +57,19 @@ describe('episódios de lista M3U', () => {
     expect(parseEpisodeName('Filme Qualquer (2020)')).toBeNull();
   });
 });
+
+import { sameChannelKey } from '../src/core/names';
+describe('canais numerados não viram um só', () => {
+  it('nome curto mantém a numeração', () => {
+    expect(simplifyName('ADULTOS HD 01')).toBe('ADULTOS HD 01');
+    expect(simplifyName('CANAL XXX (2)')).toBe('CANAL XXX 2');
+    expect(simplifyName('GLOBO RJ HD [ALT]')).toBe('GLOBO RJ HD');
+  });
+  it('junta só fontes reservas do mesmo canal', () => {
+    expect(sameChannelKey('GLOBO RJ FHD [ALT]')).toBe(sameChannelKey('GLOBO RJ FHD'));
+    expect(sameChannelKey('SPORTV 2 FHD [H265]')).toBe(sameChannelKey('SPORTV 2 FHD'));
+    expect(sameChannelKey('ADULTOS HD 01')).not.toBe(sameChannelKey('ADULTOS HD 02'));
+    expect(sameChannelKey('Venus (1)')).not.toBe(sameChannelKey('Venus (2)'));
+    expect(sameChannelKey('GLOBO RJ HD')).not.toBe(sameChannelKey('GLOBO RJ SD'));
+  });
+});
