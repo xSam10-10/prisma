@@ -255,6 +255,18 @@ export async function build({ log = console.log } = {}) {
     }
   }
 
+  // 7a) Chegando esta semana: filmes que chegam ao digital e séries que estreiam (hoje −2 a +8 dias)
+  if (KEY) {
+    await safe('Estreias', async () => {
+      const day = (n) => isoDay(new Date(Date.now() + n * 86400000));
+      const withDate = (raw, d) => ({ ...compact(raw), d, ...(raw.poster_path ? { p: raw.poster_path } : {}) });
+      const mv = await tmdb('/discover/movie', { region: 'BR', watch_region: 'BR', with_release_type: '4|5', 'release_date.gte': day(-2), 'release_date.lte': day(8), sort_by: 'popularity.desc' });
+      const tv = await tmdb('/discover/tv', { watch_region: 'BR', 'first_air_date.gte': day(-2), 'first_air_date.lte': day(8), sort_by: 'popularity.desc', 'vote_count.gte': '0', with_watch_monetization_types: 'flatrate' });
+      add({ id: 'estreias-movie', kind: 'movie', group: 'estreias', title: 'Chegando esta semana', src: 'Lançamentos digitais da semana (TMDB)', items: (mv.results ?? []).slice(0, 14).map((x) => withDate(x, x.release_date)) });
+      add({ id: 'estreias-tv', kind: 'tv', group: 'estreias', title: 'Chegando esta semana', src: 'Séries que estreiam esta semana (TMDB)', items: (tv.results ?? []).slice(0, 14).map((x) => withDate(x, x.first_air_date)) });
+    });
+  }
+
   // 7b) Coleções e sagas: a que coleção pertencem os filmes das listas (até 300 consultas),
   // depois os filmes de cada coleção em ordem de lançamento.
   if (KEY) {

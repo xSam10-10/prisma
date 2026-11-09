@@ -13,13 +13,15 @@ import { useLayout } from '../ui/layout';
 import { Carousel } from '../ui/Carousel';
 import { CollectionView, PosterCard, VodDetail } from './Vod';
 import { getProgress, myList, vodRecents } from '../core/vod';
-import { collectionsIn, homeShelves, topChannels, type Collection, type TopChannelPick } from '../core/tops';
+import { collectionsIn, homeShelves, topChannels, upcomingOf, type Collection, type TopChannelPick, type Upcoming } from '../core/tops';
 import { useTopsState } from '../ui/useTops';
 import { TitleLogo } from '../ui/premium';
 import { useTmdb } from '../ui/useTmdb';
 import { FeatureRow, PreviewBackdrop, SkeletonRow, WideCard } from '../ui/premium';
 import { CollectionCard, EmptyState, PosterTile, TrailerLayer, pop, setHomeScrolled, toast } from '../ui/premium2';
-import { similarOf } from '../core/tmdb';
+import { lookup, nextEpisodeOf, similarOf } from '../core/tmdb';
+import { DAYPART, LivePeek, ResumeOpen, UpcomingCard, dayPart, takeResumeOnce, useLivePeek } from '../ui/premium3';
+import { currentProfile } from '../core/profiles';
 import { findInList } from '../core/tops';
 import { prefGet } from '../core/storage';
 import { VoiceButton } from '../ui/Voice';
@@ -73,6 +75,36 @@ export function Home({
   }, [playlist]); // eslint-disable-line react-hooks/exhaustive-deps
   const highlights = useMemo(() => todayHighlights(live, favs.map((f) => f.id)), [live, favs, guideReady, hlTick]); // eslint-disable-line react-hooks/exhaustive-deps
   const tonight = useMemo(() => tonightPicks(live, favs.map((f) => f.id)), [live, favs, guideReady, hlTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Horário do dia: saudação, cor do fundo e o que sobe no Início (manhã: canais agora; noite: hoje à noite).
+  const part = dayPart();
+  // Ao abrir o app no meio de um filme/episódio: tela "Continuar de onde parou" (uma vez por abertura).
+  const [resume, setResume] = useState<Channel | null>(() => (lastVod && takeResumeOnce() ? lastVod : null));
+  // Chegando esta semana: estreias (TMDB) + próximo episódio das séries que você acompanha.
+  const [followed, setFollowed] = useState<Upcoming[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const series: Channel[] = [];
+    for (const v of vodRecents()) {
+      if (!v.seriesId || series.some((x) => x.id === v.seriesId)) continue;
+      const s = playlist.items.find((i) => i.id === v.seriesId);
+      if (s) series.push(s);
+      if (series.length >= 6) break;
+    }
+    Promise.all(
+      series.map(async (s) => {
+        const info = await lookup(s);
+        const n = info ? await nextEpisodeOf(info) : null;
+        if (!n) return null;
+        const d = Date.parse(n.date + 'T12:00:00');
+        if (d < Date.now() - 2 * 86400000 || d > Date.now() + 9 * 86400000) return null;
+        return { key: 'f' + s.id, title: s.name, date: d, kind: 'tv' as const, poster: info?.poster, item: s, ep: `Novo episódio · T${n.season} E${n.episode}` };
+      }),
+    ).then((r) => alive && setFollowed(r.filter(Boolean) as Upcoming[]));
+    return () => {
+      alive = false;
+    };
+  }, [playlist]); // eslint-disable-line react-hooks/exhaustive-deps
+  const upcoming = useMemo(() => [...followed, ...upcomingOf(tops, playlist.items).filter((u) => !followed.some((f) => f.title === u.title))].sort((a, b) => a.date - b.date).slice(0, 14), [followed, tops, playlist]);
   // "Porque você assistiu…": semelhantes (TMDB) do último filme/série visto, só o que existe na lista.
   const lastSeen = vodRecents()[0];
   const becauseBase = lastSeen ? (lastSeen.seriesId ? { ...lastSeen, name: lastSeen.group, kind: 'series' as const, fullName: undefined } : lastSeen) : null;
@@ -101,8 +133,14 @@ export function Home({
   const topChList = useMemo(() => topCh.map((p) => p.ch), [topCh]);
   return (
     <>
+    <div className="daypart-tint" aria-hidden="true" style={{ background: `radial-gradient(ellipse 70% 55% at 85% 0%, ${rgba(DAYPART[part].color, 0.16)} 0%, rgba(0,0,0,0) 70%)` }} />
     <PreviewBackdrop strength={0.32} />
-    <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }} onScroll={(e) => setHomeScrolled(e.currentTarget.scrollTop > 30)}>
+    <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0, display: 'flex', flexDirection: 'column' }} onScroll={(e) => setHomeScrolled(e.currentTarget.scrollTop > 30)}>
+      <div className="daypart-hi" style={{ order: -3, padding: `${mobile ? 0 : 4}px ${L.px}px 0` }}>
+        <b>{DAYPART[part].hi}, {currentProfile().name}</b>
+        {!mobile && <span>{DAYPART[part].sub}</span>}
+      </div>
+      <div style={{ order: -2 }}>
       <Hero
         playlist={playlist}
         last={heroItem}
@@ -116,6 +154,7 @@ export function Home({
         }}
         onGoLive={onGoLive}
       />
+      </div>
       {vodNow.length > 0 && (
         <Carousel
           title="Continuar assistindo"
@@ -137,6 +176,16 @@ export function Home({
         />
       )}
 
+      {upcoming.length >= 3 && (
+        <Carousel
+          title="Chegando esta semana"
+          subtitle="Episódios novos das suas séries e estreias dos streamings (TMDB)"
+          items={upcoming}
+          keyOf={(u) => u.key}
+          minWidth={mobile ? 220 : 300}
+          render={(u, _i, w) => <UpcomingCard u={u} w={w} onClick={() => (u.item ? onGoVod(u.item) : toast(`${u.title} ainda não está na sua lista`, '⏳'))} />}
+        />
+      )}
       {highlights.length > 0 && (
         <Carousel
           title="Destaques de hoje"
@@ -175,6 +224,7 @@ export function Home({
         />
       )}
 
+      <div style={{ order: part === 'manha' ? -1 : 0 }}>
       {topCh.length >= 3 && (
         <Carousel
           title="Top 10 canais agora"
@@ -183,6 +233,8 @@ export function Home({
           render={(p, i, w) => <TopChannelTile playlist={playlist} pick={p} rank={i + 1} width={w} onClick={() => onWatch(p.ch, topChList)} />}
         />
       )}
+      </div>
+      <div style={{ order: part === 'noite' ? -1 : 0 }}>
       {tonight.length >= 3 && (
         <Carousel
           title="Para assistir hoje à noite"
@@ -228,6 +280,7 @@ export function Home({
           }}
         />
       )}
+      </div>
       <Shelf playlist={playlist} title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
       {!topsReady && !shelves.length && (
         <>
@@ -273,6 +326,16 @@ export function Home({
       {coll && <CollectionView playlist={playlist} c={coll} onPlay={onPlayVod} onClose={() => setColl(null)} />}
       {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => setDetail(null)} />}
     </div>
+    {resume && (
+      <ResumeOpen
+        item={resume}
+        onClose={() => setResume(null)}
+        onPlay={() => {
+          setResume(null);
+          onPlayVod(resume, getProgress(resume.id)?.pos);
+        }}
+      />
+    )}
     </>
   );
 }
@@ -412,7 +475,8 @@ function TopChannelTile({ playlist, pick, rank, width, onClick }: { playlist: Pl
   const epg = useEpg(playlist, pick.ch, 300 + rank * 120);
   const now = Date.now();
   const cur = epg?.find((e) => e.start <= now && e.end > now);
-  return <ChannelTile ch={pick.ch} width={width} onClick={onClick} rank={rank} badge={pick.why} sub={cur ? `Agora: ${cur.title}` : pick.cat} image={cur?.image} progress={cur ? progressOf(cur, now) : undefined} />;
+  const lp = useLivePeek();
+  return <ChannelTile ch={pick.ch} width={width} onClick={onClick} rank={rank} badge={pick.why} sub={cur ? `Agora: ${cur.title}` : pick.cat} image={cur?.image} progress={cur ? progressOf(cur, now) : undefined} onFocus={lp.onFocus} onBlur={lp.onBlur} overlay={lp.peek ? <LivePeek ch={pick.ch} /> : undefined} />;
 }
 
 /** Card de canal com o programa de agora (imagem, título e progresso) — Favoritos e Vistos por último. */
@@ -420,7 +484,8 @@ function LiveTile({ playlist, ch, width, onClick, badge, i }: { playlist: Playli
   const epg = useEpg(playlist, ch, 400 + i * 120);
   const now = Date.now();
   const cur = epg?.find((e) => e.start <= now && e.end > now);
-  return <ChannelTile ch={ch} width={width} onClick={onClick} badge={badge} sub={cur ? `Agora: ${cur.title}` : undefined} image={cur?.image} progress={cur ? progressOf(cur, now) : undefined} />;
+  const lp = useLivePeek();
+  return <ChannelTile ch={ch} width={width} onClick={onClick} badge={badge} sub={cur ? `Agora: ${cur.title}` : undefined} image={cur?.image} progress={cur ? progressOf(cur, now) : undefined} onFocus={lp.onFocus} onBlur={lp.onBlur} overlay={lp.peek ? <LivePeek ch={ch} /> : undefined} />;
 }
 
 /** Fileira do Início: sempre carrossel, no máximo 10 canais, só cards inteiros. */

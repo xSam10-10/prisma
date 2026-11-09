@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.21.0)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.22.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -445,6 +445,14 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Início: "Porque você assistiu…" (`similarOf` do último visto), "Para assistir hoje à noite" (`tonightPicks`, 19h–meia-noite), menu transparente no alto (`.top.at-top`), trailer no Hero (foco no destaque).
 - Jogos: ESPN `team.logo`/`team.color` → `MatchHero` (escudos, degradê nas cores, minuto pulsando, gols na linha do tempo via `loadMatchStats`). Guia: `.guide-now` com brilho e horário, programa ao vivo com imagem (`EpgEntry.image`) e barra.
 - CSS: respiração do foco (`breathe`, `breatheApple`), inclinação com mouse (App, `.tilt-art`), títulos editoriais no `Carousel`. Regras de imagem de capa restritas a filhos diretos (`.peek > img` etc.) — antes pegavam a logo do título.
+
+## 10ae. Versão 0.22.0 — visual premium III (11 sugestões; a 11ª, Perfil Kids, ficou de fora a pedido)
+- `src/ui/premium3.tsx`: `dayPart`/`DAYPART` (manhã 5–12, tarde 12–18, noite 18–24, madrugada; saudação, cor, ordem das fileiras via `order` no Início em flex-column), `takeResumeOnce` + `ResumeOpen` (só na 1ª montagem do Início na sessão, se `lastKind === 'vod'`), `LivePeek`/`useLivePeek` (Engine mudo no card após 2 s de foco; só com `html.kbd`, fora em `lite`/`mobile`; usa 1 das 2 telas do plano enquanto aparece), `UpcomingCard`, `CinemaIntro` (1,7 s), `Screensaver` (5 min pausado; Ken Burns, relógio), `EndCredits` (filme > 10 min, faltando < max(2 min, 4%), sem próximo episódio; vídeo encolhe para o canto via `.player.credits video`), `SeekThumb`.
+- `src/core/tmdb.ts`: `personOf` (/person + combined_credits), `scenesOf` (/images backdrops w300), `ratingOf` (release_dates/content_ratings BR), `nextEpisodeOf` (next_episode_to_air); `castOf` agora traz `id` (aggregate_credits nas séries).
+- Vod.tsx: `CertBadge`, `ActorView` (OK no elenco), barra da temporada (vistos x de y, marcar/desmarcar), ✓ nos episódios. `vod.ts`: `watchedIds`/`isWatched`/`setWatched` (pref `watched`, por perfil; > 95% marca sozinho).
+- Gerador dos Tops: bloco 7a `estreias-movie`/`estreias-tv` (discover −2…+8 dias, itens com `d` data e `p` pôster); app: `upcomingOf` + próximos episódios das séries vistas → "Chegando esta semana".
+- Tema `oled` em `themes.ts`. Player: `useLayoutEffect` do `barH` só faz setState quando muda (antes laço "Maximum update depth" nos filmes).
+- Servidor falso: /person, release_dates, content_ratings, /tv/{id} com próximo episódio, elenco com `id`, discover com datas.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

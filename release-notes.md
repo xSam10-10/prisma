@@ -1,6 +1,19 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.22.0 — visual premium III
+- Ao abrir o app depois de ver um filme ou série, tela "Continuar assistindo" com a arte, o tempo que falta e o botão de retomar
+- Início muda com a hora do dia: "Bom dia, Samuel", cor de fundo e ordem das fileiras (de manhã os canais, à noite "Para assistir hoje à noite")
+- "Chegando esta semana": estreias da semana nos streamings e novos episódios das séries que você acompanha
+- Cards de canal no Início mostram o canal ao vivo (sem som) depois de 2 s com o foco (fora na TV LG)
+- Página do ator/atriz: foto, biografia, idade, cidade e os títulos dele que estão na sua lista (OK no elenco)
+- Classificação indicativa (L, 10, 12, 14, 16, 18) nas cores oficiais no detalhe
+- Episódios vistos com ✓ e "Temporada 1 · 3 de 10 vistos", com marcar/desmarcar a temporada inteira
+- Filmes: miniatura da cena na barra de tempo; abertura "modo cinema" com a logo; créditos finais com o vídeo no canto, "Continuar a coleção" e "Semelhantes"
+- Protetor de tela com as artes da sua lista e relógio após 5 min pausado (qualquer tecla volta)
+- Novo tema "OLED (preto absoluto)" em Ajustes › Aparência
+- Correção: o player de filmes podia travar com "erro" logo após começar (laço de atualização da tela)
+
 ## 0.21.0 — visual premium II
 - Trailer silencioso no destaque do Início e no Destaque da semana (depois de alguns segundos com o foco)
 - Capas que se expandem: parado ~2 s numa capa, abre um card largo com arte, logo, nota, selos e sinopse

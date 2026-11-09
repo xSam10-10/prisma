@@ -79,12 +79,12 @@ export function ChannelLogo({ ch, size = 40 }: { ch: Channel; size?: number }) {
 }
 
 /** Miniatura 16:9 com o logo em destaque (cards do Início). */
-export function ChannelTile({ ch, width, onClick, badge, rank, sub, image, progress, onFocus }: { ch: Channel; width: number; onClick: () => void; badge?: string; rank?: number; sub?: string; image?: string; progress?: number; onFocus?: () => void }) {
+export function ChannelTile({ ch, width, onClick, badge, rank, sub, image, progress, onFocus, onBlur, overlay }: { ch: Channel; width: number; onClick: () => void; badge?: string; rank?: number; sub?: string; image?: string; progress?: number; onFocus?: () => void; onBlur?: () => void; overlay?: React.ReactNode }) {
   const { src, onError } = useLogo(ch);
   const c = colorFor(ch.name);
   const h = Math.round((width * 9) / 16);
   return (
-    <button className="tile grow" data-nav="" onClick={onClick} onFocus={onFocus} style={{ width }} aria-label={ch.name}>
+    <button className="tile grow" data-nav="" onClick={onClick} onFocus={onFocus} onBlur={onBlur} style={{ width }} aria-label={ch.name}>
       <span
         className={'tile-art' + (image ? ' has-prog' : '')}
         style={{
@@ -100,6 +100,7 @@ export function ChannelTile({ ch, width, onClick, badge, rank, sub, image, progr
         )}
         {ch.number != null && <span className="tile-num">{ch.number}</span>}
         {badge && <span className="tile-badge">{badge}</span>}
+        {overlay}
         {rank ? <span className="tile-rank">{rank}</span> : null}
         {progress != null && progress > 0 ? (
           <span className="tile-progress">

@@ -210,6 +210,7 @@ export function logoOf(info: TmdbInfo): Promise<string | undefined> {
 }
 
 export interface CastMember {
+  id?: number;
   name: string;
   role?: string;
   photo?: string;
@@ -219,9 +220,9 @@ export interface CastMember {
 export function castOf(info: TmdbInfo): Promise<CastMember[]> {
   return cached(`cast|${info.type}|${info.id}`, async () => {
     try {
-      type C = { cast?: { name: string; character?: string; profile_path?: string }[] };
+      type C = { cast?: { id?: number; name: string; character?: string; roles?: { character?: string }[]; profile_path?: string }[] };
       const r = await call<C>(`/${info.type}/${info.id}/${info.type === 'tv' ? 'aggregate_credits' : 'credits'}`);
-      return (r.cast ?? []).slice(0, 12).map((c) => ({ name: c.name, role: c.character || undefined, photo: c.profile_path ? `${IMG()}/w185${c.profile_path}` : undefined }));
+      return (r.cast ?? []).slice(0, 12).map((c) => ({ id: c.id, name: c.name, role: c.character || c.roles?.[0]?.character || undefined, photo: c.profile_path ? `${IMG()}/w185${c.profile_path}` : undefined }));
     } catch {
       return [];
     }
@@ -236,6 +237,94 @@ export function similarOf(info: TmdbInfo): Promise<TmdbInfo[]> {
       return (r.results ?? []).map((x) => ({ ...toInfo(x, info.type), original: x.original_title || x.original_name }));
     } catch {
       return [];
+    }
+  });
+}
+
+// ---------------------------------------------------------------- 0.22.0: ator, cenas, classificação, próximo episódio
+
+export interface Person {
+  id: number;
+  name: string;
+  bio?: string;
+  photo?: string;
+  birth?: string;
+  place?: string;
+  dept?: string;
+  /** Trabalhos (filmes e séries), mais populares primeiro. */
+  credits: TmdbInfo[];
+}
+
+/** Página do ator/diretor: biografia e trabalhos (combined_credits). */
+export function personOf(id: number): Promise<Person | null> {
+  return cached(`person|${id}`, async () => {
+    try {
+      type P = { id: number; name: string; biography?: string; profile_path?: string; birthday?: string; place_of_birth?: string; known_for_department?: string };
+      type CC = { cast?: (Raw & { media_type: 'movie' | 'tv'; popularity?: number })[]; crew?: (Raw & { media_type: 'movie' | 'tv'; popularity?: number; job?: string })[] };
+      const [p, cc] = await Promise.all([call<P>(`/person/${id}`), call<CC>(`/person/${id}/combined_credits`)]);
+      const all = [...(cc.cast ?? []), ...(cc.crew ?? []).filter((c) => c.job === 'Director')];
+      const seen = new Set<string>();
+      const credits = all
+        .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
+        .filter((x) => {
+          const k = x.media_type + x.id;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        })
+        .map((x) => ({ ...toInfo(x, x.media_type), original: x.original_title || x.original_name }));
+      return { id: p.id, name: p.name, bio: p.biography || undefined, photo: p.profile_path ? `${IMG()}/h632${p.profile_path}` : undefined, birth: p.birthday || undefined, place: p.place_of_birth || undefined, dept: p.known_for_department, credits };
+    } catch {
+      return null;
+    }
+  });
+}
+
+/** Cenas (imagens largas) do título, para as miniaturas da barra de tempo. */
+export function scenesOf(info: TmdbInfo): Promise<string[]> {
+  return cached(`scenes|${info.type}|${info.id}`, async () => {
+    try {
+      const r = await call<{ backdrops?: { file_path: string }[] }>(`/${info.type}/${info.id}/images`, { include_image_language: 'null,pt,en' });
+      return (r.backdrops ?? []).slice(0, 24).map((b) => `${IMG()}/w300${b.file_path}`);
+    } catch {
+      return [];
+    }
+  });
+}
+
+/** Classificação indicativa no Brasil (L, 10, 12, 14, 16, 18). */
+export function ratingOf(info: TmdbInfo): Promise<string | undefined> {
+  return cached(`cert|${info.type}|${info.id}`, async () => {
+    try {
+      if (info.type === 'movie') {
+        const r = await call<{ results?: { iso_3166_1: string; release_dates: { certification: string }[] }[] }>(`/movie/${info.id}/release_dates`);
+        const br = r.results?.find((x) => x.iso_3166_1 === 'BR');
+        return br?.release_dates.map((d) => d.certification).find(Boolean) || undefined;
+      }
+      const r = await call<{ results?: { iso_3166_1: string; rating: string }[] }>(`/tv/${info.id}/content_ratings`);
+      return r.results?.find((x) => x.iso_3166_1 === 'BR')?.rating || undefined;
+    } catch {
+      return undefined;
+    }
+  });
+}
+
+export interface NextEpisode {
+  date: string;
+  season: number;
+  episode: number;
+  name?: string;
+}
+
+/** Próximo episódio da série no TMDB (para "Chegando esta semana"). */
+export function nextEpisodeOf(info: TmdbInfo): Promise<NextEpisode | null> {
+  return cached(`next|${info.id}`, async () => {
+    try {
+      const r = await call<{ next_episode_to_air?: { air_date: string; season_number: number; episode_number: number; name?: string } | null }>(`/tv/${info.id}`);
+      const n = r.next_episode_to_air;
+      return n && n.air_date ? { date: n.air_date, season: n.season_number, episode: n.episode_number, name: n.name } : null;
+    } catch {
+      return null;
     }
   });
 }

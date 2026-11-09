@@ -30,6 +30,8 @@ export const THEMES: Theme[] = [
   { id: 'hbo', name: 'HBO Max', bg: '#08081F', surface: '#17173D', text: '#F4F3FF', text2: '#A9A6D6', primary: '#7B5CFF', onPrimary: '#FFFFFF', live: '#FF4D7D', warn: '#C9A6FF', ambient: ['#3D2BFF', '#A020F0', '#002BE7'] },
   { id: 'disney', name: 'Disney+', bg: '#0E1424', surface: '#1A1D29', text: '#F9F9F9', text2: '#A8B0C2', primary: '#0063E5', onPrimary: '#FFFFFF', live: '#FF5A5F', warn: '#00D4FF', ambient: ['#1F80E0', '#00D4FF', '#0B1A3D'] },
   { id: 'prime', name: 'Prime Video', bg: '#0F171E', surface: '#1A242F', text: '#F2F4F5', text2: '#8197A4', primary: '#00A8E1', onPrimary: '#0F171E', live: '#FF6138', warn: '#F2C94C', ambient: ['#00A8E1', '#1A4D8F', '#0F171E'], square: true },
+  // OLED: preto absoluto (ótimo na LG OLED), sem manchas de luz; a cor fica só nas artes.
+  { id: 'oled', name: 'OLED (preto absoluto)', bg: '#000000', surface: '#0A0A0C', text: '#FFFFFF', text2: '#9A9AA6', primary: '#F4F4F8', onPrimary: '#000000', live: '#FF453A', warn: '#FFD60A', ambient: ['#000000', '#000000', '#000000'] },
   { id: 'apple', name: 'Apple TV', bg: '#000000', surface: '#1C1C1E', text: '#F5F5F7', text2: '#8E8E93', primary: '#F5F5F7', onPrimary: '#000000', live: '#FF453A', warn: '#FFD60A', ambient: ['#3A3A3C', '#8E8E93', '#1C1C1E'] },
   { id: 'globoplay', name: 'Globoplay', bg: '#120A0E', surface: '#22141B', text: '#FFFFFF', text2: '#B9A9B1', primary: '#FB2E5A', onPrimary: '#FFFFFF', live: '#FF7A00', warn: '#FFB000', ambient: ['#FB2E5A', '#FF7A00', '#5B1430'] },
 ];

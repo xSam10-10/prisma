@@ -24,6 +24,9 @@ const MAX_AGE = 6 * 3600 * 1000;
 /** i = id TMDB, t = título em português, o = original, e = inglês (Netflix), y = ano, r = nota. */
 export interface TopItem {
   i?: number;
+  /** Estreias: data (AAAA-MM-DD) e pôster (caminho do TMDB). */
+  d?: string;
+  p?: string;
   t: string;
   o?: string;
   e?: string;
@@ -34,7 +37,7 @@ export interface TopList {
   id: string;
   kind: 'movie' | 'tv';
   /** stgenero = um gênero dentro de um streaming (aparece ao escolher o streaming). */
-  group: 'streaming' | 'geral' | 'genero' | 'especial' | 'stgenero' | 'stall' | 'colecao';
+  group: 'streaming' | 'geral' | 'genero' | 'especial' | 'stgenero' | 'stall' | 'colecao' | 'estreias';
   /** Coleção: arte larga (caminho do TMDB). */
   b?: string;
   sid?: string;
@@ -200,7 +203,7 @@ export function matchedLists(data: TopsData | null, items: Channel[], kind: 'mov
     return g * 100 + (s < 0 ? 50 : s);
   };
   return data.lists
-    .filter((l) => l.kind === kind && l.group !== 'stgenero' && l.group !== 'stall' && l.group !== 'colecao')
+    .filter((l) => l.kind === kind && l.group !== 'stgenero' && l.group !== 'stall' && l.group !== 'colecao' && l.group !== 'estreias')
     .sort((a, b) => order(a) - order(b))
     .map((l) => matchList(l, items))
     .filter((l) => l.items.length >= min);
@@ -251,6 +254,32 @@ export function collectionsIn(data: TopsData | null, items: Channel[]): Collecti
     .map((l) => ({ id: l.id, title: l.title, backdrop: l.b ? tmdbImage(l.b, 'w780') : undefined, items: matchList(l, items, 50).items.map((r) => r.item) }))
     .filter((c) => c.items.length >= 2)
     .sort((a, b) => b.items.length - a.items.length);
+}
+
+export interface Upcoming {
+  key: string;
+  title: string;
+  date: number;
+  kind: 'movie' | 'tv';
+  poster?: string;
+  /** Já está na lista (pode abrir). */
+  item?: Channel;
+  /** Série que você acompanha: "T2 E5". */
+  ep?: string;
+}
+
+/** Estreias da semana (TMDB) — filmes e séries —, com o que já estiver na lista marcado. */
+export function upcomingOf(data: TopsData | null, items: Channel[]): Upcoming[] {
+  if (!data) return [];
+  const out: Upcoming[] = [];
+  for (const l of data.lists) {
+    if (l.group !== 'estreias') continue;
+    for (const it of l.items) {
+      if (!it.d) continue;
+      out.push({ key: l.kind + (it.i ?? it.t), title: it.t, date: Date.parse(it.d + 'T12:00:00'), kind: l.kind, poster: it.p ? tmdbImage(it.p, 'w342') : undefined, item: findInList(it, l.kind, items) });
+    }
+  }
+  return out.sort((a, b) => a.date - b.date);
 }
 
 /** Junta filmes e séries de um mesmo top, alternando (1º filme, 1ª série…). */

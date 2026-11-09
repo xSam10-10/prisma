@@ -194,6 +194,7 @@ createServer((req, res) => {
       if (i % 4 === 3) out.push({ id: 90000 + i, title: 'Fora da Lista ' + i, name: 'Fora da Lista ' + i, release_date: '2020-01-01', first_air_date: '2020-01-01', vote_average: 7 });
       else { const x = pool[(seed + i * 5) % pool.length]; out.push({ id: 50000 + seed * 100 + i, title: x.title, name: x.title, original_title: x.title, original_name: x.title, release_date: x.date, first_air_date: x.date, vote_average: 7.2 }); }
     }
+    if (u.searchParams.get('release_date.gte') && u.searchParams.get('release_date.lte') || u.searchParams.get('first_air_date.lte')) out.forEach((x, i) => { const d = new Date(Date.now() + ((i % 9) - 1) * 86400000).toISOString().slice(0, 10); x.release_date = d; x.first_air_date = d; x.poster_path = '/p' + (i % 6) + '.svg'; });
     return j({ results: Number(u.searchParams.get('page') || 1) > 1 ? out.slice(11) : out.slice(0, 20) });
   }
   if (u.pathname.startsWith('/escudo/')) {
@@ -221,10 +222,15 @@ createServer((req, res) => {
     if (path === '3/trending/movie/week') return j({ results: ['Rota 66', 'Inexistente', 'Maré Alta', 'Luz do Norte', 'Plano B'].map((t, i) => ({ id: 100 + i, title: t, poster_path: '/p.svg' })) });
     if (path === '3/trending/tv/week') return j({ results: ['Turno da Noite', 'Os Herdeiros'].map((t, i) => ({ id: 200 + i, name: t, poster_path: '/p.svg' })) });
     if (/^3\/(movie|tv)\/\d+\/videos$/.test(path)) return j({ results: [{ site: 'YouTube', type: 'Trailer', key: 'dQw4w9WgXcQ' }] });
+    if (/^3\/person\/\d+$/.test(path)) return j({ id: Number(path.split('/')[2]), name: 'Ana Souza', biography: 'Atriz brasileira premiada, conhecida por papéis intensos no cinema e em séries de streaming. Começou no teatro em São Paulo e estreou na TV em 2008.', profile_path: '/face1.jpg', birthday: '1986-05-01', place_of_birth: 'Rio de Janeiro, Brasil', known_for_department: 'Acting' });
+    if (/^3\/person\/\d+\/combined_credits$/.test(path)) return j({ cast: [...vods.slice(0, 6).map((v, i) => ({ id: 6000 + i, media_type: 'movie', title: v.name.replace(/ \(\d{4}\)$/, ''), release_date: v.year + '-01-01', popularity: 50 - i, poster_path: '/p' + i + '.svg' })), ...seriesList.slice(0, 3).map((x, i) => ({ id: 7000 + i, media_type: 'tv', name: x.name, first_air_date: x.releaseDate, popularity: 30 - i }))] });
+    if (/^3\/movie\/\d+\/release_dates$/.test(path)) return j({ results: [{ iso_3166_1: 'BR', release_dates: [{ certification: ['L', '10', '12', '14', '16', '18'][Number(path.split('/')[2]) % 6] }] }] });
+    if (/^3\/tv\/\d+\/content_ratings$/.test(path)) return j({ results: [{ iso_3166_1: 'BR', rating: '16' }] });
+    if (/^3\/tv\/\d+$/.test(path)) return j({ id: Number(path.split('/')[2]), next_episode_to_air: { air_date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), season_number: 3, episode_number: 5, name: 'Reviravolta' } });
     if (/^3\/movie\/\d+$/.test(path)) { const id = Number(path.split('/')[2]); return j({ id, belongs_to_collection: id % 3 === 0 ? { id: 77 + (id % 2), name: id % 2 ? 'Rota 66 - Coleção' : 'Coleção Maré Alta', backdrop_path: '/b' + (id % 6) + '.svg' } : null }); }
     if (/^3\/collection\/\d+$/.test(path)) { const cid = Number(path.split('/')[2]); const base = cid % 2 ? 'Rota 66' : 'Maré Alta'; return j({ id: cid, name: base + ' - Coleção', backdrop_path: '/b' + (cid % 6) + '.svg', parts: [{ id: 1, title: base, release_date: '2019-01-01' }, { id: 2, title: base + ' 2', release_date: '2021-01-01' }, { id: 3, title: base + ' 3', release_date: '2023-01-01' }] }); }
-    if (/^3\/(movie|tv)\/\d+\/images$/.test(path)) return j({ logos: [{ file_path: '/logo' + path.split('/')[2] + '.png', iso_639_1: 'pt' }] });
-    if (/^3\/(movie|tv)\/\d+\/(credits|aggregate_credits)$/.test(path)) return j({ cast: ['Ana Souza', 'Bruno Lima', 'Carla Mendes', 'Diego Rocha', 'Elisa Prado', 'Fábio Reis', 'Gabi Torres', 'Hugo Alves'].map((name, i) => ({ name, character: 'Personagem ' + (i + 1), profile_path: '/face' + i + '.jpg' })) });
+    if (/^3\/(movie|tv)\/\d+\/images$/.test(path)) return j({ logos: [{ file_path: '/logo' + path.split('/')[2] + '.png', iso_639_1: 'pt' }], backdrops: [0, 1, 2, 3, 4, 5].map((i) => ({ file_path: '/b' + i + '.svg' })) });
+    if (/^3\/(movie|tv)\/\d+\/(credits|aggregate_credits)$/.test(path)) return j({ cast: ['Ana Souza', 'Bruno Lima', 'Carla Mendes', 'Diego Rocha', 'Elisa Prado', 'Fábio Reis', 'Gabi Torres', 'Hugo Alves'].map((name, i) => ({ id: 500 + i, name, character: 'Personagem ' + (i + 1), profile_path: '/face' + i + '.jpg' })) });
     if (/^3\/(movie|tv)\/\d+\/recommendations$/.test(path)) {
       const tv = path.startsWith('3/tv');
       const pool = tv ? seriesList.map((x) => ({ name: x.name, first_air_date: x.releaseDate })) : vods.map((v) => ({ title: v.name.replace(/ \(\d{4}\)$/, ''), release_date: v.year + '-01-01' }));

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '../core/settings';
 import type { Channel, ItemKind, Playlist } from '../core/types';
-import { ANIME, STREAMINGS, getProgress, inMyList, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
+import { ANIME, STREAMINGS, getProgress, inMyList, isWatched, setWatched, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
 import { Symbol, colorFor, initials, rgba } from '../ui/bits';
 import { PreviewBackdrop, SkeletonRow, TitleLogo, badgesOf, setPreview } from '../ui/premium';
@@ -12,7 +12,7 @@ import { VirtualGrid, type VirtualGridHandle } from '../ui/VirtualGrid';
 import { VirtualList } from '../ui/VirtualList';
 import { VoiceButton, voiceSupported } from '../ui/Voice';
 import { useTmdb } from '../ui/useTmdb';
-import { castOf, searchTitle, similarOf, trailerOf, type CastMember } from '../core/tmdb';
+import { castOf, personOf, ratingOf, searchTitle, similarOf, trailerOf, type CastMember, type Person } from '../core/tmdb';
 import { collectionsIn, findInList, matchedLists, streamCatalog, streamGenreLists, type Collection, type MatchedList } from '../core/tops';
 import { CollectionCard, EmptyState, GenreCard, PosterTile, pop, toast, useDominantColor } from '../ui/premium2';
 import { StackedRows, StreamBanner, type Row } from './TopRows';
@@ -510,6 +510,19 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
   const [trailer, setTrailer] = useState<string | null>(null);
   const [bgOk, setBgOk] = useState(false);
   useEffect(() => setBgOk(false), [backdrop]);
+  // Classificação indicativa (TMDB, Brasil), página do ator e "vistos" (re-desenha ao marcar).
+  const [cert, setCert] = useState<string | undefined>();
+  const [actor, setActor] = useState<CastMember | null>(null);
+  const [, bump] = useState(0);
+  useEffect(() => {
+    setCert(undefined);
+    if (!tm) return;
+    let alive = true;
+    ratingOf(tm).then((c) => alive && setCert(c));
+    return () => {
+      alive = false;
+    };
+  }, [tm?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Elenco com foto e "Semelhantes" (TMDB, só o que existe na lista)
   const [cast, setCast] = useState<CastMember[]>([]);
   const [similar, setSimilar] = useState<Channel[]>([]);
@@ -550,6 +563,7 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
           <TitleLogo info={tm} name={item.name} height={mobile ? 70 : 120} maxW={mobile ? L.W - L.px * 2 : Math.round(L.W * 0.42)} className="vd-logo" />
           <span className="title caps vd-title" style={{ fontSize: mobile ? 28 : 46 }}>{item.name}</span>
           <div className="vd-pills">
+            {cert && <CertBadge c={cert} />}
             {rating ? <span className="vd-pill rate">★ {rating.toFixed(1).replace('.', ',')}</span> : null}
             {meta.map((m) => <span key={String(m)} className="vd-pill">{m}</span>)}
             {badges.map((b) => <span key={b.t} className={'pbadge ' + b.k}>{b.t}</span>)}
@@ -603,6 +617,30 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
                 </button>
               ))}
             </div>
+            {episodes.length > 0 && (() => {
+              const seen = episodes.filter((e) => isWatched(e.id)).length;
+              const all = seen === episodes.length;
+              return (
+                <div className="season-bar">
+                  <span className="season-txt">
+                    <b>Temporada {season}</b> · {seen} de {episodes.length} {seen === 1 ? 'visto' : 'vistos'}
+                    {seen > 0 && !all ? ` · faltam ${episodes.length - seen}` : all ? ' · concluída ✓' : ''}
+                  </span>
+                  <span className="season-prog"><span style={{ width: `${(seen / episodes.length) * 100}%` }} /></span>
+                  <button
+                    className="chip"
+                    data-nav=""
+                    onClick={() => {
+                      setWatched(episodes.map((e) => e.id), !all);
+                      toast(all ? `Temporada ${season} desmarcada` : `Temporada ${season} marcada como vista`, all ? '✕' : '✓');
+                      bump((x) => x + 1);
+                    }}
+                  >
+                    {all ? 'Desmarcar temporada' : '✓ Marcar temporada como vista'}
+                  </button>
+                </div>
+              );
+            })()}
             <div style={{ height: Math.min(episodes.length || 1, mobile ? 4 : 4.4) * epH + 8, display: 'flex', marginTop: 10 }}>
               <VirtualList
                 items={episodes}
@@ -619,7 +657,8 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
                       <span className="ep-thumb" style={{ width: Math.round((epH - 16) * 1.7), height: epH - 16 }}>
                         {thumb && <img src={thumb} alt="" loading="lazy" referrerPolicy="no-referrer" />}
                         <span className="ep-num">{e.number}</span>
-                        {p && p.dur ? <span className="ep-bar"><span style={{ width: `${(p.pos / p.dur) * 100}%` }} /></span> : null}
+                        {isWatched(e.id) ? <span className="ep-seen" title="Visto">✓</span> : null}
+                        {isWatched(e.id) ? <span className="ep-bar"><span style={{ width: '100%', background: '#46D369' }} /></span> : p && p.dur ? <span className="ep-bar"><span style={{ width: `${(p.pos / p.dur) * 100}%` }} /></span> : null}
                       </span>
                       <span className="ep-txt">
                         <b>{e.title}</b>
@@ -645,7 +684,7 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
               keyOf={(c) => c.name}
               minWidth={mobile ? 96 : 132}
               render={(c, _i, w) => (
-                <button className="tile grow cast" data-nav="" style={{ width: w }} aria-label={c.name}>
+                <button className="tile grow cast" data-nav="" style={{ width: w }} aria-label={c.name} onClick={() => c.id && setActor(c)}>
                   <span className="cast-face" style={{ width: Math.min(w - 10, 120), height: Math.min(w - 10, 120), background: `linear-gradient(150deg, ${rgba(colorFor(c.name), 0.6)}, #15151F)` }}>
                     {c.photo ? <img src={c.photo} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span>{initials(c.name)}</span>}
                   </span>
@@ -673,6 +712,18 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
         )}
       </div>
       {!backdrop && <span aria-hidden="true" className="vd-ghost">{initials(item.name)}</span>}
+      {actor && actor.id && (
+        <ActorView
+          playlist={playlist}
+          id={actor.id}
+          fallback={actor}
+          onClose={() => setActor(null)}
+          onOpen={(c) => {
+            setActor(null);
+            setItem(c);
+          }}
+        />
+      )}
       {trailer !== null && (
         <Modal title={`Trailer · ${item.name}`} onClose={() => setTrailer(null)} width={Math.min(1100, L.W - 40)}>
           {trailer ? (
@@ -692,6 +743,88 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Classificação indicativa
+
+const CERT_COLOR: Record<string, string> = { L: '#00A651', '10': '#0095DA', '12': '#F8C411', '14': '#F58220', '16': '#EE1C24', '18': '#111111' };
+
+/** Selo da classificação indicativa nas cores oficiais (L, 10, 12, 14, 16, 18). */
+export function CertBadge({ c, small }: { c: string; small?: boolean }) {
+  const k = c.replace(/^A?L$/i, 'L').replace(/\D*(\d+).*/, '$1');
+  const bg = CERT_COLOR[k] ?? '#555';
+  return (
+    <span className={'cert' + (small ? ' sm' : '')} style={{ background: bg, color: k === '12' ? '#111' : '#fff', borderColor: k === '18' ? 'rgba(255,255,255,0.6)' : 'transparent' }} title={k === 'L' ? 'Livre' : `Não recomendado para menores de ${k} anos`}>
+      {k}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------- Página do ator / diretor
+
+/** Foto grande, biografia curta e "Na sua lista" com os trabalhos dele que estão na lista. */
+export function ActorView({ playlist, id, fallback, onClose, onOpen }: { playlist: Playlist; id: number; fallback: CastMember; onClose: () => void; onOpen: (c: Channel) => void }) {
+  const L = useLayout();
+  const mobile = L.form === 'mobile';
+  const box = useRef<HTMLDivElement>(null);
+  const [p, setP] = useState<Person | null>(null);
+  const [mine, setMine] = useState<Channel[]>([]);
+  useEffect(() => {
+    let alive = true;
+    personOf(id).then((r) => {
+      if (!alive || !r) return;
+      setP(r);
+      const out: Channel[] = [];
+      for (const x of r.credits) {
+        const hit = findInList({ t: x.title, o: x.original, y: x.year }, x.type, playlist.items);
+        if (hit && !out.some((o) => o.id === hit.id)) out.push(hit);
+        if (out.length >= 20) break;
+      }
+      setMine(out);
+    });
+    requestAnimationFrame(() => focusFirst(box.current));
+    const off = pushBack(() => {
+      onClose();
+      return true;
+    });
+    return () => {
+      alive = false;
+      off();
+    };
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const photo = p?.photo || fallback.photo;
+  const age = p?.birth ? Math.floor((Date.now() - Date.parse(p.birth)) / (365.25 * 86400000)) : undefined;
+  return (
+    <div className="vod-detail screen-in actor-view" data-nav-scope="" ref={box}>
+      <div className="actor-glow" style={{ background: `radial-gradient(ellipse 60% 70% at 20% 30%, ${rgba(colorFor(fallback.name), 0.35)} 0%, rgba(0,0,0,0) 70%)` }} />
+      <div className="scroll-y vd-scroll" style={{ padding: `${mobile ? 20 : 60}px ${L.px}px 60px` }}>
+        <div className="actor-head" style={{ flexDirection: mobile ? 'column' : 'row' }}>
+          <span className="actor-photo" style={{ width: mobile ? 160 : 260, height: mobile ? 160 : 260 }}>
+            {photo ? <img src={photo} alt="" referrerPolicy="no-referrer" /> : <span>{initials(fallback.name)}</span>}
+          </span>
+          <div className="actor-txt">
+            <span className="paused-tag">{p?.dept === 'Directing' ? 'Direção' : 'Elenco'}</span>
+            <span className="title" style={{ fontSize: mobile ? 32 : 52, lineHeight: 1.02 }}>{p?.name ?? fallback.name}</span>
+            <div className="vd-pills">
+              {fallback.role && <span className="vd-pill ghost">como {fallback.role}</span>}
+              {age && <span className="vd-pill">{age} anos</span>}
+              {p?.place && <span className="vd-pill">{p.place}</span>}
+              {mine.length > 0 && <span className="vd-pill rate">{mine.length} na sua lista</span>}
+            </div>
+            {p?.bio ? <p className="vd-plot actor-bio">{p.bio}</p> : !p ? <span className="muted">Carregando…</span> : <span className="muted">O TMDB não tem biografia em português.</span>}
+            <div className="wrap-row" style={{ display: 'flex', marginTop: 8 }}>
+              <button className="btn" data-nav="" data-nav-default={mine.length ? undefined : ''} onClick={onClose}>Voltar</button>
+            </div>
+          </div>
+        </div>
+        {mine.length > 0 && (
+          <div className="vd-sec-wide" style={{ marginLeft: -L.px, marginRight: -L.px }}>
+            <Carousel title="Na sua lista" subtitle="Filmes e séries com esta pessoa" items={mine} keyOf={(i) => i.id} minWidth={mobile ? 110 : 150} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={onOpen} />} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

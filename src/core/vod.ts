@@ -75,8 +75,11 @@ export function getProgress(id: string): Progress | undefined {
 
 export function saveProgress(id: string, pos: number, dur: number): void {
   const all = prefGet<Record<string, Progress>>('progress', {});
-  // Terminou (95%) ou mal começou (< 20 s): não guarda.
-  if (dur > 0 && pos / dur > 0.95) delete all[id];
+  // Terminou (95%) ou mal começou (< 20 s): não guarda. Terminou = marca como visto.
+  if (dur > 0 && pos / dur > 0.95) {
+    delete all[id];
+    setWatched([id], true);
+  }
   else if (pos >= 20) all[id] = { pos: Math.round(pos), dur: Math.round(dur), at: Date.now() };
   // Mantém só os 200 mais recentes (app leve).
   const keys = Object.keys(all).sort((a, b) => all[b].at - all[a].at);
@@ -118,4 +121,26 @@ export function fmtDuration(sec: number): string {
   const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// ---- Vistos (episódios e filmes terminados ou marcados à mão) ----
+
+export function watchedIds(): Record<string, number> {
+  return prefGet<Record<string, number>>('watched', {});
+}
+
+export function isWatched(id: string): boolean {
+  return !!watchedIds()[id];
+}
+
+export function setWatched(ids: string[], on: boolean): void {
+  const all = watchedIds();
+  for (const id of ids) {
+    if (on) all[id] = Date.now();
+    else delete all[id];
+  }
+  // Mantém os 3000 mais recentes.
+  const keys = Object.keys(all);
+  if (keys.length > 3000) keys.sort((a, b) => all[a] - all[b]).slice(0, keys.length - 3000).forEach((k) => delete all[k]);
+  prefSet('watched', all);
 }

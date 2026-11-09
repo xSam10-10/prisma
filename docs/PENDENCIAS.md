@@ -1,4 +1,4 @@
-# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 09/11/2026, versão 0.21.0)
+# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 09/11/2026, versão 0.22.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -13,6 +13,7 @@ Top 10 canais agora, banner por streaming, coluna de categorias padrão, navega�
 visual premium 0.20.0: 47 prévia no foco (fundo com a arte), 53 logo do título, 54 selos 4K/DUB/LEG/NOVO (falta classificação indicativa),
 55 Semelhantes, 61 episódios com miniatura e sinopse (falta marcar visto), 34 avatar ilustrado (falta PIN por perfil),
 visual premium II 0.21.0: 46 trailer no destaque, 49 "Porque você assistiu", 50 coleções/sagas, 31 (parcial: placar com escudos no detalhe do jogo).
+visual premium III 0.22.0: 28 página do ator, 52 novidades/em breve ("Chegando esta semana"), 54 classificação indicativa, 62 marcar assistido (episódio/temporada), 67 miniaturas na barra (cenas do TMDB, não do vídeo), 72 créditos finais, 71 informações na pausa, tema OLED, protetor de tela, retomar ao abrir, prévia ao vivo nos cards.
 
 ## 1. TV ao vivo (lista de canais, guia e jogos)
 - **7 · Controle parental completo** [1º] — PIN para abrir categorias "ADULTOS +18" e perfil infantil. *(Parcial: bloquear um canal com senha já existe.)*
@@ -32,23 +33,18 @@ visual premium II 0.21.0: 46 trailer no destaque, 49 "Porque você assistiu", 50
 - **40 · Diagnóstico do canal** (velocidade, atrasos, servidor) [Sem prior.].
 - **19 · Gravar programas** no aparelho [Grande].
 - **23 · Transmitir para a TV (Chromecast)** [Grande].
-- **67 · Miniaturas na barra de tempo** [Grande].
-- **72 · Créditos finais com sugestão do próximo** [Grande].
 - **17 · Multitela em grade** (4 canais iguais) — provavelmente não vale (plano com 2 telas).
-- **71 · Informações durante a pausa** [Talvez] · **66 · "Ainda está assistindo?"** [Talvez].
+- **66 · "Ainda está assistindo?"** [Talvez].
 
 ## 3. Filmes e Séries
 - **48 · Fileiras automáticas** — falta só Sagas/coleções (Lançamentos, Aclamados e gêneros já vêm nos Tops da 0.18.0) [1º]
 - **53 · Logotipo do título sobre o fundo** no detalhe [1º]
-- **54 · Classificação indicativa e selos** 4K, Dublado, Legendado [1º]
 - **57 · Versões dublada/legendada/4K/HD num só card** [1º]
-- **61 · Episódios com miniatura**, sinopse e barra de visto [1º]
-- **62 · Marcar como assistido** (episódio, temporada, série) [1º]
+- **62 · Marcar como assistido** — falta marcar a série inteira e o filme à mão (episódio e temporada já existem) [1º]
 - **64 · Card da série abre no próximo episódio** [1º]
 - **76 · Remover de "Continuar assistindo"** [1º]
 - **81 · Busca tolerante** a erros e nomes em inglês/português [1º]
-- **46** Trailer sem som no destaque · **47** Prévia ao parar no pôster · **49** "Porque você assistiu" · **50** Franquias/coleções · **52** Novidades e em breve · **55** Semelhantes · **63** Aviso de novo episódio · **75** Histórico de assistidos · **80** Filtros (gênero, ano, nota, idioma) · **44** "Onde assistir" nos streamings oficiais — todos [Depois]
-- **28 · Página do ator/diretor** [Sem prior.]
+- **46** Trailer sem som no destaque · **47** Prévia ao parar no pôster · **49** "Porque você assistiu" · **50** Franquias/coleções · **55** Semelhantes · **63** Aviso de novo episódio · **75** Histórico de assistidos · **80** Filtros (gênero, ano, nota, idioma) · **44** "Onde assistir" nos streamings oficiais — todos [Depois]
 - **20 · Baixar para ver offline** · **59 · Notas IMDb/Rotten** · **79 · Assistir junto à distância** [Grande]
 - **51, 58, 74, 77** [Talvez] — identidade por streaming, gostei/não gostei, listas próprias, esconder títulos
 - Logotipos que faltam: **Star+, Discovery+, Hulu** (o Samuel vai criar no ChatGPT; hoje são tipográficos)

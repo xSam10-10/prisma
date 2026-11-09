@@ -4,7 +4,7 @@ import { Engine } from '../core/engine';
 import { IS_ANDROID, IS_WEBOS } from '../core/platform';
 import { useSettings } from '../core/settings';
 import { SectionPicker } from './Sections';
-import { fmtDuration, saveProgress } from '../core/vod';
+import { fmtDuration, myList, saveProgress, vodRecents } from '../core/vod';
 import type { Tracks } from '../core/engine';
 import { Modal } from '../ui/Dialog';
 import { useLayout } from '../ui/layout';
@@ -13,6 +13,9 @@ import type { Channel, EpgEntry, Playlist } from '../core/types';
 import { useTmdb } from '../ui/useTmdb';
 import { TitleLogo } from '../ui/premium';
 import { celebrate, pop, toast } from '../ui/premium2';
+import { CinemaIntro, EndCredits, Screensaver, SeekThumb } from '../ui/premium3';
+import { scenesOf } from '../core/tmdb';
+import { collectionsIn, topsNow } from '../core/tops';
 import { ChannelLogo, Icon, fmtTime } from '../ui/bits';
 import { KEY, dirOf, focusFirst, isBack, isEnter } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
@@ -131,6 +134,41 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const digitTimer = useRef<number>();
   const epg = useEpg(playlist, channel, 200);
   const now = useClock();
+  const full = mode === 'full';
+  const isLiteTv = typeof document !== 'undefined' && document.documentElement.classList.contains('lite');
+  // ---- Premium (filme/série): cenas na barra de tempo, modo cinema, créditos finais e protetor de tela ----
+  const vodBase = vod && channel ? (channel.seriesId ? { ...channel, name: channel.group, kind: 'series' as const, fullName: undefined } : channel) : null;
+  const tmP = useTmdb(vodBase);
+  const [scenes, setScenes] = useState<string[]>([]);
+  useEffect(() => {
+    setScenes([]);
+    if (!tmP) return;
+    let alive = true;
+    scenesOf(tmP).then((x) => alive && setScenes(x));
+    return () => {
+      alive = false;
+    };
+  }, [tmP?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [intro, setIntro] = useState(false);
+  useEffect(() => {
+    if (!(full && vod && channel) || isLiteTv) return;
+    setIntro(true);
+    const t = setTimeout(() => setIntro(false), 1700);
+    return () => clearTimeout(t);
+  }, [channel?.id, full]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [creditsOff, setCreditsOff] = useState(false);
+  useEffect(() => setCreditsOff(false), [channel?.id]);
+  const [saver, setSaver] = useState(false);
+  const saverRef = useRef(false);
+  saverRef.current = saver;
+  const creditsRef = useRef(false);
+  // Pausado por 5 min em tela cheia: protetor de tela.
+  useEffect(() => {
+    setSaver(false);
+    if (!(full && vod && time.paused)) return;
+    const t = setTimeout(() => setSaver(true), 5 * 60 * 1000);
+    return () => clearTimeout(t);
+  }, [full, vod, time.paused]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tentativas em ordem: cada fonte com o motor JS (hls.js / mpegts.js) e,
   // na TV LG, também com o player nativo da TV.
@@ -425,6 +463,22 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     const onKey = (e: KeyboardEvent) => {
       // Janela aberta (ex.: escolher seção) ou lista de canais: elas tratam as teclas.
       if (document.querySelector('.modal-back') || listOpenRef.current || guideOpenRef.current) return;
+      // Protetor de tela: qualquer tecla volta (sem mais efeito).
+      if (saverRef.current) {
+        setSaver(false);
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      // Créditos finais: as setas/OK andam nos botões; Voltar fecha e volta ao filme.
+      if (vod && creditsRef.current) {
+        if (isBack(e)) {
+          setCreditsOff(true);
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
       const k = e.keyCode;
       const d = dirOf(e);
       let handled = true;
@@ -549,7 +603,6 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
 
   const cur = epg?.[0];
   const next = epg?.[1];
-  const full = mode === 'full';
 
   // ---------- Barra clássica: funções ----------
   // Visual da tela cheia: Clássica (barra de receptor), Prisma (escuro) ou Cartão (cartão que sobe ao trocar de canal;
@@ -558,9 +611,21 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const cardStyle = S.osdStyle === 'card';
   const showBar = full && !vod && !!channel && status !== 'error' && (classic || cardStyle) && (overlayKind === 'controls' || (classic && overlayKind === 'info' && S.osd === 'full'));
   const showCard = full && !vod && !!channel && status !== 'error' && cardStyle && overlayKind === 'info' && S.osd === 'full';
+  // Créditos finais (filme, perto do fim): imagem no canto + "Continuar a coleção" e "Semelhantes".
+  const creditsOn = !!(full && vod && channel && !channel.seriesId && status !== 'error' && time.dur > 600 && time.dur - time.cur < Math.max(120, time.dur * 0.04) && !creditsOff && nextIn === null);
+  creditsRef.current = creditsOn;
+  const nextInColl = (() => {
+    if (!creditsOn || !channel || !playlist) return undefined;
+    const c = collectionsIn(topsNow(), playlist.items).find((x) => x.items.some((i) => i.id === channel.id));
+    if (!c) return undefined;
+    return c.items[c.items.findIndex((i) => i.id === channel.id) + 1];
+  })();
   const [barH, setBarH] = useState(0);
   useLayoutEffect(() => {
-    setBarH(showBar && overlayRef.current ? overlayRef.current.offsetHeight : 0);
+    // Só atualiza quando muda: um setState a cada commit entrava em laço
+    // ("Maximum update depth") durante a reprodução de filmes.
+    const h = showBar && overlayRef.current ? overlayRef.current.offsetHeight : 0;
+    if (h !== barH) setBarH(h);
   });
   function openList() {
     clearTimeout(hideTimer.current);
@@ -685,7 +750,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
 
   return (
     <div
-      className={'player' + (full ? ' full' : '') + (mode === 'off' ? ' hidden' : '')}
+      className={'player' + (full ? ' full' : '') + (mode === 'off' ? ' hidden' : '') + (creditsOn ? ' credits' : '')}
       style={style}
       data-nav-scope={full ? '' : undefined}
       onMouseMove={
@@ -747,12 +812,16 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
             <span className="caps" style={{ fontSize: mobile ? 14 : 16, color: '#D6D6E0', flexGrow: 1 }}>{channel.seriesId ? 'Série' : 'Filme'} · {channel.group}</span>
             <span style={{ fontSize: 18, fontWeight: 700 }}>{fmtTime(now)}</span>
           </div>
-          {time.paused && <PausedInfo ch={channel} padX={padX} mobile={mobile} />}
+          {time.paused && !creditsOn && <PausedInfo ch={channel} padX={padX} mobile={mobile} />}
           <div className="gy-12" style={{ position: 'absolute', left: padX, right: padX, bottom: padB, display: 'flex', flexDirection: 'column' }}>
             {!time.paused && <span className="title caps" style={{ fontSize: mobile ? 22 : 30, lineHeight: 1.1 }}>{channel.name}</span>}
             <div className={'vod-seek' + (overlayKind === 'controls' || time.paused ? ' big' : '')}>
               <span>{fmtDuration(time.cur)}</span>
-              <div className="vod-bar"><div style={{ width: time.dur ? `${(time.cur / time.dur) * 100}%` : '0%' }} /><i style={{ left: time.dur ? `${(time.cur / time.dur) * 100}%` : '0%' }} /></div>
+              <div className="vod-bar">
+                <div style={{ width: time.dur ? `${(time.cur / time.dur) * 100}%` : '0%' }} />
+                <i style={{ left: time.dur ? `${(time.cur / time.dur) * 100}%` : '0%' }} />
+                {(overlayKind === 'controls' || time.paused) && time.dur > 0 && !channel.seriesId && <SeekThumb scenes={scenes} frac={time.cur / time.dur} />}
+              </div>
               <span>{time.dur ? '-' + fmtDuration(time.dur - time.cur) : '--:--'}</span>
             </div>
             {overlayKind === 'controls' || time.paused ? (
@@ -1015,6 +1084,11 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         </Modal>
       )}
 
+      {creditsOn && channel && playlist && (
+        <EndCredits item={channel} items={playlist.items} next={nextInColl} onDismiss={() => setCreditsOff(true)} onPlay={(c) => { setCreditsOff(true); onPlayVod?.(c); }} />
+      )}
+      {intro && channel && <CinemaIntro item={channel} />}
+      {saver && channel && <Screensaver items={[channel, ...vodRecents(), ...myList()].filter((c, i, a) => a.findIndex((x) => x.id === c.id) === i)} title={channel.seriesId ? channel.group : channel.name} onExit={() => setSaver(false)} />}
       {full && vod && nextEp && nextIn !== null && (
         <div className="next-ep">
           <div style={{ display: 'flex', alignItems: 'center' }}>
