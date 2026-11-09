@@ -82,7 +82,27 @@ export function focusables(root: HTMLElement = activeScope()): HTMLElement[] {
 }
 
 /** Escolhe o melhor vizinho na direção pedida. */
-export function findNeighbor(from: HTMLElement, dir: Dir, root?: HTMLElement): HTMLElement | null {
+export function findNeighbor(from: HTMLElement, dir: Dir, root?: HTMLElement, exclude?: HTMLElement | null): HTMLElement | null {
+  // Saindo de uma fileira (carrossel) para cima/baixo: vai para a fileira MAIS PRÓXIMA,
+  // na capa mais perto — mesmo que ela seja curta (não pula fileiras).
+  if (exclude && (dir === 'up' || dir === 'down')) {
+    const a = from.getBoundingClientRect();
+    const ax = a.left + a.width / 2;
+    const cands: { el: HTMLElement; main: number; cross: number }[] = [];
+    for (const el of focusables(root)) {
+      if (el === from || from.contains(el) || exclude.contains(el)) continue;
+      const b = el.getBoundingClientRect();
+      const by = b.top + b.height / 2;
+      const ay = a.top + a.height / 2;
+      if (dir === 'up' ? by >= ay : by <= ay) continue;
+      cands.push({ el, main: Math.max(0, dir === 'up' ? a.top - b.bottom : b.top - a.bottom), cross: Math.abs(b.left + b.width / 2 - ax) });
+    }
+    if (!cands.length) return null;
+    const near = Math.min(...cands.map((c) => c.main));
+    let best: (typeof cands)[0] | null = null;
+    for (const c of cands) if (c.main <= near + 40 && (!best || c.cross < best.cross)) best = c;
+    return best ? best.el : null;
+  }
   const a = from.getBoundingClientRect();
   const ax = a.left + a.width / 2;
   const ay = a.top + a.height / 2;
@@ -90,6 +110,7 @@ export function findNeighbor(from: HTMLElement, dir: Dir, root?: HTMLElement): H
   let bestScore = Infinity;
   for (const el of focusables(root)) {
     if (el === from || from.contains(el)) continue;
+    if (exclude && exclude.contains(el)) continue;
     const b = el.getBoundingClientRect();
     const bx = b.left + b.width / 2;
     const by = b.top + b.height / 2;
@@ -240,10 +261,18 @@ export function installNavigation(): void {
       return;
     }
     // Fileira (carrossel): ◀ ▶ andam só dentro dela; nas pontas, não pulam para outra fileira.
-    const row = d === 'left' || d === 'right' ? upTo(cur, 'data-nav-row') : null;
-    if (row) {
-      const inRow = findNeighbor(cur, d, row);
+    // E ▲▼ sempre saem dela (capas com título de 2 linhas parecem "mais baixas" que as vizinhas).
+    const curRow = upTo(cur, 'data-nav-row');
+    if (curRow && (d === 'left' || d === 'right')) {
+      const inRow = findNeighbor(cur, d, curRow);
       if (inRow) focusEl(inRow);
+      return;
+    }
+    // Bloco com borda (ex.: coluna de categorias, data-nav-stop="left"): na borda, fica parado.
+    const stop = upTo(cur, 'data-nav-stop');
+    if (stop && (stop.getAttribute('data-nav-stop') || '').indexOf(d) >= 0) {
+      const inside = findNeighbor(cur, d, stop);
+      if (inside) focusEl(inside);
       return;
     }
     // ▲▼ dentro de uma área que rola (Início, colunas): procura primeiro nela — uma fileira
@@ -252,9 +281,9 @@ export function installNavigation(): void {
     if (d === 'up' || d === 'down') {
       let sc: HTMLElement | null = cur.parentElement;
       while (sc && sc !== scope && !(sc.classList && sc.classList.contains('scroll-y'))) sc = sc.parentElement;
-      if (sc && sc !== scope) next = findNeighbor(cur, d, sc);
+      if (sc && sc !== scope) next = findNeighbor(cur, d, sc, curRow);
     }
-    if (!next) next = findNeighbor(cur, d, scope);
+    if (!next) next = findNeighbor(cur, d, scope, d === 'up' || d === 'down' ? curRow : null);
     // Entrando num grupo (ex.: coluna de categorias): vai para o item ativo,
     // e não para o vizinho mais próximo (que trocaria a categoria sem querer).
     const grp = next ? groupOf(next) : null;

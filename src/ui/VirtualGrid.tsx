@@ -2,8 +2,9 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type Reac
 import { KEY, dirOf, focusEl, isEnter } from './nav';
 
 // Grade de capas que só desenha as fileiras visíveis (milhares de títulos).
-// Um único ponto de foco: as setas andam dentro da grade; na borda, saem
-// para a navegação espacial (categorias à esquerda, busca em cima).
+// Um único ponto de foco: as setas andam dentro da grade; na borda esquerda
+// e no alto, saem para a navegação espacial (categorias à esquerda, busca ou
+// carrosséis em cima); à direita e embaixo, ficam paradas.
 
 interface Props<T> {
   items: T[];
@@ -84,6 +85,10 @@ function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, 
     if (next >= 0) {
       e.preventDefault();
       onIndex(next);
+    } else if (d === 'right' || d === 'down') {
+      // Na última capa / última fileira: fica parado (não "escapa" para botões ou para a coluna).
+      // Só ◀ (1ª coluna) e ▲ (1ª fileira) saem da grade.
+      e.preventDefault();
     }
   };
 

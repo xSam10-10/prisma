@@ -190,7 +190,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
             <button className="tool" data-nav="" onClick={() => setDialog('new')} aria-label="Criar nova seção">+ Nova seção</button>
             <button className="tool" data-nav="" onClick={() => setDialog('organize')} aria-label="Organizar e ordenar seções">⇅ Organizar</button>
           </div>
-          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" role="tablist" aria-label="Categorias">
+          <div ref={chipsRef} className="scroll-y cats" data-nav-group="" data-nav-stop="left" role="tablist" aria-label="Categorias">
             {chips.map((c) => (
               <button
                 key={c.id}

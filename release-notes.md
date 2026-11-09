@@ -1,6 +1,12 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.19.3
+- Filmes e Séries › streaming: sem a coluna da esquerda — uma página só com o banner, o Top 10 em carrossel, os gêneros e, embaixo, todas as capas do streaming (com categorias e ordenação)
+- Filmes e Séries › Top: sem a coluna da esquerda, só os carrosséis
+- Filmes e Séries › Todos: escolher a categoria só de andar ▲▼ na coluna; ◀ ▶ passam entre a coluna e as capas sem escapar para outros botões
+- Navegação pelo controle revisada em todas as fileiras: ▲▼ vão sempre para a fileira vizinha (mesmo curta) e nunca para a capa ao lado
+
 ## 0.19.2
 - Início: para cada streaming, uma fileira "Top 10 Filmes" e logo abaixo "Top 10 Séries"
 - Filmes e Séries: o botão 🔥 Top vem antes de "Todos"

@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { Channel } from '../core/types';
 import type { Ranked } from '../core/tops';
 import { logoUrl, type Streaming } from '../core/vod';
@@ -34,13 +34,23 @@ export const StackedRows = forwardRef<StackedHandle, {
   rows: Row[];
   width: number;
   banner?: React.ReactNode;
-  onSeen: (id: string) => void;
+  /** Última seção, com a altura da tela (ex.: grade com todo o conteúdo do streaming). */
+  tail?: React.ReactNode;
+  onSeen?: (id: string) => void;
   onPick: (item: Channel) => void;
-}>(function StackedRows({ rows, width, banner, onSeen, onPick }, ref) {
+}>(function StackedRows({ rows, width, banner, tail, onSeen, onPick }, ref) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const box = useRef<HTMLDivElement>(null);
   const secs = useRef<Record<string, HTMLDivElement | null>>({});
+  const tailRef = useRef<HTMLDivElement>(null);
+  const [viewH, setViewH] = useState(600);
+  useEffect(() => {
+    const m = () => box.current && setViewH(box.current.clientHeight || 600);
+    m();
+    window.addEventListener('resize', m);
+    return () => window.removeEventListener('resize', m);
+  }, []);
   const scrollTo = (id: string) => {
     const b = box.current;
     const el = secs.current[id];
@@ -69,7 +79,7 @@ export const StackedRows = forwardRef<StackedHandle, {
             }}
             onFocus={() => {
               scrollTo(r.id);
-              onSeen(r.id);
+              onSeen?.(r.id);
             }}
           >
             <Carousel
@@ -86,7 +96,20 @@ export const StackedRows = forwardRef<StackedHandle, {
             />
           </div>
         ))}
-        <div style={{ height: mobile ? 40 : 220 }} />
+        {tail ? (
+          // A grade ocupa a tela inteira: ao entrar nela, a página encaixa no alto e a grade rola por dentro.
+          <div
+            ref={tailRef}
+            style={{ height: viewH - 8, padding: `0 ${PAD}px` }}
+            onFocus={() => {
+              if (box.current && tailRef.current) box.current.scrollTop = tailRef.current.offsetTop - 4;
+            }}
+          >
+            {tail}
+          </div>
+        ) : (
+          <div style={{ height: mobile ? 40 : 220 }} />
+        )}
       </LayoutContext.Provider>
     </div>
   );
