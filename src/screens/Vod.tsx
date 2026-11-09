@@ -116,11 +116,24 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     setCat('');
     setQuery('');
   };
-  const cats = useMemo(() => countCats(inStream), [inStream]);
+  // Coluna/chips de categorias: Todos › lançamentos (ex.: "Top Lançamentos 2026") › Últimos adicionados › as demais.
+  const cats = useMemo(() => {
+    const all = countCats(inStream);
+    const launch = all.filter((c) => LAUNCH.test(c.name));
+    const rest = all.filter((c) => !LAUNCH.test(c.name));
+    const rec = Math.min(RECENT_MAX, inStream.filter((i) => i.added).length);
+    return [...launch, ...(rec ? [{ name: RECENT, count: rec, label: 'Últimos adicionados' }] : []), ...rest];
+  }, [inStream]);
   const q = norm(query.trim());
   const list = useMemo(() => {
     if (!q && topMode) return [];
-    let l = q ? all.filter((i) => norm(i.fullName ?? i.name).includes(q)) : cat ? inStream.filter((i) => i.group === cat) : inStream;
+    let l = q
+      ? all.filter((i) => norm(i.fullName ?? i.name).includes(q))
+      : cat === RECENT
+        ? inStream.filter((i) => i.added).sort((a, b) => (b.added ?? 0) - (a.added ?? 0)).slice(0, RECENT_MAX)
+        : cat
+          ? inStream.filter((i) => i.group === cat)
+          : inStream;
     if (sort === 'az') l = [...l].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     else if (sort === 'rating') l = [...l].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else l = [...l].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
@@ -180,7 +193,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     <div className="scroll-x" style={{ marginTop: 8, flexShrink: 0 }}>
       <button className={'chip' + (!cat ? ' on' : '')} data-nav="" onClick={() => setCat('')}>Todos</button>
       {cats.map((c) => (
-        <button key={c.name} className={'chip' + (cat === c.name ? ' on' : '')} data-nav="" onClick={() => setCat(c.name)}>{c.name}</button>
+        <button key={c.name} className={'chip' + (cat === c.name ? ' on' : '')} data-nav="" onClick={() => setCat(c.name)}>{c.label ?? c.name}</button>
       ))}
     </div>
   );
@@ -250,7 +263,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
           </button>
           {cats.map((c) => (
             <button key={c.name} className={'cat' + (cat === c.name ? ' on' : '')} data-nav="" data-nav-active={cat === c.name ? '' : undefined} onFocus={() => { if (cat !== c.name) { setCat(c.name); setQuery(''); } }} onClick={() => { setCat(c.name); setQuery(''); gridRef.current?.focus(); }}>
-              <span className="cat-name" title={c.name}>{c.name}</span>
+              <span className="cat-name" title={c.label ?? c.name}>{c.label ?? c.name}</span>
               <span className="cat-count">{c.count.toLocaleString('pt-BR')}</span>
             </button>
           ))}
@@ -282,7 +295,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
         </div>
         {!stacked && <div className="muted caps" style={{ fontSize: 14, fontWeight: 600, margin: '10px 4px 0', display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {q ? `Busca: “${query.trim()}”` : topMode ? 'Top' : cat || (st ? st.name : `Todos os ${kindLabel}`)}
+            {q ? `Busca: “${query.trim()}”` : topMode ? 'Top' : cat === RECENT ? `Últimos adicionados · os ${RECENT_MAX} mais novos da lista` : cat || (st ? st.name : `Todos os ${kindLabel}`)}
           </span>
           <span>{list.length.toLocaleString('pt-BR')} {kindLabel}</span>
         </div>}
@@ -336,7 +349,12 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   );
 }
 
-function countCats(items: Channel[]): { name: string; count: number }[] {
+/** Categoria especial "Últimos adicionados" (os mais novos da lista) e categorias de lançamentos. */
+const RECENT = '__recentes__';
+const RECENT_MAX = 100;
+const LAUNCH = /lan[cç]amento/i;
+
+function countCats(items: Channel[]): { name: string; count: number; label?: string }[] {
   const m = new Map<string, number>();
   for (const i of items) m.set(i.group, (m.get(i.group) ?? 0) + 1);
   return [...m.entries()].map(([name, count]) => ({ name, count }));
