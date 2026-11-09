@@ -321,7 +321,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
                       <div className="spacer" />
                       {!mobile && sortChips}
                     </div>
-                    {cats.length > 1 && catChips}
+                    {tab === 'filmes' && cats.length > 1 && catChips /* Séries: sem chips de categoria (pedido 09/11) */}
                     <div style={{ flexGrow: 1, minHeight: 0, display: 'flex', marginTop: 6 }}>{grid}</div>
                   </div>
                 ) : undefined

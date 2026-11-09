@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.19.6
+- Séries › streaming: sem a fileira de categorias acima das capas (mostra sempre todas as séries do streaming)
+
 ## 0.19.5
 - Filmes e Séries › Todos: nova categoria "Últimos adicionados" (os 100 títulos mais novos da lista)
 - Categorias de lançamentos (ex.: "Top Lançamentos 2026") aparecem logo abaixo de "Todos"

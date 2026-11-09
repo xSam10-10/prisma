@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.19.5)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.19.6)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -423,6 +423,9 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 
 ## 10aa. Versão 0.19.5
 - Coluna/chips de categorias (Filmes e Séries): Todos › categorias com "lançamento" no nome › "Últimos adicionados" (categoria especial `__recentes__`, 100 maiores `added`) › demais. Vale também nos chips da página do streaming.
+
+## 10ab. Versão 0.19.6
+- Séries › página do streaming: sem os chips de categoria acima da grade (pedido do usuário); em Filmes eles continuam.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
