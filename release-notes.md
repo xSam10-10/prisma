@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.24.2
+- Dublado/legendado: reconhece mais jeitos de a lista marcar ([L], (D), Leg, Dual, Nacional e categorias como "Legendados"), com selo na capa e nas versões do detalhe
+- Versões que não dizem o áudio mostram a categoria de onde vêm, para dar para diferenciar
+- Início: ao voltar para o topo, o destaque aparece inteiro (antes ficava cortado sob o menu)
+
 ## 0.24.1
 - Destaque da semana: o card grande não cresce mais por cima dos vizinhos ao receber o foco
 - Destaque da semana sem a arte do TMDB: mostra a capa da própria lista sobre um fundo desfocado (antes ficava vazio)

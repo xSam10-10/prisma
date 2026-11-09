@@ -156,15 +156,21 @@ export function Home({
     <>
     <div className="daypart-tint" aria-hidden="true" style={{ background: `radial-gradient(ellipse 70% 55% at 85% 0%, ${rgba(DAYPART[part].color, 0.16)} 0%, rgba(0,0,0,0) 70%)` }} />
     <PreviewBackdrop strength={0.32} />
-    <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0, display: 'flex', flexDirection: 'column' }} onScroll={(e) => setHomeScrolled(e.currentTarget.scrollTop > 30)}>
+    <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0, display: 'flex', flexDirection: 'column' }} onScroll={(e) => setHomeScrolled(e.currentTarget.scrollTop > 30)}
+      onFocusCapture={(e) => {
+        // Voltou ao destaque do alto (saudação, Dia de jogo, destaque): rola até o topo,
+        // senão o quadro do destaque fica cortado sob o menu.
+        const t = e.target as HTMLElement;
+        if (root.current && t.closest && t.closest('[data-home-top]')) requestAnimationFrame(() => root.current && (root.current.scrollTop = 0));
+      }}>
       <div className="daypart-hi" style={{ order: -3, padding: `${mobile ? 0 : 4}px ${L.px}px 0` }}>
         <b>{DAYPART[part].hi}, {currentProfile().name}</b>
         {!mobile && <span>{DAYPART[part].sub}</span>}
       </div>
-      <div style={{ order: -2 }}>
+      <div data-home-top="" style={{ order: -2 }}>
         <GameDay playlist={playlist} onWatch={onWatch} />
       </div>
-      <div style={{ order: -2 }}>
+      <div data-home-top="" style={{ order: -2 }}>
       <Hero
         playlist={playlist}
         last={heroItem}

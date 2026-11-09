@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Channel } from '../core/types';
-import { getProgress } from '../core/vod';
+import { audioTag, getProgress } from '../core/vod';
 import { logoOf, type TmdbInfo } from '../core/tmdb';
 import { newEpisodeOf } from '../core/newEpisodes';
 import { colorFor, rgba } from './bits';
@@ -89,8 +89,8 @@ export function badgesOf(item: Channel, now = Date.now()): { t: string; k: strin
   if (item.kind === 'series' && newEpisodeOf(item.seriesId ?? item.id)) out.push({ t: 'NOVO EP.', k: 'newep' });
   else if (item.added && now - item.added < WEEK) out.push({ t: 'NOVO', k: 'new' });
   if (/\b(4k|uhd|2160p?)\b/i.test(s)) out.push({ t: '4K', k: 'q' });
-  if (/\b(leg|legendad[oa]s?|sub)\b/i.test(s)) out.push({ t: 'LEG', k: 'l' });
-  else if (/\b(dub|dublad[oa]s?|dual)\b/i.test(s)) out.push({ t: 'DUB', k: 'l' });
+  const at = audioTag(item);
+  if (at) out.push({ t: at === 'leg' ? 'LEG' : at === 'dual' ? 'DUAL' : at === 'nac' ? 'NAC' : 'DUB', k: 'l' });
   return out.slice(0, 2);
 }
 

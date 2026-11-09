@@ -188,16 +188,32 @@ export function versionKey(c: Channel): string {
   }
   return k;
 }
+/** Áudio pelo nome ou pela categoria: "[L]", "(Leg)", "Legendado", "DUB", "Dual", "Nacional"… */
+const RE_DUAL = /\bdual\b|dual[\s-]?[aá]udio/i;
+const RE_LEG = /\b(leg|legendad[oa]s?|legenda|sub|subtitled)\b|\[\s*l\s*\]|\(\s*l\s*\)|[\s|–-]l$/i;
+const RE_DUB = /\b(dub|dublad[oa]s?|dublagem)\b|\[\s*d\s*\]|\(\s*d\s*\)|[\s|–-]d$/i;
+const RE_NAC = /\bnacional\b/i;
+function tagOf(s: string): 'leg' | 'dub' | 'dual' | 'nac' | undefined {
+  return RE_DUAL.test(s) ? 'dual' : RE_LEG.test(s) ? 'leg' : RE_DUB.test(s) ? 'dub' : RE_NAC.test(s) ? 'nac' : undefined;
+}
+export function audioTag(c: Channel): 'leg' | 'dub' | 'dual' | 'nac' | undefined {
+  return tagOf(c.fullName ?? c.name) ?? tagOf(c.group);
+}
 export function versionLabel(c: Channel): string {
   const s = `${c.fullName ?? c.name} ${c.group}`;
   const parts: string[] = [];
   if (/\b(4k|uhd|2160p?)\b/i.test(s)) parts.push('4K');
-  if (/\b(leg|legendad[oa]s?|sub)\b/i.test(s)) parts.push('Legendado');
-  else if (/\b(dual)\b/i.test(s)) parts.push('Dual áudio');
-  else if (/\b(dub|dublad[oa]s?)\b/i.test(s)) parts.push('Dublado');
+  const a = audioTag(c);
+  if (a) parts.push(a === 'leg' ? 'Legendado' : a === 'dub' ? 'Dublado' : a === 'dual' ? 'Dual áudio' : 'Nacional');
   if (!parts.length) parts.push(/\b(fhd|1080p?)\b/i.test(s) ? 'Full HD' : /\bsd\b/i.test(s) ? 'SD' : 'HD');
   return parts.join(' · ');
 }
+/** Rótulos das versões; se dois ficarem iguais, acrescenta a categoria de cada uma. */
+export function versionLabels(vers: Channel[]): string[] {
+  const base = vers.map(versionLabel);
+  return base.map((l, i) => (base.filter((x) => x === l).length > 1 ? `${l} · ${vers[i].group.replace(/^(filmes|séries|series)\s*[|:-]\s*/i, '')}` : l));
+}
+
 const vIndex = new WeakMap<Channel[], Map<string, Channel[]>>();
 /** Todas as versões do título (inclui ele mesmo), na ordem da lista. */
 export function versionsOf(item: Channel, all: Channel[]): Channel[] {

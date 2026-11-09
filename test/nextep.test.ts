@@ -47,3 +47,21 @@ describe('busca tolerante', () => {
     expect(fuzzyMatch('Rota 66', 'roma')).toBe(false);
   });
 });
+
+const { audioTag, versionLabels } = await import('../src/core/vod');
+describe('dublado / legendado', () => {
+  const c = (name: string, group = 'Filmes') => ({ id: name, kind: 'movie' as const, name, group, url: '' });
+  it('reconhece os jeitos comuns das listas', () => {
+    expect(audioTag(c('Resident Evil (2026) [L]'))).toBe('leg');
+    expect(audioTag(c('Resident Evil (2026) (Leg)'))).toBe('leg');
+    expect(audioTag(c('Resident Evil - Legendado'))).toBe('leg');
+    expect(audioTag(c('Resident Evil [D]'))).toBe('dub');
+    expect(audioTag(c('Resident Evil DUAL'))).toBe('dual');
+    expect(audioTag(c('Resident Evil', 'FILMES LEGENDADOS'))).toBe('leg');
+    expect(audioTag(c('Resident Evil', 'DUBLAGEM NAO OFICIAL'))).toBe('dub');
+    expect(audioTag(c('Legião Urbana'))).toBeUndefined();
+  });
+  it('versões iguais mostram a categoria', () => {
+    expect(versionLabels([c('RE', 'Cinema [MANUTENÇAO]'), c('RE', 'FILMES | LANÇAMENTOS')])).toEqual(['HD · Cinema [MANUTENÇAO]', 'HD · LANÇAMENTOS']);
+  });
+});

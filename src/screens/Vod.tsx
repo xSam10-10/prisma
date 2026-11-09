@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '../core/settings';
 import type { Channel, ItemKind, Playlist } from '../core/types';
-import { ANIME, STREAMINGS, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, versionLabel, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
+import { ANIME, STREAMINGS, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
 import { Symbol, colorFor, initials, rgba } from '../ui/bits';
 import { PreviewBackdrop, SkeletonRow, TitleLogo, badgesOf, setPreview } from '../ui/premium';
@@ -607,11 +607,15 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
             return (
               <div className="versions">
                 <span className="muted">Versões:</span>
-                {vers.slice(0, 6).map((v) => (
-                  <button key={v.id} className={'chip' + (v.id === item.id ? ' on' : '')} data-nav="" onClick={() => v.id !== item.id && setItem(v)}>
-                    {versionLabel(v)}
-                  </button>
-                ))}
+                {(() => {
+                  const vs = vers.slice(0, 6);
+                  const labels = versionLabels(vs);
+                  return vs.map((v, k) => (
+                    <button key={v.id} className={'chip' + (v.id === item.id ? ' on' : '')} data-nav="" onClick={() => v.id !== item.id && setItem(v)}>
+                      {labels[k]}
+                    </button>
+                  ));
+                })()}
               </div>
             );
           })()}
