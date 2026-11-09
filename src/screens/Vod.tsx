@@ -11,7 +11,7 @@ import { VirtualList } from '../ui/VirtualList';
 import { VoiceButton, voiceSupported } from '../ui/Voice';
 import { useTmdb } from '../ui/useTmdb';
 import { trailerOf } from '../core/tmdb';
-import { matchedLists, streamGenreLists, type MatchedList } from '../core/tops';
+import { matchedLists, streamCatalog, streamGenreLists, type MatchedList } from '../core/tops';
 import { StackedRows, StreamBanner, type Row } from './TopRows';
 import { useTops } from '../ui/useTops';
 import { categoryColumnWidth } from '../ui/catColumn';
@@ -78,7 +78,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const st: Streaming | undefined = STREAMINGS.find((s) => s.id === stream);
   const topMode = stream === TOPS;
 
-  const inStream = useMemo(() => (st ? all.filter((i) => st.match.test(i.group)) : all), [all, st]);
+  const byCats = useMemo(() => (st ? all.filter((i) => st.match.test(i.group)) : all), [all, st]);
   // Tops (Netflix oficial, mais populares de cada streaming, gêneros…), só com títulos da lista
   const tops = useTops(playlist);
   const topLists = useMemo<MatchedList[]>(() => (tab === 'anime' ? [] : matchedLists(tops, playlist.items, tab === 'filmes' ? 'movie' : 'tv')), [tops, playlist, tab]);
@@ -91,6 +91,13 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     [fromCats, topLists],
   );
   const kindKey = tab === 'filmes' ? 'movie' : 'tv';
+  // Conteúdo do streaming: pelas categorias da lista; se ela não separa por streaming
+  // (comum em Filmes), pelo catálogo do streaming no TMDB cruzado com a lista.
+  const fromCatalog = !!st && byCats.length === 0;
+  const inStream = useMemo(
+    () => (st && byCats.length === 0 && tab !== 'anime' ? streamCatalog(tops, playlist.items, kindKey, st.id) : byCats),
+    [st, byCats, tops, playlist, kindKey, tab],
+  );
   // Gêneros do streaming escolhido (ex.: Terror no HBO Max)
   const stGenres = useMemo(() => (st && tab !== 'anime' ? streamGenreLists(tops, playlist.items, kindKey, st.id) : []), [tops, playlist, st, tab, kindKey]);
   // Adicionados recentemente: os 10 últimos que chegaram na lista
@@ -207,10 +214,10 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
       )}
       {showRow && (
         <StreamCarousel style={{ position: 'absolute', left: L.px, right: L.px, top, height: streamRowH }}>
+          <button className={'stream-chip' + (!stream ? ' on' : '')} data-nav="" onClick={() => { setStream(''); setCat(''); }}>Todos</button>
           <button className={'stream-chip topchip' + (topMode ? ' on' : '')} data-nav="" aria-label="Top: listas de recomendações" onClick={openTop}>
             🔥 Top
           </button>
-          <button className={'stream-chip' + (!stream ? ' on' : '')} data-nav="" onClick={() => { setStream(''); setCat(''); }}>Todos</button>
           {streamings.map((s) => (
             <button
               key={s.id}
@@ -295,7 +302,9 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
                       <span className="title" style={{ fontSize: mobile ? 19 : 22, flexShrink: 0 }}>
                         Todos · {st.name}
                       </span>
-                      <span className="carousel-sub">{list.length.toLocaleString('pt-BR')} {kindLabel} na sua lista</span>
+                      <span className="carousel-sub">
+                        {list.length.toLocaleString('pt-BR')} {kindLabel} na sua lista{fromCatalog ? ` que estão no ${st.name} (TMDB)` : ''}
+                      </span>
                       <div className="spacer" />
                       {!mobile && sortChips}
                     </div>

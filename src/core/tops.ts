@@ -34,7 +34,7 @@ export interface TopList {
   id: string;
   kind: 'movie' | 'tv';
   /** stgenero = um gênero dentro de um streaming (aparece ao escolher o streaming). */
-  group: 'streaming' | 'geral' | 'genero' | 'especial' | 'stgenero';
+  group: 'streaming' | 'geral' | 'genero' | 'especial' | 'stgenero' | 'stall';
   sid?: string;
   title: string;
   src: string;
@@ -198,7 +198,7 @@ export function matchedLists(data: TopsData | null, items: Channel[], kind: 'mov
     return g * 100 + (s < 0 ? 50 : s);
   };
   return data.lists
-    .filter((l) => l.kind === kind && l.group !== 'stgenero')
+    .filter((l) => l.kind === kind && l.group !== 'stgenero' && l.group !== 'stall')
     .sort((a, b) => order(a) - order(b))
     .map((l) => matchList(l, items))
     .filter((l) => l.items.length >= min);
@@ -211,6 +211,26 @@ export function streamGenreLists(data: TopsData | null, items: Channel[], kind: 
     .filter((l) => l.kind === kind && l.group === 'stgenero' && l.sid === sid)
     .map((l) => matchList(l, items))
     .filter((l) => l.items.length >= min);
+}
+
+/**
+ * Títulos da lista que estão num streaming segundo o TMDB (catálogo + Top 10 + gêneros dele).
+ * Usado em "Todos · <streaming>" quando as categorias da lista não dizem o streaming.
+ */
+export function streamCatalog(data: TopsData | null, items: Channel[], kind: 'movie' | 'tv', sid: string): Channel[] {
+  if (!data) return [];
+  const out: Channel[] = [];
+  const seen = new Set<string>();
+  for (const l of data.lists) {
+    if (l.kind !== kind || l.sid !== sid) continue;
+    for (const r of matchList(l, items, 1000).items) {
+      if (!seen.has(r.item.id)) {
+        seen.add(r.item.id);
+        out.push(r.item);
+      }
+    }
+  }
+  return out;
 }
 
 /** Junta filmes e séries de um mesmo top, alternando (1º filme, 1ª série…). */

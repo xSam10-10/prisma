@@ -37,6 +37,17 @@ export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
   const secs = useRef<Record<string, HTMLDivElement | null>>({});
   const tailRef = useRef<HTMLDivElement>(null);
   const [viewH, setViewH] = useState(600);
+  // Foco saiu da página para cima (busca, fileira de streamings): volta ao início, banner inteiro.
+  useEffect(() => {
+    const onIn = (e: FocusEvent) => {
+      const b = box.current;
+      const t = e.target as HTMLElement | null;
+      if (!b || !t || b.contains(t) || !b.scrollTop) return;
+      if (t.getBoundingClientRect().bottom <= b.getBoundingClientRect().top + 2) b.scrollTop = 0;
+    };
+    document.addEventListener('focusin', onIn);
+    return () => document.removeEventListener('focusin', onIn);
+  }, []);
   useEffect(() => {
     const m = () => box.current && setViewH(box.current.clientHeight || 600);
     m();

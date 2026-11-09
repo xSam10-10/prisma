@@ -191,6 +191,12 @@ export async function build({ log = console.log } = {}) {
             const items = await discover(type, { with_watch_providers: String(p.provider_id), with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc', 'vote_count.gte': '10' });
             add({ id: `${sid}-${type}`, kind: type, group: 'streaming', sid, title: `Top 10 ${name}`, src: `Mais populares no ${name} no Brasil (TMDB)`, items });
           });
+          // Catálogo do streaming (os 200 mais populares no Brasil): o app usa para montar
+          // "Todos · <streaming>" quando a lista não separa os títulos por streaming nas categorias.
+          await safe(`${name} catálogo ${type}`, async () => {
+            const items = await discover(type, { with_watch_providers: String(p.provider_id), with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc' }, 10, 200);
+            add({ id: `${sid}-all-${type}`, kind: type, group: 'stall', sid, title: `Todos · ${name}`, src: `Catálogo do ${name} no Brasil (TMDB)`, items: items.map(({ t, o, y }) => (o ? { t, o, y } : { t, y })) });
+          });
           // Por gênero dentro do streaming: até 30 candidatos (o app completa os 10 com o que existir na lista)
           for (const [g, gname] of type === 'movie' ? MOVIE_GENRES : TV_GENRES) {
             await safe(`${name} ${gname} ${type}`, async () => {

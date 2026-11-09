@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.19.4
+- Filmes › streaming: agora também mostra "Todos · <streaming>" — os filmes da sua lista que estão naquele streaming (pelo catálogo do TMDB), igual em Séries
+- Banner do streaming volta inteiro ao subir de novo para o topo
+- Ordem dos botões: Todos (padrão) e depois 🔥 Top
+
 ## 0.19.3
 - Filmes e Séries › streaming: sem a coluna da esquerda — uma página só com o banner, o Top 10 em carrossel, os gêneros e, embaixo, todas as capas do streaming (com categorias e ordenação)
 - Filmes e Séries › Top: sem a coluna da esquerda, só os carrosséis
