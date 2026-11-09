@@ -265,8 +265,9 @@ export function homeShelves(data: TopsData | null, items: Channel[], maxStreams 
     const m = mv.find((l) => l.sid === st.id);
     const t = tv.find((l) => l.sid === st.id);
     const rows: Shelf[] = [];
-    if (m && m.items.length >= 4) rows.push({ id: 'st-' + st.id + '-movie', title: `Top 10 Filmes ${st.name}`, src: m.src, items: m.items });
-    if (t && t.items.length >= 4) rows.push({ id: 'st-' + st.id + '-tv', title: `Top 10 Séries ${st.name}`, src: t.src, items: t.items });
+    const seq = (l: MatchedList) => l.items.map((r, i) => ({ item: r.item, rank: i + 1 }));
+    if (m && m.items.length >= 4) rows.push({ id: 'st-' + st.id + '-movie', title: `Top 10 Filmes ${st.name}`, src: m.src, items: seq(m) });
+    if (t && t.items.length >= 4) rows.push({ id: 'st-' + st.id + '-tv', title: `Top 10 Séries ${st.name}`, src: t.src, items: seq(t) });
     if (!rows.length) continue;
     out.push(...rows);
     n++;

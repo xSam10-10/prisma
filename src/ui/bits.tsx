@@ -79,27 +79,33 @@ export function ChannelLogo({ ch, size = 40 }: { ch: Channel; size?: number }) {
 }
 
 /** Miniatura 16:9 com o logo em destaque (cards do Início). */
-export function ChannelTile({ ch, width, onClick, badge, rank, sub }: { ch: Channel; width: number; onClick: () => void; badge?: string; rank?: number; sub?: string }) {
+export function ChannelTile({ ch, width, onClick, badge, rank, sub, image, progress, onFocus }: { ch: Channel; width: number; onClick: () => void; badge?: string; rank?: number; sub?: string; image?: string; progress?: number; onFocus?: () => void }) {
   const { src, onError } = useLogo(ch);
   const c = colorFor(ch.name);
   const h = Math.round((width * 9) / 16);
   return (
-    <button className="tile grow" data-nav="" onClick={onClick} style={{ width }} aria-label={ch.name}>
+    <button className="tile grow" data-nav="" onClick={onClick} onFocus={onFocus} style={{ width }} aria-label={ch.name}>
       <span
-        className="tile-art"
+        className={'tile-art' + (image ? ' has-prog' : '')}
         style={{
           height: h,
           background: `radial-gradient(ellipse 80% 90% at 50% 40%, ${rgba(c, 0.33)} 0%, ${rgba(c, 0.13)} 45%, rgba(0,0,0,0) 75%), linear-gradient(160deg, #262636 0%, #15151F 100%)`,
         }}
       >
+        {image && <img className="tile-prog-img" src={image} alt="" loading="lazy" referrerPolicy="no-referrer" />}
         {src ? (
-          <img key={src} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={onError} />
+          <img key={src} className={image ? 'tile-logo-sm' : undefined} src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={onError} />
         ) : (
           <span className="tile-ini" style={{ background: c }}>{initials(ch.name)}</span>
         )}
         {ch.number != null && <span className="tile-num">{ch.number}</span>}
         {badge && <span className="tile-badge">{badge}</span>}
         {rank ? <span className="tile-rank">{rank}</span> : null}
+        {progress != null && progress > 0 ? (
+          <span className="tile-progress">
+            <span style={{ width: `${Math.min(100, progress * 100)}%` }} />
+          </span>
+        ) : null}
       </span>
       <span className="tile-name">{ch.name}</span>
       {sub ? <span className="tile-sub">{sub}</span> : null}

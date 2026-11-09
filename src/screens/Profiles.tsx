@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { PROFILE_COLORS, addProfile, askOnStart, currentProfile, profiles, removeProfile, setAskOnStart, switchProfile, updateProfile, type Profile } from '../core/profiles';
+import { PROFILE_COLORS, addProfile, lastWatchedOf, askOnStart, currentProfile, profiles, removeProfile, setAskOnStart, switchProfile, updateProfile, type Profile } from '../core/profiles';
 import { Ambient, Brand } from '../ui/bits';
 import { ConfirmButton, NameDialog } from '../ui/Dialog';
 import { useLayout } from '../ui/layout';
+import { AVATAR_COUNT, ProfileAvatar } from '../ui/Avatar';
 import { focusFirst } from '../ui/nav';
 
 /** "Quem está assistindo?" — aparece ao abrir quando há mais de um perfil. */
@@ -27,8 +28,11 @@ export function WhoIsWatching({ onPick }: { onPick: (p: Profile) => void }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', maxWidth: L.W - L.px * 2 }}>
           {list.map((p) => (
             <button key={p.id} className={'who grow' + (p.id === cur.id ? ' cur' : '')} data-nav="" onClick={() => onPick(p)}>
-              <span className="who-face" style={{ width: size, height: size, background: p.color, fontSize: size * 0.45 }}>{p.name.slice(0, 1).toUpperCase()}</span>
+              <span className="who-face" style={{ width: size, height: size }}>
+                <ProfileAvatar profile={p} size={size} />
+              </span>
               <span className="who-name">{p.name}</span>
+              {lastWatchedOf(p.id) && <span className="who-last">{lastWatchedOf(p.id)}</span>}
             </button>
           ))}
         </div>
@@ -52,7 +56,9 @@ export function ProfilesPanel() {
       </span>
       {list.map((p) => (
         <div key={p.id} className="opt-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span className="who-face" style={{ width: 48, height: 48, background: p.color, fontSize: 22, marginRight: 14 }}>{p.name.slice(0, 1).toUpperCase()}</span>
+          <span className="who-face" style={{ width: 48, height: 48, marginRight: 14 }}>
+            <ProfileAvatar profile={p} size={48} />
+          </span>
           <span style={{ fontSize: 18, fontWeight: 700, flexGrow: 1 }}>
             {p.name}
             {p.id === cur.id && <span className="sec-tag" style={{ color: '#3DD6C4' }}>em uso</span>}
@@ -70,6 +76,18 @@ export function ProfilesPanel() {
               }}
             >
               <span style={{ width: 16, height: 16, borderRadius: 8, background: p.color, display: 'inline-block' }} /> Cor
+            </button>
+            <button
+              className="btn"
+              data-nav=""
+              aria-label="Trocar ilustração do avatar"
+              onClick={() => {
+                const curIdx = typeof p.avatar === 'number' ? p.avatar : -1;
+                updateProfile(p.id, { avatar: (curIdx + 1) % AVATAR_COUNT });
+                refresh();
+              }}
+            >
+              Avatar
             </button>
             {list.length > 1 && (
               <ConfirmButton

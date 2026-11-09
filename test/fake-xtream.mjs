@@ -70,7 +70,7 @@ function xmltv() {
   for (const c of chans) out += `<channel id="${c.epg_channel_id}"><display-name>${c.name}</display-name></channel>\n`;
   for (const c of chans) for (let h = -72; h < 168; h++) {
     const st = base + h * 3600000;
-    out += `<programme start="${fmt(st)}" stop="${fmt(st + 3600000)}" channel="${c.epg_channel_id}"><title lang="pt">${shows[(h + 300 + c.stream_id) % shows.length]}</title><desc>Descrição de teste do programa.</desc></programme>\n`;
+    out += `<programme start="${fmt(st)}" stop="${fmt(st + 3600000)}" channel="${c.epg_channel_id}"><title lang="pt">${shows[(h + 300 + c.stream_id) % shows.length]}</title><desc>Descrição de teste do programa.</desc><icon src="http://127.0.0.1:${PORT}/tmdb/img/w500/prog${(h + c.stream_id) % 5}.svg" /></programme>\n`;
   }
   return out + '</tv>';
 }
@@ -199,12 +199,28 @@ createServer((req, res) => {
     const path = u.pathname.slice(6);
     if (!path.startsWith('img/') && u.searchParams.get('api_key') !== 'chave-teste') return res.writeHead(401).end('{}');
     if (path === '3/configuration') return j({ images: {} });
-    if (path.startsWith('img/')) return res.writeHead(200, { 'content-type': 'image/svg+xml' }).end(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450"><rect width="300" height="450" fill="#123a6b"/><text x="20" y="420" font-size="34" font-family="sans-serif" font-weight="800" fill="#fff">TMDB</text></svg>`);
+    if (path.startsWith('img/')) {
+      const svg = (body, w = 300, h = 450) => res.writeHead(200, { 'content-type': 'image/svg+xml', 'access-control-allow-origin': '*' }).end(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${body}</svg>`);
+      const n = (path.match(/(\d+)/g) || ['0']).pop() % 6;
+      const hues = ['#7a2e9c', '#b4531f', '#0e7490', '#1f8a5b', '#c8264b', '#2b5bd7'];
+      // logo do título (transparente), foto do ator, cena (16:9) ou pôster
+      if (/logo/.test(path)) return svg(`<text x="10" y="80" font-size="78" font-family="Georgia,serif" font-weight="700" font-style="italic" fill="#fff">Título</text><rect x="12" y="96" width="270" height="6" fill="#f5b83d"/>`, 300, 110);
+      if (/face/.test(path)) return svg(`<rect width="185" height="185" fill="${hues[n]}"/><circle cx="92" cy="72" r="34" fill="#ffffffcc"/><rect x="40" y="118" width="104" height="80" rx="40" fill="#ffffffcc"/>`, 185, 185);
+      if (/(\/b|prog)/.test(path)) return svg(`<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${hues[n]}"/><stop offset="1" stop-color="#0b0b12"/></linearGradient></defs><rect width="1280" height="720" fill="url(#g)"/><circle cx="900" cy="260" r="220" fill="#ffffff22"/><circle cx="1050" cy="520" r="120" fill="#ffffff14"/><text x="60" y="660" font-size="54" font-family="sans-serif" font-weight="800" fill="#ffffff55">CENA ${n}</text>`, 1280, 720);
+      return svg(`<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hues[n]}"/><stop offset="1" stop-color="#0b0b12"/></linearGradient></defs><rect width="300" height="450" fill="url(#g)"/><circle cx="220" cy="120" r="80" fill="#ffffff22"/><text x="20" y="420" font-size="30" font-family="sans-serif" font-weight="800" fill="#fff">PÔSTER ${n}</text>`);
+    }
     const q = (u.searchParams.get('query') || '').toLowerCase();
-    if (path === '3/search/movie' || path === '3/search/tv') return j({ results: q ? [{ id: q.length, title: u.searchParams.get('query'), name: u.searchParams.get('query'), poster_path: '/p.svg', backdrop_path: '/b.svg', overview: 'Sinopse vinda do TMDB em português.', release_date: '2020-01-01', vote_average: 8.4 }] : [] });
+    if (path === '3/search/movie' || path === '3/search/tv') return j({ results: q ? [{ id: q.length, title: u.searchParams.get('query'), name: u.searchParams.get('query'), poster_path: '/p' + q.length + '.svg', backdrop_path: '/b' + q.length + '.svg', overview: 'Sinopse vinda do TMDB em português. Uma história envolvente sobre escolhas difíceis, viagens inesperadas e reencontros que mudam tudo.', release_date: '2020-01-01', vote_average: 8.4 }] : [] });
     if (path === '3/trending/movie/week') return j({ results: ['Rota 66', 'Inexistente', 'Maré Alta', 'Luz do Norte', 'Plano B'].map((t, i) => ({ id: 100 + i, title: t, poster_path: '/p.svg' })) });
     if (path === '3/trending/tv/week') return j({ results: ['Turno da Noite', 'Os Herdeiros'].map((t, i) => ({ id: 200 + i, name: t, poster_path: '/p.svg' })) });
     if (/^3\/(movie|tv)\/\d+\/videos$/.test(path)) return j({ results: [{ site: 'YouTube', type: 'Trailer', key: 'dQw4w9WgXcQ' }] });
+    if (/^3\/(movie|tv)\/\d+\/images$/.test(path)) return j({ logos: [{ file_path: '/logo' + path.split('/')[2] + '.png', iso_639_1: 'pt' }] });
+    if (/^3\/(movie|tv)\/\d+\/(credits|aggregate_credits)$/.test(path)) return j({ cast: ['Ana Souza', 'Bruno Lima', 'Carla Mendes', 'Diego Rocha', 'Elisa Prado', 'Fábio Reis', 'Gabi Torres', 'Hugo Alves'].map((name, i) => ({ name, character: 'Personagem ' + (i + 1), profile_path: '/face' + i + '.jpg' })) });
+    if (/^3\/(movie|tv)\/\d+\/recommendations$/.test(path)) {
+      const tv = path.startsWith('3/tv');
+      const pool = tv ? seriesList.map((x) => ({ name: x.name, first_air_date: x.releaseDate })) : vods.map((v) => ({ title: v.name.replace(/ \(\d{4}\)$/, ''), release_date: v.year + '-01-01' }));
+      return j({ results: pool.slice(3, 15).map((x, i) => ({ id: 9000 + i, ...x, poster_path: '/p.svg', backdrop_path: '/b' + i + '.svg' })) });
+    }
     return j({});
   }
   // ESPN falsa: gol de teste (/espn/gol soma um gol do Flamengo), tabela, estatísticas, próximos jogos

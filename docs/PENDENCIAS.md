@@ -1,4 +1,4 @@
-# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 09/11/2026, versão 0.19.6)
+# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 09/11/2026, versão 0.20.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -9,7 +9,9 @@ Já feito desde a lista original (não repetir): 8 qualidade (ícone HD), 21 úl
 PIP (1 janela, Desl/Lig + Trocar), barra clássica, lista em tela cheia com menu e programação por dia,
 atualização dentro do app, logotipos dos streamings (coloridos + brancos), bloquear canal com senha,
 48 fileiras automáticas (parcial: Tops por streaming/gênero/especiais e Adicionados recentemente, 0.18–0.19),
-Top 10 canais agora, banner por streaming, coluna de categorias padrão, navegação dos carrosséis revisada (0.19.x).
+Top 10 canais agora, banner por streaming, coluna de categorias padrão, navegação dos carrosséis revisada (0.19.x),
+visual premium 0.20.0: 47 prévia no foco (fundo com a arte), 53 logo do título, 54 selos 4K/DUB/LEG/NOVO (falta classificação indicativa),
+55 Semelhantes, 61 episódios com miniatura e sinopse (falta marcar visto), 34 avatar ilustrado (falta PIN por perfil).
 
 ## 1. TV ao vivo (lista de canais, guia e jogos)
 - **7 · Controle parental completo** [1º] — PIN para abrir categorias "ADULTOS +18" e perfil infantil. *(Parcial: bloquear um canal com senha já existe.)*

@@ -1,6 +1,18 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.20.0 — visual premium
+- Início: destaque com a arte do filme/série e a logo oficial do título; "Continuar assistindo" em cards horizontais com a cena e o tempo que falta; "Destaque da semana" com um card grande e dois médios
+- Top 10 com o número grande atrás da capa, em todas as fileiras de ranking
+- O fundo da tela acompanha a capa em foco (arte do título ou a cor dele)
+- Capas com selos (NOVO, 4K, DUB, LEG), aparecendo com fade; capas sem imagem ganham arte própria
+- Detalhe do filme/série: fundo em tela cheia, logo do título, episódios com miniatura e sinopse, elenco com foto e "Semelhantes" da sua lista
+- Canais com a imagem do programa (quando o guia traz) e barra de progresso
+- Banner do streaming encolhe ao descer pelas listas; transições suaves entre abas; esqueletos enquanto carrega
+- Tema Apple TV mais fiel (foco com elevação e brilho, cantos maiores, menu em vidro)
+- Perfis com avatares ilustrados e o último título visto
+- Correção: a fileira de streamings ficava se redesenhando sem parar
+
 ## 0.19.6
 - Séries › streaming: sem a fileira de categorias acima das capas (mostra sempre todas as séries do streaming)
 

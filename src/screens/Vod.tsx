@@ -3,17 +3,19 @@ import { useSettings } from '../core/settings';
 import type { Channel, ItemKind, Playlist } from '../core/types';
 import { ANIME, STREAMINGS, getProgress, inMyList, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
-import { colorFor, initials, rgba } from '../ui/bits';
+import { Symbol, colorFor, initials, rgba } from '../ui/bits';
+import { PreviewBackdrop, SkeletonRow, TitleLogo, badgesOf, setPreview } from '../ui/premium';
+import { Carousel } from '../ui/Carousel';
 import { useLayout } from '../ui/layout';
 import { focusEl, focusFirst, pushBack } from '../ui/nav';
 import { VirtualGrid, type VirtualGridHandle } from '../ui/VirtualGrid';
 import { VirtualList } from '../ui/VirtualList';
 import { VoiceButton, voiceSupported } from '../ui/Voice';
 import { useTmdb } from '../ui/useTmdb';
-import { trailerOf } from '../core/tmdb';
-import { matchedLists, streamCatalog, streamGenreLists, type MatchedList } from '../core/tops';
+import { castOf, similarOf, trailerOf, type CastMember } from '../core/tmdb';
+import { findInList, matchedLists, streamCatalog, streamGenreLists, type MatchedList } from '../core/tops';
 import { StackedRows, StreamBanner, type Row } from './TopRows';
-import { useTops } from '../ui/useTops';
+import { useTopsState } from '../ui/useTops';
 import { categoryColumnWidth } from '../ui/catColumn';
 import { Modal } from '../ui/Dialog';
 
@@ -26,21 +28,40 @@ function norm(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
-/** Capa (2:3) com título, ano/nota e progresso. Sem imagem: arte com o nome. */
+/** Capa (2:3) com título, ano/nota, selos e progresso. Sem imagem: arte automática (cor da categoria + símbolo). */
 export function PosterCard({ item, w, selected, rank }: { item: Channel; w: number; selected?: boolean; rank?: number }) {
   const [broken, setBroken] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const tm = useTmdb(item);
   const img = tm?.poster || item.logo;
-  useEffect(() => setBroken(false), [img]);
+  useEffect(() => {
+    setBroken(false);
+    setLoaded(false);
+  }, [img]);
   const p = getProgress(item.id);
-  const c = colorFor(item.name);
+  const c = colorFor(item.group || item.name);
+  const badges = badgesOf(item);
   return (
     <div className={'poster' + (selected ? ' sel' : '')}>
-      <div className="poster-art" style={{ height: Math.round(w * 1.5), background: `linear-gradient(160deg, ${rgba(c, 0.55)} 0%, #15151F 85%)` }}>
-        {img && !broken ? (
-          <img src={img} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
-        ) : (
-          <span className="poster-fallback caps" style={rank ? { left: rank > 9 ? 84 : 52 } : undefined}>{item.name}</span>
+      <div className="poster-art" style={{ height: Math.round(w * 1.5), background: `linear-gradient(160deg, ${rgba(c, 0.6)} 0%, ${rgba(c, 0.18)} 45%, #12121a 100%)` }}>
+        {(!img || broken || !loaded) && (
+          <div className="poster-fb" aria-hidden={!!img && !broken}>
+            <Symbol size={Math.round(w * 0.9)} />
+            {(!img || broken) && (
+              <>
+                <span className="pfb-name" style={{ fontSize: Math.max(14, Math.round(w / 9)) }}>{item.name}</span>
+                <span className="pfb-line" style={{ background: c }} />
+              </>
+            )}
+          </div>
+        )}
+        {img && !broken && <img className={'fade-img' + (loaded ? ' in' : '')} src={img} alt="" loading="lazy" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => setBroken(true)} />}
+        {badges.length > 0 && (
+          <span className="pbadges">
+            {badges.map((b) => (
+              <span key={b.t} className={'pbadge ' + b.k}>{b.t}</span>
+            ))}
+          </span>
         )}
         {rank ? <span className="poster-rank">{rank}</span> : null}
         {item.rating ? <span className="poster-rate">★ {item.rating.toFixed(1).replace('.', ',')}</span> : null}
@@ -55,7 +76,8 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
 type Sort = 'recent' | 'az' | 'rating';
 /** Botão "Top" na fileira de streamings. */
 const TOPS = '__top__';
-const toRow = (l: MatchedList, ranked = true): Row => ({ id: l.id, title: l.title, src: l.src, items: l.items, ranked });
+// Número grande só em ranking de verdade (Top 10 de streaming/gênero/especial), em sequência 1, 2, 3…
+const toRow = (l: MatchedList, ranked = l.group !== 'geral'): Row => ({ id: l.id, title: l.title, src: l.src, items: l.items.map((r, i) => ({ item: r.item, rank: i + 1 })), ranked });
 
 export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: VodTab; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const L = useLayout();
@@ -80,7 +102,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
 
   const byCats = useMemo(() => (st ? all.filter((i) => st.match.test(i.group)) : all), [all, st]);
   // Tops (Netflix oficial, mais populares de cada streaming, gêneros…), só com títulos da lista
-  const tops = useTops(playlist);
+  const { data: tops, ready: topsReady } = useTopsState(playlist);
   const topLists = useMemo<MatchedList[]>(() => (tab === 'anime' ? [] : matchedLists(tops, playlist.items, tab === 'filmes' ? 'movie' : 'tv')), [tops, playlist, tab]);
   // Top do streaming escolhido (ex.: "Top 10 Netflix" no alto das categorias da Netflix)
   const stTop = st ? topLists.find((l) => l.sid === st.id) : undefined;
@@ -202,7 +224,10 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
       ref={gridRef}
       items={list}
       index={index}
-      onIndex={setIndex}
+      onIndex={(i) => {
+        setIndex(i);
+        setPreview(list[i] ?? null);
+      }}
       onPick={openDetail}
       minCellW={mobile ? 104 : 168}
       ratio={1.5}
@@ -225,6 +250,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
       {st && (
         <div aria-hidden="true" className="stream-art" style={{ background: `radial-gradient(ellipse 60% 70% at 85% 10%, ${rgba(st.accent, 0.45)} 0%, rgba(0,0,0,0) 70%), radial-gradient(ellipse 50% 60% at 10% 90%, ${rgba(st.accent2, 0.35)} 0%, rgba(0,0,0,0) 70%), ${st.bg}` }} />
       )}
+      <PreviewBackdrop strength={st ? 0.3 : 0.4} />
       {showRow && (
         <StreamCarousel style={{ position: 'absolute', left: L.px, right: L.px, top, height: streamRowH }}>
           <button className={'stream-chip' + (!stream ? ' on' : '')} data-nav="" onClick={() => { setStream(''); setCat(''); }}>Todos</button>
@@ -300,13 +326,18 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
           <span>{list.length.toLocaleString('pt-BR')} {kindLabel}</span>
         </div>}
         {mobile && !noLeft && !q && cats.length > 0 && catChips}
-        {stacked ? (
+        {topMode && !q && !topsReady && !rows.length ? (
+          <div style={{ flexGrow: 1, minHeight: 0, marginTop: 8, marginLeft: -L.px, marginRight: -L.px, overflow: 'hidden' }}>
+            <SkeletonRow />
+            <SkeletonRow />
+          </div>
+        ) : stacked ? (
           <div style={{ flexGrow: 1, minHeight: 0, position: 'relative', marginTop: 8 }}>
             <StackedRows
               key={stream}
               rows={rows}
               width={L.W - L.px * 2 - (mobile || noLeft ? 0 : catW + 18)}
-              banner={st ? <StreamBanner s={st} count={inStream.length} kindLabel={kindLabel} top={!!stTop} genres={stGenres.length} /> : undefined}
+              banner={st ? (c: boolean) => <StreamBanner s={st} count={inStream.length} kindLabel={kindLabel} top={!!stTop} genres={stGenres.length} compact={c} /> : undefined}
               onPick={openDetail}
               tail={
                 st && inStream.length > 0 ? (
@@ -362,7 +393,9 @@ function countCats(items: Channel[]): { name: string; count: number; label?: str
 
 // ---------------------------------------------------------------- Detalhe
 
-export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playlist; item: Channel; onClose: () => void; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
+export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playlist: Playlist; item: Channel; onClose: () => void; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
+  // "Semelhantes" abre outro título aqui mesmo.
+  const [item, setItem] = useState(initial);
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const [info, setInfo] = useState<VodDetails | SeriesDetails | null>(null);
@@ -370,6 +403,15 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
   const [season, setSeason] = useState<number | null>(null);
   const [epIndex, setEpIndex] = useState(0);
   const [saved, setSaved] = useState(inMyList(item.id));
+  // Abriu um "Semelhante": volta ao alto com o foco no Assistir.
+  const firstItem = useRef(item.id);
+  useEffect(() => {
+    setSaved(inMyList(item.id));
+    if (item.id === firstItem.current) return;
+    const sc = box.current?.querySelector<HTMLElement>('.vd-scroll');
+    if (sc) sc.scrollTop = 0;
+    requestAnimationFrame(() => focusFirst(box.current));
+  }, [item.id]);
   const box = useRef<HTMLDivElement>(null);
   const isSeries = item.kind === 'series' && !item.url;
   const xt = playlist.source.type === 'xtream' ? playlist.source : null;
@@ -429,30 +471,56 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
   const backdrop = tm?.backdrop || info?.backdrop || info?.cover || item.logo;
   const plot = info?.plot || tm?.overview;
   const [trailer, setTrailer] = useState<string | null>(null);
+  const [bgOk, setBgOk] = useState(false);
+  useEffect(() => setBgOk(false), [backdrop]);
+  // Elenco com foto e "Semelhantes" (TMDB, só o que existe na lista)
+  const [cast, setCast] = useState<CastMember[]>([]);
+  const [similar, setSimilar] = useState<Channel[]>([]);
+  useEffect(() => {
+    setCast([]);
+    setSimilar([]);
+    if (!tm) return;
+    let alive = true;
+    castOf(tm).then((c) => alive && setCast(c.filter((x) => x.photo).slice(0, 12)));
+    similarOf(tm).then((r) => {
+      if (!alive) return;
+      const out: Channel[] = [];
+      for (const x of r) {
+        const hit = findInList({ t: x.title, o: x.original, y: x.year }, tm.type, playlist.items);
+        if (hit && hit.id !== item.id && !out.some((o) => o.id === hit.id)) out.push(hit);
+        if (out.length >= 10) break;
+      }
+      setSimilar(out);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [tm?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const meta = [info?.year ?? item.year ?? tm?.year, info?.duration, info?.genre].filter(Boolean) as (string | number)[];
+  const rating = info?.rating ?? item.rating ?? tm?.rating;
+  const badges = badgesOf(item);
+  const epH = mobile ? 92 : 112;
   return (
-    <div className="vod-detail" data-nav-scope="" ref={box}>
-      {backdrop && <img className="vd-backdrop" src={backdrop} alt="" referrerPolicy="no-referrer" />}
+    <div className="vod-detail screen-in" data-nav-scope="" ref={box}>
+      {backdrop && <img className={'vd-backdrop fade-img' + (bgOk ? ' in' : '')} src={backdrop} alt="" referrerPolicy="no-referrer" onLoad={() => setBgOk(true)} />}
       <div className="vd-shade" />
-      <div className="vd-body" style={{ left: L.px, right: L.px, top: mobile ? 20 : 50, bottom: mobile ? 20 : 36, flexDirection: mobile ? 'column' : 'row' }}>
-        {!mobile && (
-          <div style={{ width: 280, flexShrink: 0, marginRight: 36 }}>
-            <PosterCard item={item} w={280} />
+      <div className="scroll-y vd-scroll" style={{ padding: `${mobile ? 20 : 54}px ${L.px}px 60px` }}>
+        <div className="vd-hero" style={{ minHeight: mobile ? undefined : Math.round(L.H * 0.56), maxWidth: mobile ? undefined : Math.round(L.W * 0.52) }}>
+          <TitleLogo info={tm} name={item.name} height={mobile ? 70 : 120} maxW={mobile ? L.W - L.px * 2 : Math.round(L.W * 0.42)} className="vd-logo" />
+          <span className="title caps vd-title" style={{ fontSize: mobile ? 28 : 46 }}>{item.name}</span>
+          <div className="vd-pills">
+            {rating ? <span className="vd-pill rate">★ {rating.toFixed(1).replace('.', ',')}</span> : null}
+            {meta.map((m) => <span key={String(m)} className="vd-pill">{m}</span>)}
+            {badges.map((b) => <span key={b.t} className={'pbadge ' + b.k}>{b.t}</span>)}
+            <span className="vd-pill ghost">{item.group}</span>
           </div>
-        )}
-        <div className="gy-14" style={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <span className="title caps" style={{ fontSize: mobile ? 28 : 44, fontWeight: 800, lineHeight: 1.05 }}>{item.name}</span>
-          <span className="vd-meta">
-            {[info?.year ?? item.year, (info?.rating ?? item.rating) ? `★ ${(info?.rating ?? item.rating)!.toFixed(1).replace('.', ',')}` : null, info?.duration, info?.genre, item.group]
-              .filter(Boolean)
-              .join('  ·  ')}
-          </span>
           {!info && !failed && <span className="muted">Carregando informações…</span>}
           {plot && <p className="vd-plot">{plot}</p>}
-          {info?.cast && <span className="muted" style={{ fontSize: 15 }}><b style={{ color: '#D6D6E0' }}>Elenco:</b> {info.cast}</span>}
           {info?.director && <span className="muted" style={{ fontSize: 15 }}><b style={{ color: '#D6D6E0' }}>Direção:</b> {info.director}</span>}
+          {!cast.length && info?.cast && <span className="muted" style={{ fontSize: 15 }}><b style={{ color: '#D6D6E0' }}>Elenco:</b> {info.cast}</span>}
 
-          <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', marginTop: 6 }}>
+          <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', marginTop: 10 }}>
             {!isSeries && (
               <>
                 <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onPlay(item, prog?.pos)}>
@@ -472,45 +540,88 @@ export function VodDetail({ playlist, item, onClose, onPlay }: { playlist: Playl
             <button className="btn" data-nav="" onClick={() => setSaved(toggleMyList(item))}>{saved ? '✓ Na Minha lista' : '+ Minha lista'}</button>
             <button className="btn" data-nav="" onClick={onClose}>Voltar</button>
           </div>
-
-          {isSeries && info && 'seasons' in info && (
-            <div className="gy-10" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0, marginTop: 8 }}>
-              <div className="scroll-x">
-                {info.seasons.map((s) => (
-                  <button key={s} className={'chip' + (s === season ? ' on' : '')} data-nav="" onClick={() => { setSeason(s); setEpIndex(0); }} onFocus={() => { if (s !== season) { setSeason(s); setEpIndex(0); } }}>
-                    Temporada {s}
-                  </button>
-                ))}
-              </div>
-              <div style={{ flexGrow: 1, minHeight: mobile ? 260 : 0, display: 'flex' }}>
-                <VirtualList
-                  items={episodes}
-                  index={epIndex}
-                  onIndex={setEpIndex}
-                  rowHeight={58}
-                  label="Episódios"
-                  onPick={(e) => onPlay(asChannel(e), getProgress(e.id)?.pos, allEps.map(asChannel))}
-                  render={(e) => {
-                    const p = getProgress(e.id);
-                    return (
-                      <>
-                        <span className="num">{e.number}</span>
-                        <div className="txt">
-                          <span className="name" style={{ textTransform: 'none' }}>{e.title}</span>
-                        </div>
-                        {e.duration && <span className="muted" style={{ fontSize: 14 }}>{e.duration}</span>}
-                        {p && p.dur ? <span className="ep-prog"><span style={{ width: `${(p.pos / p.dur) * 100}%` }} /></span> : null}
-                      </>
-                    );
-                  }}
-                  empty={<span className="muted" style={{ padding: 12 }}>Nenhum episódio nesta temporada.</span>}
-                />
-              </div>
-            </div>
-          )}
-          {isSeries && failed && <span className="muted">Não foi possível carregar os episódios desta série.</span>}
-          {!isSeries && failed && !xt && <span className="muted">Detalhes completos só em listas Xtream.</span>}
         </div>
+
+        {isSeries && info && 'seasons' in info && (
+          <section className="vd-sec">
+            <span className="title vd-h">Episódios</span>
+            <div className="scroll-x" style={{ marginTop: 10 }}>
+              {info.seasons.map((s) => (
+                <button key={s} className={'chip' + (s === season ? ' on' : '')} data-nav="" onClick={() => { setSeason(s); setEpIndex(0); }} onFocus={() => { if (s !== season) { setSeason(s); setEpIndex(0); } }}>
+                  Temporada {s}
+                </button>
+              ))}
+            </div>
+            <div style={{ height: Math.min(episodes.length || 1, mobile ? 4 : 4.4) * epH + 8, display: 'flex', marginTop: 10 }}>
+              <VirtualList
+                items={episodes}
+                index={epIndex}
+                onIndex={setEpIndex}
+                rowHeight={epH}
+                label="Episódios"
+                onPick={(e) => onPlay(asChannel(e), getProgress(e.id)?.pos, allEps.map(asChannel))}
+                render={(e) => {
+                  const p = getProgress(e.id);
+                  const thumb = e.cover || tm?.backdrop || info.backdrop || item.logo;
+                  return (
+                    <div className="ep-card">
+                      <span className="ep-thumb" style={{ width: Math.round((epH - 16) * 1.7), height: epH - 16 }}>
+                        {thumb && <img src={thumb} alt="" loading="lazy" referrerPolicy="no-referrer" />}
+                        <span className="ep-num">{e.number}</span>
+                        {p && p.dur ? <span className="ep-bar"><span style={{ width: `${(p.pos / p.dur) * 100}%` }} /></span> : null}
+                      </span>
+                      <span className="ep-txt">
+                        <b>{e.title}</b>
+                        {e.plot && !mobile ? <span className="ep-plot">{e.plot}</span> : null}
+                        {e.duration ? <span className="ep-dur">{e.duration}</span> : null}
+                      </span>
+                    </div>
+                  );
+                }}
+                empty={<span className="muted" style={{ padding: 12 }}>Nenhum episódio nesta temporada.</span>}
+              />
+            </div>
+          </section>
+        )}
+        {isSeries && failed && <span className="muted">Não foi possível carregar os episódios desta série.</span>}
+        {!isSeries && failed && !xt && <span className="muted">Detalhes completos só em listas Xtream.</span>}
+
+        {cast.length > 0 && (
+          <div className="vd-sec-wide" style={{ marginLeft: -L.px, marginRight: -L.px }}>
+            <Carousel
+              title="Elenco"
+              items={cast}
+              keyOf={(c) => c.name}
+              minWidth={mobile ? 96 : 132}
+              render={(c, _i, w) => (
+                <button className="tile grow cast" data-nav="" style={{ width: w }} aria-label={c.name}>
+                  <span className="cast-face" style={{ width: Math.min(w - 10, 120), height: Math.min(w - 10, 120), background: `linear-gradient(150deg, ${rgba(colorFor(c.name), 0.6)}, #15151F)` }}>
+                    {c.photo ? <img src={c.photo} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span>{initials(c.name)}</span>}
+                  </span>
+                  <b>{c.name}</b>
+                  {c.role && <span>{c.role}</span>}
+                </button>
+              )}
+            />
+          </div>
+        )}
+
+        {similar.length > 0 && (
+          <div className="vd-sec-wide" style={{ marginLeft: -L.px, marginRight: -L.px }}>
+            <Carousel
+              title="Semelhantes"
+              subtitle="Recomendados pelo TMDB que estão na sua lista"
+              items={similar}
+              keyOf={(c) => c.id}
+              minWidth={mobile ? 104 : 140}
+              render={(c, _i, w) => (
+                <button className="tile grow" data-nav="" style={{ width: w }} onClick={() => setItem(c)} aria-label={c.name}>
+                  <PosterCard item={c} w={w} />
+                </button>
+              )}
+            />
+          </div>
+        )}
       </div>
       {!backdrop && <span aria-hidden="true" className="vd-ghost">{initials(item.name)}</span>}
       {trailer !== null && (
@@ -595,7 +706,10 @@ function StreamCarousel({ style, children }: { style: React.CSSProperties; child
   const update = () => {
     const b = box.current;
     if (!b) return;
-    setEdge({ l: b.scrollLeft > 4, r: b.scrollLeft + b.clientWidth < b.scrollWidth - 4 });
+    const l = b.scrollLeft > 4;
+    const r = b.scrollLeft + b.clientWidth < b.scrollWidth - 4;
+    // Só atualiza se mudou (o efeito roda a cada desenho; gravar sempre causava um laço sem fim).
+    setEdge((e) => (e.l === l && e.r === r ? e : { l, r }));
   };
   useEffect(() => {
     update();

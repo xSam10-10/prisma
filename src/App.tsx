@@ -415,7 +415,7 @@ export function App() {
           ) : (
             <TopBar tab={tab} onTab={setTab} L={L} />
           ))}
-        <div key={tab} style={railW ? { position: 'absolute', left: railW, top: 0, bottom: 0, width: L.W - railW } : undefined}>
+        <div key={tab} className="screen-in" style={railW ? { position: 'absolute', left: railW, top: 0, bottom: 0, width: L.W - railW } : { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
           <LayoutContext.Provider value={Ls}>{screen}</LayoutContext.Provider>
         </div>
       </>

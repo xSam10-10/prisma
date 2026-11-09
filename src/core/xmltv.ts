@@ -109,7 +109,11 @@ export function parseXmltv(xml: string, wanted: (id: string, names: string[]) =>
       if (end > from && start < to) {
         const block = xml.slice(a, b);
         const title = inner(block, 'title');
-        if (title) (guide[ch] ??= []).push({ title, description: inner(block, 'desc') || undefined, start, end });
+        if (title) {
+          const ic = block.indexOf('<icon');
+          const image = ic >= 0 ? attr(block.slice(ic, block.indexOf('>', ic) + 1), 'src') || undefined : undefined;
+          (guide[ch] ??= []).push({ title, description: inner(block, 'desc') || undefined, start, end, ...(image ? { image } : {}) });
+        }
       }
     }
     i = b + 12;

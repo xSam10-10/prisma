@@ -14,7 +14,10 @@ import { Carousel } from '../ui/Carousel';
 import { PosterCard, VodDetail } from './Vod';
 import { getProgress, myList, vodRecents } from '../core/vod';
 import { homeShelves, topChannels, type TopChannelPick } from '../core/tops';
-import { useTops } from '../ui/useTops';
+import { useTopsState } from '../ui/useTops';
+import { TitleLogo } from '../ui/premium';
+import { useTmdb } from '../ui/useTmdb';
+import { FeatureRow, PreviewBackdrop, RankedCard, SkeletonRow, WideCard, setPreview } from '../ui/premium';
 import { prefGet } from '../core/storage';
 import { VoiceButton } from '../ui/Voice';
 
@@ -45,7 +48,7 @@ export function Home({
   const [detail, setDetail] = useState<Channel | null>(null);
   const onGoVod = (v: Channel) => setDetail(v);
   // Tops (arquivo atualizado no GitHub): filmes e séries juntos, só o que existe na lista
-  const tops = useTops(playlist);
+  const { data: tops, ready: topsReady } = useTopsState(playlist);
   const shelves = useMemo(() => homeShelves(tops, playlist.items), [tops, playlist]);
   const L = useLayout();
   const mobile = L.form === 'mobile';
@@ -68,6 +71,8 @@ export function Home({
   const topCh = useMemo(() => topChannels(tops, live, favs.map((f) => f.id), recents.map((r) => r.id)), [tops, live, favs, recents, guideReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const topChList = useMemo(() => topCh.map((p) => p.ch), [topCh]);
   return (
+    <>
+    <PreviewBackdrop strength={0.32} />
     <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }}>
       <Hero
         playlist={playlist}
@@ -84,17 +89,14 @@ export function Home({
       />
       {vodNow.length > 0 && (
         <Carousel
-          title="Filmes e séries em andamento"
+          title="Continuar assistindo"
           items={vodNow}
           keyOf={(v) => v.id}
-          minWidth={mobile ? 110 : 160}
-          render={(v, _i, w) => (
-            <button className="tile grow" data-nav="" style={{ width: w }} onClick={() => onPlayVod(v, getProgress(v.id)?.pos)} aria-label={v.name}>
-              <PosterCard item={v} w={w} />
-            </button>
-          )}
+          minWidth={mobile ? 220 : 330}
+          render={(v, _i, w) => <WideCard item={v} w={w} onClick={() => onPlayVod(v, getProgress(v.id)?.pos)} />}
         />
       )}
+      {shelves[0] && shelves[0].items.length >= 3 && <FeatureRow title="Destaque da semana" items={shelves[0].items.slice(0, 3).map((r) => r.item)} onOpen={onGoVod} />}
 
       {highlights.length > 0 && (
         <Carousel
@@ -142,17 +144,24 @@ export function Home({
           render={(p, i, w) => <TopChannelTile playlist={playlist} pick={p} rank={i + 1} width={w} onClick={() => onWatch(p.ch, topChList)} />}
         />
       )}
-      <Shelf title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
+      <Shelf playlist={playlist} title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
+      {!topsReady && !shelves.length && (
+        <>
+          <SkeletonRow />
+          <SkeletonRow />
+        </>
+      )}
       {shelves.map((sh) => (
         <Carousel
           key={sh.id}
           title={sh.title}
+          subtitle={sh.src}
           items={sh.items}
           keyOf={(r) => r.item.id}
-          minWidth={mobile ? 110 : 160}
+          minWidth={mobile ? 150 : 210}
           render={(r, _i, w) => (
-            <button className="tile grow" data-nav="" style={{ width: w }} onClick={() => onGoVod(r.item)} aria-label={`${r.rank}º ${r.item.name}`}>
-              <PosterCard item={r.item} w={w} rank={r.rank} />
+            <button className="tile grow" data-nav="" style={{ width: w }} onFocus={() => setPreview(r.item)} onClick={() => onGoVod(r.item)} aria-label={`${r.rank}º ${r.item.name}`}>
+              <RankedCard rank={r.rank} w={w}>{(pw) => <PosterCard item={r.item} w={pw} />}</RankedCard>
             </button>
           )}
         />
@@ -170,9 +179,10 @@ export function Home({
           )}
         />
       )}
-      <Shelf title="Vistos por último" badgeFor={(_c, i) => (i === 0 ? 'Último' : undefined)} items={recents} empty="Os canais que você assistir aparecem aqui." onWatch={(c) => onWatch(c, recents)} />
+      <Shelf playlist={playlist} title="Vistos por último" badgeFor={(_c, i) => (i === 0 ? 'Último' : undefined)} items={recents} empty="Os canais que você assistir aparecem aqui." onWatch={(c) => onWatch(c, recents)} />
       {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => setDetail(null)} />}
     </div>
+    </>
   );
 }
 
@@ -188,6 +198,12 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
   const next = epg?.[1];
   const c = last ? colorFor(last.name) : T.primary;
   const isVod = last && last.kind !== 'live';
+  // Filme/série: arte larga do TMDB atrás do destaque e logo oficial no lugar do nome.
+  const vodItem = isVod && last ? (last.seriesId ? { ...last, name: last.group, kind: 'series' as const, fullName: undefined } : last) : null;
+  const tm = useTmdb(vodItem);
+  const [bdOk, setBdOk] = useState(false);
+  useEffect(() => setBdOk(false), [tm?.backdrop]);
+  const bd = tm?.backdrop;
   // TV/computador: duas colunas — à esquerda o canal e os botões, à direita a
   // programação (Agora · A seguir · Depois) ou, sem guia, o resumo da lista.
   const wide = !mobile;
@@ -238,7 +254,9 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
   const info = (
     <div className="gy-12" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, maxWidth: wide ? undefined : 680 }}>
       <span className="badge-live" style={{ alignSelf: 'flex-start', fontSize: mobile ? 12 : 13 }}>{last ? 'Continuar assistindo' : 'Bem-vindo'}</span>
+      {vodItem && <TitleLogo info={tm} name={vodItem.name} height={mobile ? 64 : 110} maxW={mobile ? 300 : 560} className="hero-logo" />}
       <span className="title caps" style={{ fontSize: mobile ? 30 : 46, fontWeight: 800, lineHeight: 1.02 }}>{last ? last.name : 'PRISMA'}</span>
+      {vodItem && tm?.overview && !mobile && <span className="muted hero-desc">{tm.overview}</span>}
       {last ? (
         <span className="muted caps" style={{ fontSize: mobile ? 14 : 16, fontWeight: 600 }}>
           {last.number != null ? `Canal ${last.number} · ` : ''}{last.group}
@@ -261,7 +279,7 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
             {fmtTime(cur.start)} – {fmtTime(cur.end)}{next ? ` · A seguir: ${next.title}` : ''}
           </span>
         </div>
-      ) : (
+      ) : vodItem ? null : (
         <span className="muted" style={{ fontSize: mobile ? 14 : 16 }}>
           {playlist.source.name} · {live.length.toLocaleString('pt-BR')} canais · {movies.toLocaleString('pt-BR')} filmes · {series.toLocaleString('pt-BR')} séries
         </span>
@@ -275,11 +293,13 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
     </div>
   );
   return (
-    <div style={{ position: 'relative', padding: `${mobile ? 4 : 10}px ${L.px}px 0px` }}>
-      <div aria-hidden="true" className="hero-glow" style={{ background: `radial-gradient(ellipse at 70% 40%, ${rgba(c, 0.28)} 0%, rgba(0,0,0,0) 60%)` }} />
+    <div style={{ position: 'relative', padding: `${mobile ? 4 : 10}px ${L.px}px 0px`, minHeight: bd && !mobile ? Math.round(L.H * 0.5) : undefined, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      {bd && <img className={'hero-bd fade-img' + (bdOk ? ' in' : '')} src={bd} alt="" referrerPolicy="no-referrer" onLoad={() => setBdOk(true)} style={{ top: -L.top }} />}
+      {bd && <div className="hero-bd-fade" style={{ top: -L.top, background: `linear-gradient(to bottom, rgba(0,0,0,0) 45%, ${T.bg} 100%)` }} />}
+      <div aria-hidden="true" className="hero-glow" style={{ background: `radial-gradient(ellipse at 70% 40%, ${rgba(c, bd ? 0 : 0.28)} 0%, rgba(0,0,0,0) 60%)` }} />
       <div style={{ position: 'relative', display: 'flex', flexDirection: mobile ? 'column-reverse' : 'row', alignItems: mobile ? 'stretch' : 'center' }}>
         <div style={{ flexGrow: 1, flexBasis: 0, minWidth: 0, marginTop: mobile ? 8 : 0, paddingRight: wide ? 48 : 0 }}>{info}</div>
-        {side && <div style={{ flexBasis: '44%', maxWidth: 720, flexShrink: 0 }}>{side}</div>}
+        {side && !bd && <div style={{ flexBasis: '44%', maxWidth: 720, flexShrink: 0 }}>{side}</div>}
       </div>
     </div>
   );
@@ -290,18 +310,26 @@ function TopChannelTile({ playlist, pick, rank, width, onClick }: { playlist: Pl
   const epg = useEpg(playlist, pick.ch, 300 + rank * 120);
   const now = Date.now();
   const cur = epg?.find((e) => e.start <= now && e.end > now);
-  return <ChannelTile ch={pick.ch} width={width} onClick={onClick} rank={rank} badge={pick.why} sub={cur ? `Agora: ${cur.title}` : pick.cat} />;
+  return <ChannelTile ch={pick.ch} width={width} onClick={onClick} rank={rank} badge={pick.why} sub={cur ? `Agora: ${cur.title}` : pick.cat} image={cur?.image} progress={cur ? progressOf(cur, now) : undefined} />;
+}
+
+/** Card de canal com o programa de agora (imagem, título e progresso) — Favoritos e Vistos por último. */
+function LiveTile({ playlist, ch, width, onClick, badge, i }: { playlist: Playlist; ch: Channel; width: number; onClick: () => void; badge?: string; i: number }) {
+  const epg = useEpg(playlist, ch, 400 + i * 120);
+  const now = Date.now();
+  const cur = epg?.find((e) => e.start <= now && e.end > now);
+  return <ChannelTile ch={ch} width={width} onClick={onClick} badge={badge} sub={cur ? `Agora: ${cur.title}` : undefined} image={cur?.image} progress={cur ? progressOf(cur, now) : undefined} />;
 }
 
 /** Fileira do Início: sempre carrossel, no máximo 10 canais, só cards inteiros. */
-function Shelf({ title, items, empty, onWatch, badgeFor }: { title: string; items: Channel[]; empty: string; onWatch: (c: Channel) => void; badgeFor?: (c: Channel, i: number) => string | undefined }) {
+function Shelf({ playlist, title, items, empty, onWatch, badgeFor }: { playlist: Playlist; title: string; items: Channel[]; empty: string; onWatch: (c: Channel) => void; badgeFor?: (c: Channel, i: number) => string | undefined }) {
   return (
     <Carousel
       title={title}
       items={items}
       keyOf={(c) => c.id}
       empty={empty}
-      render={(c, i, w) => <ChannelTile ch={c} width={w} onClick={() => onWatch(c)} badge={badgeFor?.(c, i)} />}
+      render={(c, i, w) => <LiveTile playlist={playlist} ch={c} width={w} i={i} onClick={() => onWatch(c)} badge={badgeFor?.(c, i)} />}
     />
   );
 }

@@ -65,6 +65,8 @@ export interface EpgEntry {
   end: number;   // ms
   /** O servidor tem a gravação deste programa (Xtream has_archive). */
   archive?: boolean;
+  /** Imagem do programa (XMLTV <icon src>), quando o guia traz. */
+  image?: string;
 }
 
 export class SourceError extends Error {

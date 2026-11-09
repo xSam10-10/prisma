@@ -15,6 +15,8 @@ export interface TmdbInfo {
   year?: number;
   rating?: number;
   trailer?: string; // id do YouTube
+  /** Título original (para cruzar com a lista). */
+  original?: string;
 }
 
 const API = () => prefGet<string>('tmdbBase', 'https://api.themoviedb.org/3');
@@ -173,4 +175,62 @@ export async function weeklyTop(items: Channel[], kind: 'movie' | 'series'): Pro
     /* sem rede/chave inválida */
   }
   return out;
+}
+
+// ---------------------------------------------------------------- Extras do detalhe (0.20.0)
+// Logo oficial do título, elenco com foto e "Semelhantes". Cache em memória.
+
+const extras = new Map<string, unknown>();
+async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  if (extras.has(key)) return extras.get(key) as T;
+  const v = await fn();
+  extras.set(key, v);
+  return v;
+}
+
+/** Logo do título (PNG/SVG transparente): português › inglês › sem idioma. */
+export function logoOf(info: TmdbInfo): Promise<string | undefined> {
+  return cached(`logo|${info.type}|${info.id}`, async () => {
+    try {
+      type L = { logos?: { file_path: string; iso_639_1: string | null; vote_average?: number }[] };
+      const r = await call<L>(`/${info.type}/${info.id}/images`, { include_image_language: 'pt,en,null' });
+      const all = r.logos ?? [];
+      const pick = all.find((l) => l.iso_639_1 === 'pt') ?? all.find((l) => l.iso_639_1 === 'en') ?? all.find((l) => !l.iso_639_1) ?? all[0];
+      if (!pick) return undefined;
+      return `${IMG()}/${/\.svg$/i.test(pick.file_path) ? 'original' : 'w500'}${pick.file_path}`;
+    } catch {
+      return undefined;
+    }
+  });
+}
+
+export interface CastMember {
+  name: string;
+  role?: string;
+  photo?: string;
+}
+
+/** Elenco principal (até 12) com foto. */
+export function castOf(info: TmdbInfo): Promise<CastMember[]> {
+  return cached(`cast|${info.type}|${info.id}`, async () => {
+    try {
+      type C = { cast?: { name: string; character?: string; profile_path?: string }[] };
+      const r = await call<C>(`/${info.type}/${info.id}/${info.type === 'tv' ? 'aggregate_credits' : 'credits'}`);
+      return (r.cast ?? []).slice(0, 12).map((c) => ({ name: c.name, role: c.character || undefined, photo: c.profile_path ? `${IMG()}/w185${c.profile_path}` : undefined }));
+    } catch {
+      return [];
+    }
+  });
+}
+
+/** Recomendações do TMDB para o título (a tela cruza com a lista). */
+export function similarOf(info: TmdbInfo): Promise<TmdbInfo[]> {
+  return cached(`sim|${info.type}|${info.id}`, async () => {
+    try {
+      const r = await call<{ results: Raw[] }>(`/${info.type}/${info.id}/recommendations`);
+      return (r.results ?? []).map((x) => ({ ...toInfo(x, info.type), original: x.original_title || x.original_name }));
+    } catch {
+      return [];
+    }
+  });
 }

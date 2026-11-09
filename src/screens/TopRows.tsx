@@ -6,6 +6,7 @@ import { Carousel } from '../ui/Carousel';
 import { LayoutContext, useLayout } from '../ui/layout';
 import { rgba } from '../ui/bits';
 import { PosterCard } from './Vod';
+import { RankedCard, setPreview } from '../ui/premium';
 
 // Filmes/Séries › Top e streaming escolhido: as listas uma embaixo da outra,
 // cada uma num carrossel (como no Início). A coluna da esquerda leva até a
@@ -25,7 +26,8 @@ const PAD = 14; // folga lateral para a capa em foco crescer sem ser cortada
 export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
   rows: Row[];
   width: number;
-  banner?: React.ReactNode;
+  /** Banner fixo no alto; encolhe (compact) quando o foco desce pelas listas. */
+  banner?: (compact: boolean) => React.ReactNode;
   /** Última seção, com a altura da tela (ex.: grade com todo o conteúdo do streaming). */
   tail?: React.ReactNode;
   onSeen?: (id: string) => void;
@@ -33,23 +35,31 @@ export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
 }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
+  const outer = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const secs = useRef<Record<string, HTMLDivElement | null>>({});
   const tailRef = useRef<HTMLDivElement>(null);
-  const [viewH, setViewH] = useState(600);
+  const [outerH, setOuterH] = useState(700);
+  const [compact, setCompact] = useState(false);
+  const fullH = banner ? (mobile ? 132 : 196) : 0;
+  const smallH = banner ? (mobile ? 54 : 74) : 0;
+  const bannerH = compact ? smallH : fullH;
   // Foco saiu da página para cima (busca, fileira de streamings): volta ao início, banner inteiro.
   useEffect(() => {
     const onIn = (e: FocusEvent) => {
       const b = box.current;
       const t = e.target as HTMLElement | null;
-      if (!b || !t || b.contains(t) || !b.scrollTop) return;
-      if (t.getBoundingClientRect().bottom <= b.getBoundingClientRect().top + 2) b.scrollTop = 0;
+      if (!b || !t || b.contains(t)) return;
+      if (t.getBoundingClientRect().bottom <= b.getBoundingClientRect().top + 2) {
+        b.scrollTop = 0;
+        setCompact(false);
+      }
     };
     document.addEventListener('focusin', onIn);
     return () => document.removeEventListener('focusin', onIn);
   }, []);
   useEffect(() => {
-    const m = () => box.current && setViewH(box.current.clientHeight || 600);
+    const m = () => outer.current && setOuterH(outer.current.clientHeight || 700);
     m();
     window.addEventListener('resize', m);
     return () => window.removeEventListener('resize', m);
@@ -58,55 +68,66 @@ export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
     const b = box.current;
     const el = secs.current[id];
     if (!b || !el) return;
-    // A primeira lista mantém o banner à vista; as outras sobem até o alto.
-    b.scrollTop = rows[0]?.id === id ? 0 : Math.max(0, el.offsetTop - 4);
+    const first = rows[0]?.id === id;
+    // Desceu para as listas: banner encolhe. Ele só volta ao tamanho cheio quando o foco sobe
+    // para a busca (voltar à 1ª lista vindo de baixo não o expande, para nada sair da tela).
+    if (!first) setCompact(true);
+    b.scrollTop = first ? 0 : Math.max(0, el.offsetTop - 4);
   };
   // Carrossel calcula o tamanho pela "tela": aqui a tela é a coluna da direita.
   const inner = { ...L, W: width + PAD * 2, px: PAD };
+  const gapB = banner ? 8 : 0;
   return (
-    <div ref={box} className="scroll-y stacked" style={{ position: 'absolute', top: 0, bottom: 0, left: -PAD, width: width + PAD * 2, paddingTop: 4 }}>
-      {banner && <div style={{ padding: `0 ${PAD}px` }}>{banner}</div>}
-      <LayoutContext.Provider value={inner}>
-        {rows.map((r) => (
-          <div
-            key={r.id}
-            ref={(el) => {
-              secs.current[r.id] = el;
-            }}
-            onFocus={() => {
-              scrollTo(r.id);
-              onSeen?.(r.id);
-            }}
-          >
-            <Carousel
-              title={r.title}
-              subtitle={r.src}
-              items={r.items}
-              keyOf={(x) => x.item.id}
-              minWidth={mobile ? 104 : 118}
-              render={(x, _i, w) => (
-                <button className="tile grow" data-nav="" style={{ width: w }} onClick={() => onPick(x.item)} aria-label={(r.ranked ? `${x.rank}º ` : '') + x.item.name}>
-                  <PosterCard item={x.item} w={w} rank={r.ranked ? x.rank : undefined} />
-                </button>
-              )}
-            />
-          </div>
-        ))}
-        {tail ? (
-          // A grade ocupa a tela inteira: ao entrar nela, a página encaixa no alto e a grade rola por dentro.
-          <div
-            ref={tailRef}
-            style={{ height: viewH - 8, padding: `0 ${PAD}px` }}
-            onFocus={() => {
-              if (box.current && tailRef.current) box.current.scrollTop = tailRef.current.offsetTop - 4;
-            }}
-          >
-            {tail}
-          </div>
-        ) : (
-          <div style={{ height: mobile ? 40 : 220 }} />
-        )}
-      </LayoutContext.Provider>
+    <div ref={outer} className="screen-in" style={{ position: 'absolute', top: 0, bottom: 0, left: -PAD, width: width + PAD * 2 }}>
+      {banner && (
+        <div className="sb-holder" style={{ position: 'absolute', left: PAD, right: PAD, top: 4, height: bannerH }}>
+          {banner(compact)}
+        </div>
+      )}
+      <div ref={box} className="scroll-y stacked" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: banner ? bannerH + 4 + gapB : 0, paddingTop: 4 }}>
+        <LayoutContext.Provider value={inner}>
+          {rows.map((r) => (
+            <div
+              key={r.id}
+              ref={(el) => {
+                secs.current[r.id] = el;
+              }}
+              onFocus={() => {
+                scrollTo(r.id);
+                onSeen?.(r.id);
+              }}
+            >
+              <Carousel
+                title={r.title}
+                subtitle={r.src}
+                items={r.items}
+                keyOf={(x) => x.item.id}
+                minWidth={r.ranked ? (mobile ? 140 : 168) : mobile ? 104 : 118}
+                render={(x, _i, w) => (
+                  <button className="tile grow" data-nav="" style={{ width: w }} onFocus={() => setPreview(x.item)} onClick={() => onPick(x.item)} aria-label={(r.ranked ? `${x.rank}º ` : '') + x.item.name}>
+                    {r.ranked ? <RankedCard rank={x.rank} w={w}>{(pw) => <PosterCard item={x.item} w={pw} />}</RankedCard> : <PosterCard item={x.item} w={w} />}
+                  </button>
+                )}
+              />
+            </div>
+          ))}
+          {tail ? (
+            // A grade ocupa a tela inteira: ao entrar nela, a página encaixa no alto e a grade rola por dentro.
+            <div
+              ref={tailRef}
+              style={{ height: outerH - smallH - 4 - gapB - 12, padding: `0 ${PAD}px` }}
+              onFocus={() => {
+                setCompact(true);
+                if (box.current && tailRef.current) box.current.scrollTop = tailRef.current.offsetTop - 4;
+              }}
+            >
+              {tail}
+            </div>
+          ) : (
+            <div style={{ height: mobile ? 40 : 220 }} />
+          )}
+        </LayoutContext.Provider>
+      </div>
     </div>
   );
 }
@@ -158,18 +179,17 @@ function motifLayer(s: Streaming, m: Motif): React.ReactNode {
 }
 
 /** Faixa do streaming escolhido: cores da marca, desenho próprio, logotipo em marca-d'água e brilho passando. */
-export function StreamBanner({ s, count, kindLabel, top, genres }: { s: Streaming; count: number; kindLabel: string; top: boolean; genres: number }) {
+export function StreamBanner({ s, count, kindLabel, top, genres, compact }: { s: Streaming; count: number; kindLabel: string; top: boolean; genres: number; compact?: boolean }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const motif = MOTIF[s.id] ?? 'glow';
-  const h = mobile ? 132 : 196;
-  const logoH = mobile ? 38 : 62;
+  const logoH = compact ? (mobile ? 24 : 34) : mobile ? 38 : 62;
   const logoW = s.logo ? Math.min(mobile ? 200 : 360, Math.round((logoH * s.logo.w) / s.logo.h)) : 0;
   return (
     <div
-      className="sbanner"
+      className={'sbanner' + (compact ? ' compact' : '')}
       style={{
-        height: h,
+        height: '100%',
         background: `radial-gradient(ellipse 55% 120% at 100% 0%, ${rgba(s.accent, 0.45)} 0%, rgba(0,0,0,0) 70%), linear-gradient(110deg, ${s.bg} 0%, ${s.bg} 38%, ${rgba(s.accent2, 0.9)} 100%)`,
       }}
     >
@@ -184,8 +204,8 @@ export function StreamBanner({ s, count, kindLabel, top, genres }: { s: Streamin
         ) : (
           <span className="title" style={{ fontSize: mobile ? 30 : 46, fontWeight: 800 }}>{s.name}</span>
         )}
-        <span className="sb-tag" style={{ fontSize: mobile ? 14 : 19 }}>{TAGLINE[s.id] ?? `O melhor do ${s.name}, com o que está na sua lista`}</span>
-        {!mobile && (
+        {!compact && <span className="sb-tag" style={{ fontSize: mobile ? 14 : 19 }}>{TAGLINE[s.id] ?? `O melhor do ${s.name}, com o que está na sua lista`}</span>}
+        {!mobile && !compact && (
           <div className="sb-chips">
             {count > 0 && <span>▶ {count.toLocaleString('pt-BR')} {kindLabel} na sua lista</span>}
             {top && <span>🔥 Top 10</span>}

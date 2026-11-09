@@ -15,7 +15,7 @@ export const CAROUSEL_MAX = 10;
  * fileira INTEIRA aparecer — título e card já crescido pelo foco —, para nada
  * ficar cortado em cima ou embaixo, descendo ou subindo.
  */
-function revealSection(item: HTMLElement) {
+export function revealSection(item: HTMLElement) {
   let sec: HTMLElement | null = item;
   while (sec && !(sec.classList && sec.classList.contains('carousel'))) sec = sec.parentElement;
   let p = sec ? sec.parentElement : null;
