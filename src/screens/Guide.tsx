@@ -153,6 +153,7 @@ export function Guide({ playlist, channels, startIndex, onWatch, onPlayVod, onCl
 
       {/* Detalhes do programa selecionado */}
       <div className="guide-info" style={{ left: L.px, right: L.px, top: top + 64, height: infoH }}>
+        {sel?.image && !mobile && <img className="guide-info-img" src={sel.image} alt="" referrerPolicy="no-referrer" />}
         {selCh && (
           <>
             <ChannelLogo ch={selCh} size={mobile ? 48 : 72} />
@@ -196,7 +197,11 @@ export function Guide({ playlist, channels, startIndex, onWatch, onPlayVod, onCl
             <span key={t} style={{ left: x(t) }}>{fmtTime(t)}</span>
           ))}
         </div>
-        {now > t0 && now < t0 + SPAN && <div className="guide-now" style={{ left: chW + x(now), top: 30, height: gridH }} />}
+        {now > t0 && now < t0 + SPAN && (
+          <div className="guide-now" style={{ left: chW + x(now), top: 30, height: gridH }}>
+            <span className="guide-now-tag">{fmtTime(now)}</span>
+          </div>
+        )}
         {!ready && <div className="muted" style={{ position: 'absolute', left: chW + 20, top: 60, fontSize: 16 }}>Baixando o guia completo da lista…</div>}
         {ready && !hasXmltv() && (
           <div className="muted" style={{ position: 'absolute', left: chW + 20, top: 60, right: 20, fontSize: 16 }}>
@@ -231,8 +236,10 @@ export function Guide({ playlist, channels, startIndex, onWatch, onPlayVod, onCl
                       if (isSel) act(c, e);
                     }}
                   >
+                    {st === ' live' && e.image && right - left > 140 && <img className="guide-img" src={e.image} alt="" loading="lazy" referrerPolicy="no-referrer" />}
                     <span>{e.title}</span>
                     <small>{fmtTime(e.start)}</small>
+                    {st === ' live' && <i className="guide-prog-bar" style={{ width: `${Math.max(0, Math.min(1, (now - e.start) / (e.end - e.start))) * 100}%` }} />}
                   </div>
                 );
               })}

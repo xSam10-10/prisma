@@ -22,6 +22,11 @@ export interface TmdbInfo {
 const API = () => prefGet<string>('tmdbBase', 'https://api.themoviedb.org/3');
 const IMG = () => prefGet<string>('tmdbImg', 'https://image.tmdb.org/t/p');
 
+/** URL de imagem do TMDB a partir do caminho (não precisa de chave). */
+export function tmdbImage(path: string, size = 'w780'): string {
+  return `${IMG()}/${size}${path}`;
+}
+
 export function tmdbKey(): string {
   return (prefGet<string>('tmdbKey', '') || prefGet<{ tmdbKey?: string }>('settings', {}).tmdbKey || '').trim();
 }

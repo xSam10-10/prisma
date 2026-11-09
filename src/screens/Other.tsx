@@ -2,7 +2,7 @@ import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Channel, Playlist } from '../core/types';
 import { hasReminder, toggleReminder } from '../core/games';
-import { todayHighlights } from '../core/highlights';
+import { todayHighlights, tonightPicks } from '../core/highlights';
 import { hasXmltv, loadXmltv } from '../core/xmltv';
 import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol, colorFor, fmtTime, rgba } from '../ui/bits';
 import { progressOf } from '../core/epg';
@@ -11,13 +11,16 @@ import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 import { focusFirst } from '../ui/nav';
 import { useLayout } from '../ui/layout';
 import { Carousel } from '../ui/Carousel';
-import { PosterCard, VodDetail } from './Vod';
+import { CollectionView, PosterCard, VodDetail } from './Vod';
 import { getProgress, myList, vodRecents } from '../core/vod';
-import { homeShelves, topChannels, type TopChannelPick } from '../core/tops';
+import { collectionsIn, homeShelves, topChannels, type Collection, type TopChannelPick } from '../core/tops';
 import { useTopsState } from '../ui/useTops';
 import { TitleLogo } from '../ui/premium';
 import { useTmdb } from '../ui/useTmdb';
-import { FeatureRow, PreviewBackdrop, RankedCard, SkeletonRow, WideCard, setPreview } from '../ui/premium';
+import { FeatureRow, PreviewBackdrop, SkeletonRow, WideCard } from '../ui/premium';
+import { CollectionCard, EmptyState, PosterTile, TrailerLayer, pop, setHomeScrolled, toast } from '../ui/premium2';
+import { similarOf } from '../core/tmdb';
+import { findInList } from '../core/tops';
 import { prefGet } from '../core/storage';
 import { VoiceButton } from '../ui/Voice';
 
@@ -50,6 +53,8 @@ export function Home({
   // Tops (arquivo atualizado no GitHub): filmes e séries juntos, só o que existe na lista
   const { data: tops, ready: topsReady } = useTopsState(playlist);
   const shelves = useMemo(() => homeShelves(tops, playlist.items), [tops, playlist]);
+  const colls = useMemo(() => collectionsIn(tops, playlist.items), [tops, playlist]);
+  const [coll, setColl] = useState<Collection | null>(null);
   const L = useLayout();
   const mobile = L.form === 'mobile';
   useEffect(() => {
@@ -67,13 +72,37 @@ export function Home({
     };
   }, [playlist]); // eslint-disable-line react-hooks/exhaustive-deps
   const highlights = useMemo(() => todayHighlights(live, favs.map((f) => f.id)), [live, favs, guideReady, hlTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tonight = useMemo(() => tonightPicks(live, favs.map((f) => f.id)), [live, favs, guideReady, hlTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  // "Porque você assistiu…": semelhantes (TMDB) do último filme/série visto, só o que existe na lista.
+  const lastSeen = vodRecents()[0];
+  const becauseBase = lastSeen ? (lastSeen.seriesId ? { ...lastSeen, name: lastSeen.group, kind: 'series' as const, fullName: undefined } : lastSeen) : null;
+  const becauseTm = useTmdb(becauseBase);
+  const [because, setBecause] = useState<Channel[]>([]);
+  useEffect(() => {
+    setBecause([]);
+    if (!becauseTm) return;
+    let alive = true;
+    similarOf(becauseTm).then((r) => {
+      if (!alive) return;
+      const out: Channel[] = [];
+      for (const x of r) {
+        const hit = findInList({ t: x.title, o: x.original, y: x.year }, becauseTm.type, playlist.items);
+        if (hit && !out.some((o) => o.id === hit.id) && hit.id !== lastSeen?.id && hit.id !== lastSeen?.seriesId) out.push(hit);
+        if (out.length >= 10) break;
+      }
+      setBecause(out);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [becauseTm?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Top 10 canais agora: popularidade + o que está passando + favoritos e vistos por último
   const topCh = useMemo(() => topChannels(tops, live, favs.map((f) => f.id), recents.map((r) => r.id)), [tops, live, favs, recents, guideReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const topChList = useMemo(() => topCh.map((p) => p.ch), [topCh]);
   return (
     <>
     <PreviewBackdrop strength={0.32} />
-    <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }}>
+    <div ref={root} className="scroll-y" style={{ position: 'absolute', left: 0, right: 0, top: L.top, bottom: mobile ? L.bottom : 0 }} onScroll={(e) => setHomeScrolled(e.currentTarget.scrollTop > 30)}>
       <Hero
         playlist={playlist}
         last={heroItem}
@@ -97,6 +126,16 @@ export function Home({
         />
       )}
       {shelves[0] && shelves[0].items.length >= 3 && <FeatureRow title="Destaque da semana" items={shelves[0].items.slice(0, 3).map((r) => r.item)} onOpen={onGoVod} />}
+      {because.length >= 3 && becauseBase && (
+        <Carousel
+          title={`Porque você assistiu ${becauseBase.name.replace(/\s*\((19|20)\d{2}\)\s*$/, '')}`}
+          subtitle="Semelhantes que estão na sua lista"
+          items={because}
+          keyOf={(v) => v.id}
+          minWidth={mobile ? 110 : 160}
+          render={(v, _i, w) => <PosterTile item={v} w={w} onPick={onGoVod} />}
+        />
+      )}
 
       {highlights.length > 0 && (
         <Carousel
@@ -144,6 +183,51 @@ export function Home({
           render={(p, i, w) => <TopChannelTile playlist={playlist} pick={p} rank={i + 1} width={w} onClick={() => onWatch(p.ch, topChList)} />}
         />
       )}
+      {tonight.length >= 3 && (
+        <Carousel
+          title="Para assistir hoje à noite"
+          subtitle="Do guia de programação · OK liga o lembrete"
+          items={tonight}
+          keyOf={(h) => h.ch.id + h.e.start}
+          minWidth={mobile ? 200 : 300}
+          render={(h, _i, w) => {
+            const key = `g:${h.ch.id}:${h.e.start}`;
+            const live = h.e.start <= Date.now();
+            return (
+              <button
+                className="tile grow night-card"
+                data-nav=""
+                style={{ width: w }}
+                aria-label={`${fmtTime(h.e.start)} ${h.e.title}, ${h.ch.name}`}
+                onClick={(ev) => {
+                  if (live) onWatch(h.ch, [h.ch]);
+                  else {
+                    const on = toggleReminder({ key, title: `${h.e.title} · ${h.ch.name}`, league: '', start: h.e.start, end: h.e.end, channels: [h.ch] });
+                    pop(ev.currentTarget.querySelector('.night-bell'));
+                    toast(on ? `Lembrete ligado: ${h.e.title}` : 'Lembrete desligado', on ? '⏰' : '✕');
+                    force((x) => x + 1);
+                  }
+                }}
+              >
+                <span className="night-art" style={{ height: Math.round((w * 9) / 16) }}>
+                  {h.e.image && <img src={h.e.image} alt="" loading="lazy" referrerPolicy="no-referrer" />}
+                  <span className="night-shade" />
+                  <span className="night-time">{fmtTime(h.e.start)}</span>
+                  <span className="night-kind">{h.kind === 'jogo' ? 'Jogo' : h.kind === 'filme' ? 'Filme' : 'Programa'}</span>
+                  <span className="night-bell">{hasReminder(key) ? '⏰' : ''}</span>
+                  <span className="night-txt">
+                    <b>{h.e.title}</b>
+                    <span className="night-ch">
+                      <ChannelLogo ch={h.ch} size={24} />
+                      <span>{h.ch.name}</span>
+                    </span>
+                  </span>
+                </span>
+              </button>
+            );
+          }}
+        />
+      )}
       <Shelf playlist={playlist} title="Favoritos" items={favs} empty="Favorite canais na tela cheia (botão ★) para eles aparecerem aqui." onWatch={(c) => onWatch(c, favs)} />
       {!topsReady && !shelves.length && (
         <>
@@ -159,13 +243,19 @@ export function Home({
           items={sh.items}
           keyOf={(r) => r.item.id}
           minWidth={mobile ? 150 : 210}
-          render={(r, _i, w) => (
-            <button className="tile grow" data-nav="" style={{ width: w }} onFocus={() => setPreview(r.item)} onClick={() => onGoVod(r.item)} aria-label={`${r.rank}º ${r.item.name}`}>
-              <RankedCard rank={r.rank} w={w}>{(pw) => <PosterCard item={r.item} w={pw} />}</RankedCard>
-            </button>
-          )}
+          render={(r, _i, w) => <PosterTile item={r.item} w={w} rank={r.rank} onPick={onGoVod} />}
         />
       ))}
+      {colls.length > 0 && (
+        <Carousel
+          title="Coleções e sagas"
+          subtitle="Os filmes da sua lista em ordem de lançamento"
+          items={colls}
+          keyOf={(c) => c.id}
+          minWidth={mobile ? 240 : 360}
+          render={(c, _i, w) => <CollectionCard title={c.title} backdrop={c.backdrop} items={c.items} w={w} onClick={() => setColl(c)} />}
+        />
+      )}
       {saved.length > 0 && (
         <Carousel
           title="Minha lista"
@@ -180,6 +270,7 @@ export function Home({
         />
       )}
       <Shelf playlist={playlist} title="Vistos por último" badgeFor={(_c, i) => (i === 0 ? 'Último' : undefined)} items={recents} empty="Os canais que você assistir aparecem aqui." onWatch={(c) => onWatch(c, recents)} />
+      {coll && <CollectionView playlist={playlist} c={coll} onPlay={onPlayVod} onClose={() => setColl(null)} />}
       {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => setDetail(null)} />}
     </div>
     </>
@@ -204,6 +295,8 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
   const [bdOk, setBdOk] = useState(false);
   useEffect(() => setBdOk(false), [tm?.backdrop]);
   const bd = tm?.backdrop;
+  // Trailer silencioso depois de alguns segundos com o foco no destaque.
+  const [heroFocus, setHeroFocus] = useState(false);
   // TV/computador: duas colunas — à esquerda o canal e os botões, à direita a
   // programação (Agora · A seguir · Depois) ou, sem guia, o resumo da lista.
   const wide = !mobile;
@@ -293,8 +386,17 @@ function Hero({ playlist, last, live, movies, series, onPlay, onGoLive }: {
     </div>
   );
   return (
-    <div style={{ position: 'relative', padding: `${mobile ? 4 : 10}px ${L.px}px 0px`, minHeight: bd && !mobile ? Math.round(L.H * 0.5) : undefined, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+    <div
+      style={{ position: 'relative', padding: `${mobile ? 4 : 10}px ${L.px}px 0px`, minHeight: bd && !mobile ? Math.round(L.H * 0.5) : undefined, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+      onFocus={() => setHeroFocus(true)}
+      onBlur={() => setHeroFocus(false)}
+    >
       {bd && <img className={'hero-bd fade-img' + (bdOk ? ' in' : '')} src={bd} alt="" referrerPolicy="no-referrer" onLoad={() => setBdOk(true)} style={{ top: -L.top }} />}
+      {bd && (
+        <div className="hero-trailer" style={{ top: -L.top }}>
+          <TrailerLayer info={tm} active={heroFocus} />
+        </div>
+      )}
       {bd && <div className="hero-bd-fade" style={{ top: -L.top, background: `linear-gradient(to bottom, rgba(0,0,0,0) 45%, ${T.bg} 100%)` }} />}
       <div aria-hidden="true" className="hero-glow" style={{ background: `radial-gradient(ellipse at 70% 40%, ${rgba(c, bd ? 0 : 0.28)} 0%, rgba(0,0,0,0) 60%)` }} />
       <div style={{ position: 'relative', display: 'flex', flexDirection: mobile ? 'column-reverse' : 'row', alignItems: mobile ? 'stretch' : 'center' }}>
@@ -413,10 +515,7 @@ export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; o
           )}
           empty={
             q.trim().length >= 2 ? (
-              <div className="gy-8" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
-                <span className="title" style={{ fontSize: 20 }}>Nada encontrado para “{q.trim()}”</span>
-                <span className="muted" style={{ fontSize: 16 }}>Tente outra palavra, sem “HD” ou “FHD”, ou só parte do nome.</span>
-              </div>
+              <EmptyState kind="search" title={`Nada encontrado para “${q.trim()}”`} text="Tente outra palavra, sem “HD” ou “FHD”, ou só parte do nome." />
             ) : null
           }
         />

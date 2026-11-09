@@ -6,6 +6,7 @@ import { colorFor, rgba } from './bits';
 import { useTmdb } from './useTmdb';
 import { useLayout } from './layout';
 import { revealSection } from './Carousel';
+import { TrailerLayer, useDominantColor } from './premium2';
 
 // Peças do visual "premium" (0.20.0): fundo que acompanha a capa em foco,
 // selos, número do ranking atrás da capa, cards horizontais, destaque da
@@ -55,10 +56,11 @@ export function PreviewBackdrop({ strength = 0.42 }: { strength?: number }) {
     if (!img) return;
     setLayers((l) => (l.top === 'a' ? (l.a === img ? l : { ...l, b: img, top: 'b' }) : l.b === img ? l : { ...l, a: img, top: 'a' }));
   }, [img]);
-  const glow = item ? colorFor(item.name) : '#3DD6C4';
+  // Cor do título: a dominante do pôster (quando a imagem libera) ou a cor calculada pelo nome.
+  const glow = useDominantColor(tm?.poster, item ? colorFor(item.name) : '#3DD6C4');
   return (
     <div className="pv-wrap" aria-hidden="true">
-      <div className="pv-glow" style={{ background: `radial-gradient(ellipse 55% 60% at 80% 18%, ${rgba(glow, item ? 0.28 : 0)} 0%, rgba(0,0,0,0) 70%)` }} />
+      <div className="pv-glow" style={{ background: `radial-gradient(ellipse 55% 60% at 80% 18%, ${rgba(glow, item ? 0.32 : 0)} 0%, rgba(0,0,0,0) 70%), radial-gradient(ellipse 50% 50% at 10% 100%, ${rgba(glow, item ? 0.14 : 0)} 0%, rgba(0,0,0,0) 70%)` }} />
       {(['a', 'b'] as const).map((k) =>
         layers[k] ? (
           <img
@@ -196,13 +198,15 @@ export function FeatureRow({ title, items, onOpen }: { title: string; items: Cha
 
 function FeatureCard({ item, w, h, big, last, gap, onClick }: { item: Channel; w: number; h: number; big: boolean; last: boolean; gap: number; onClick: () => void }) {
   const tm = useTmdb(item);
+  const [focused, setFocused] = useState(false);
   const img = big ? tm?.backdrop : tm?.backdrop || tm?.poster;
   const [ok, setOk] = useState(false);
   const c = colorFor(item.name);
   return (
-    <button className={'tile grow feat-card' + (big ? ' big' : '')} data-nav="" style={{ width: w, height: h, marginRight: last ? 0 : gap }} onFocus={(e) => revealSection(e.currentTarget)} onClick={onClick} aria-label={item.name}>
+    <button className={'tile grow feat-card' + (big ? ' big' : '')} data-nav="" style={{ width: w, height: h, marginRight: last ? 0 : gap }} onFocus={(e) => { revealSection(e.currentTarget); setFocused(true); }} onBlur={() => setFocused(false)} onClick={onClick} aria-label={item.name}>
       <span className="feat-art" style={{ background: `linear-gradient(150deg, ${rgba(c, 0.55)} 0%, #15151F 85%)` }}>
         {img && <img className={'fade-img' + (ok ? ' in' : '')} src={img} alt="" referrerPolicy="no-referrer" onLoad={() => setOk(true)} />}
+        {big && <TrailerLayer info={tm} active={focused} delay={3000} />}
         <span className="feat-shade" />
         <span className="feat-txt">
           {big && <span className="feat-kicker">Destaque da semana</span>}

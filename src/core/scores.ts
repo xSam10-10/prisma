@@ -19,6 +19,11 @@ export interface Score {
   /** Id do jogo na ESPN e o caminho da liga (para estatísticas e escalações). */
   id?: string;
   path?: string;
+  /** Escudos e cores dos times (ESPN). */
+  homeLogo?: string;
+  awayLogo?: string;
+  homeColor?: string;
+  awayColor?: string;
 }
 
 const LEAGUES: [string, string][] = [
@@ -81,6 +86,10 @@ export async function loadScores(force = false): Promise<Score[]> {
             league,
             id: ev.id != null ? String(ev.id) : undefined,
             path,
+            homeLogo: (get(home, 'team.logo') as string) || undefined,
+            awayLogo: (get(away, 'team.logo') as string) || undefined,
+            homeColor: get(home, 'team.color') ? '#' + String(get(home, 'team.color')) : undefined,
+            awayColor: get(away, 'team.color') ? '#' + String(get(away, 'team.color')) : undefined,
           });
         }
       } catch {
@@ -104,7 +113,7 @@ export function teamKey(name: string): string {
     .trim();
 }
 
-function sameTeam(a: string, b: string): boolean {
+export function sameTeam(a: string, b: string): boolean {
   const x = teamKey(a);
   const y = teamKey(b);
   if (!x || !y) return false;

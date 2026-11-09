@@ -11,7 +11,7 @@
 import { fetchText } from './net';
 import { idbGet, idbSet, prefGet } from './storage';
 import { logoKey } from './logos';
-import { norm, searchTitle, tmdbKey, weeklyTop } from './tmdb';
+import { norm, searchTitle, tmdbImage, tmdbKey, weeklyTop } from './tmdb';
 import { programmesOf } from './xmltv';
 import { kindOf } from './highlights';
 import { STREAMINGS } from './vod';
@@ -34,7 +34,9 @@ export interface TopList {
   id: string;
   kind: 'movie' | 'tv';
   /** stgenero = um gênero dentro de um streaming (aparece ao escolher o streaming). */
-  group: 'streaming' | 'geral' | 'genero' | 'especial' | 'stgenero' | 'stall';
+  group: 'streaming' | 'geral' | 'genero' | 'especial' | 'stgenero' | 'stall' | 'colecao';
+  /** Coleção: arte larga (caminho do TMDB). */
+  b?: string;
   sid?: string;
   title: string;
   src: string;
@@ -198,7 +200,7 @@ export function matchedLists(data: TopsData | null, items: Channel[], kind: 'mov
     return g * 100 + (s < 0 ? 50 : s);
   };
   return data.lists
-    .filter((l) => l.kind === kind && l.group !== 'stgenero' && l.group !== 'stall')
+    .filter((l) => l.kind === kind && l.group !== 'stgenero' && l.group !== 'stall' && l.group !== 'colecao')
     .sort((a, b) => order(a) - order(b))
     .map((l) => matchList(l, items))
     .filter((l) => l.items.length >= min);
@@ -231,6 +233,24 @@ export function streamCatalog(data: TopsData | null, items: Channel[], kind: 'mo
     }
   }
   return out;
+}
+
+export interface Collection {
+  id: string;
+  title: string;
+  /** Arte larga (URL completa) */
+  backdrop?: string;
+  items: Channel[];
+}
+
+/** Coleções e sagas (TMDB) com 2+ filmes na lista, em ordem de lançamento; as mais completas primeiro. */
+export function collectionsIn(data: TopsData | null, items: Channel[]): Collection[] {
+  if (!data) return [];
+  return data.lists
+    .filter((l) => l.group === 'colecao')
+    .map((l) => ({ id: l.id, title: l.title, backdrop: l.b ? tmdbImage(l.b, 'w780') : undefined, items: matchList(l, items, 50).items.map((r) => r.item) }))
+    .filter((c) => c.items.length >= 2)
+    .sort((a, b) => b.items.length - a.items.length);
 }
 
 /** Junta filmes e séries de um mesmo top, alternando (1º filme, 1ª série…). */

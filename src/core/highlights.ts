@@ -58,3 +58,31 @@ export function todayHighlights(live: Channel[], favIds: string[], now = Date.no
   }
   return out.sort((a, b) => a.e.start - b.e.start);
 }
+
+/**
+ * "Para assistir hoje à noite": jogos, filmes e grandes programas que começam
+ * entre 19h e meia-noite (depois das 22h30, a noite de amanhã), do guia completo.
+ */
+export function tonightPicks(live: Channel[], favIds: string[], now = Date.now(), max = 12): Highlight[] {
+  const d = new Date(now);
+  const base = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (d.getHours() * 60 + d.getMinutes() > 22 * 60 + 30 ? 1 : 0));
+  const from = new Date(base).setHours(19, 0, 0, 0);
+  const to = new Date(base).setHours(23, 59, 59, 999);
+  const fav = new Set(favIds);
+  const byKey = new Map<string, Highlight & { score: number }>();
+  for (const ch of live) {
+    for (const e of programmesOf(ch)) {
+      if (e.start < from || e.start > to || e.end <= now) continue;
+      const k = kindOf(e.title);
+      if (!k) continue;
+      const key = (k === 'jogo' ? norm(matchOf(e.title)) : norm(e.title)) + '|' + Math.round(e.start / 1800000);
+      const score = (fav.has(ch.id) ? 2 : 0) + (/\b(fhd|4k|uhd)\b/i.test(ch.name) ? 1 : 0) + (e.image ? 1 : 0);
+      const cur = byKey.get(key);
+      if (!cur || score > cur.score) byKey.set(key, { ch, e, kind: k, score });
+    }
+  }
+  return [...byKey.values()]
+    .sort((a, b) => a.e.start - b.e.start || b.score - a.score)
+    .slice(0, max)
+    .map(({ ch, e, kind }) => ({ ch, e, kind }));
+}

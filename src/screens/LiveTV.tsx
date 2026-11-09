@@ -1,4 +1,5 @@
 import { categoryColumnWidth } from '../ui/catColumn';
+import { pop, toast } from '../ui/premium2';
 import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { progressOf } from '../core/epg';
@@ -374,7 +375,12 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
               data-nav=""
               aria-label={isFav(playing) ? 'Remover dos favoritos' : 'Favoritar'}
               style={{ width: 46, padding: 0, justifyContent: 'center', color: isFav(playing) ? T.warn : undefined }}
-              onClick={() => toggleFav(playing)}
+              onClick={(e) => {
+                const was = isFav(playing);
+                toggleFav(playing);
+                pop(e.currentTarget);
+                toast(was ? `${playing.name} saiu dos favoritos` : `${playing.name} nos favoritos`, was ? '✕' : '★');
+              }}
             >
               {Icon.star(isFav(playing))}
             </button>

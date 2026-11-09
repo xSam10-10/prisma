@@ -9,6 +9,7 @@ import { isMyTeam, loadScores, scoreFor } from './core/scores';
 import { installNative, notifyNow, syncNativeReminders } from './core/native';
 import { checkForUpdate, markBootOk, shouldAutoCheck, type CheckResult } from './core/updater';
 import { loadTops } from './core/tops';
+import { Splash, Toasts, useHomeScrolled } from './ui/premium2';
 import type { Section } from './screens/Settings';
 import { pushVodRecent } from './core/vod';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
@@ -119,6 +120,36 @@ export function App() {
     }, 8000);
     return () => clearTimeout(t);
   }, [phase]);
+  // Inclinação da capa seguindo o mouse (computador; na TV e no toque, não).
+  useEffect(() => {
+    if (document.documentElement.classList.contains('lite')) return;
+    let last: HTMLElement | null = null;
+    const art = (t: HTMLElement | null) => (t ? (t.closest('.tile') as HTMLElement | null)?.querySelector<HTMLElement>('.poster-art, .tile-art, .wide-art, .feat-art, .genre-art') ?? null : null);
+    const move = (e: MouseEvent) => {
+      const a = art(e.target as HTMLElement);
+      if (last && last !== a) {
+        last.style.transform = '';
+        last = null;
+      }
+      if (!a) return;
+      const r = a.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      a.classList.add('tilt-art');
+      a.style.transform = `perspective(900px) rotateY(${(x * 10).toFixed(2)}deg) rotateX(${(-y * 10).toFixed(2)}deg)`;
+      last = a;
+    };
+    const out = () => {
+      if (last) last.style.transform = '';
+      last = null;
+    };
+    window.addEventListener('mousemove', move);
+    document.addEventListener('mouseleave', out);
+    return () => {
+      window.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseleave', out);
+    };
+  }, []);
   // Tops e recomendações: baixa em segundo plano e mantém atualizado (a cada 6 h) com o app aberto.
   useEffect(() => {
     if (phase !== 'app') return;
@@ -521,13 +552,18 @@ export function App() {
     </div>
     </LayoutContext.Provider>
     </SectionsContext.Provider>
+      <Toasts />
+      <Splash />
     </SettingsContext.Provider>
   );
 }
 
 function TopBar({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Layout }) {
+  // No Início, no alto da página o menu fica transparente sobre a arte; ao rolar, ganha o vidro e fica mais compacto.
+  const scrolled = useHomeScrolled();
+  const cls = tab === 'inicio' ? (scrolled ? ' scrolled' : ' at-top') : '';
   return (
-    <div className="top" style={{ left: L.px, right: L.px, top: 30 + L.safeY }}>
+    <div className={'top' + cls} style={{ left: L.px, right: L.px, top: 30 + L.safeY }}>
       <Brand />
       <div style={{ flexGrow: 1 }} />
       <nav className="pill glass" aria-label="Menu">

@@ -106,6 +106,8 @@ const EN_PT = {
   'The Heirs': { id: 802, name: 'Os Herdeiros', original_name: 'The Heirs', first_air_date: '2015-03-01', vote_average: 8.0 },
 };
 
+const teamColor = (t) => ({ Flamengo: 'C8102E', Palmeiras: '006437', Corinthians: '111111', 'São Paulo': 'E30613', Grêmio: '0D80BF', 'River Plate': 'E4002B' })[t] || '3D7BFF';
+
 createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   // Atualização dentro do app (teste): arquivos de UPDATE_DIR em /updates/
@@ -194,6 +196,11 @@ createServer((req, res) => {
     }
     return j({ results: Number(u.searchParams.get('page') || 1) > 1 ? out.slice(11) : out.slice(0, 20) });
   }
+  if (u.pathname.startsWith('/escudo/')) {
+    const t = decodeURIComponent(u.pathname.slice(8).replace(/\.svg$/, ''));
+    const c = '#' + teamColor(t);
+    return res.writeHead(200, { 'content-type': 'image/svg+xml', 'access-control-allow-origin': '*' }).end(`<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M50 4 L90 18 L84 64 Q50 96 50 96 Q50 96 16 64 L10 18 Z" fill="${c}" stroke="#fff" stroke-width="5"/><text x="50" y="62" text-anchor="middle" font-size="34" font-family="sans-serif" font-weight="800" fill="#fff">${t.slice(0, 1)}</text></svg>`);
+  }
   if (u.pathname.startsWith('/tmdb/')) {
     const j = (o) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(o));
     const path = u.pathname.slice(6);
@@ -214,6 +221,8 @@ createServer((req, res) => {
     if (path === '3/trending/movie/week') return j({ results: ['Rota 66', 'Inexistente', 'Maré Alta', 'Luz do Norte', 'Plano B'].map((t, i) => ({ id: 100 + i, title: t, poster_path: '/p.svg' })) });
     if (path === '3/trending/tv/week') return j({ results: ['Turno da Noite', 'Os Herdeiros'].map((t, i) => ({ id: 200 + i, name: t, poster_path: '/p.svg' })) });
     if (/^3\/(movie|tv)\/\d+\/videos$/.test(path)) return j({ results: [{ site: 'YouTube', type: 'Trailer', key: 'dQw4w9WgXcQ' }] });
+    if (/^3\/movie\/\d+$/.test(path)) { const id = Number(path.split('/')[2]); return j({ id, belongs_to_collection: id % 3 === 0 ? { id: 77 + (id % 2), name: id % 2 ? 'Rota 66 - Coleção' : 'Coleção Maré Alta', backdrop_path: '/b' + (id % 6) + '.svg' } : null }); }
+    if (/^3\/collection\/\d+$/.test(path)) { const cid = Number(path.split('/')[2]); const base = cid % 2 ? 'Rota 66' : 'Maré Alta'; return j({ id: cid, name: base + ' - Coleção', backdrop_path: '/b' + (cid % 6) + '.svg', parts: [{ id: 1, title: base, release_date: '2019-01-01' }, { id: 2, title: base + ' 2', release_date: '2021-01-01' }, { id: 3, title: base + ' 3', release_date: '2023-01-01' }] }); }
     if (/^3\/(movie|tv)\/\d+\/images$/.test(path)) return j({ logos: [{ file_path: '/logo' + path.split('/')[2] + '.png', iso_639_1: 'pt' }] });
     if (/^3\/(movie|tv)\/\d+\/(credits|aggregate_credits)$/.test(path)) return j({ cast: ['Ana Souza', 'Bruno Lima', 'Carla Mendes', 'Diego Rocha', 'Elisa Prado', 'Fábio Reis', 'Gabi Torres', 'Hugo Alves'].map((name, i) => ({ name, character: 'Personagem ' + (i + 1), profile_path: '/face' + i + '.jpg' })) });
     if (/^3\/(movie|tv)\/\d+\/recommendations$/.test(path)) {
@@ -253,7 +262,7 @@ createServer((req, res) => {
     const now = Date.now();
     const start = new Date(now - (now % 1800000) - 900000).toISOString();
     let n = 0;
-    const ev = (h, a, hs, as, state, short, date = start) => ({ id: 'e' + (++n), date, status: { type: { state, shortDetail: short } }, competitions: [{ competitors: [{ homeAway: 'home', score: hs, team: { displayName: h } }, { homeAway: 'away', score: as, team: { displayName: a } }] }] });
+    const ev = (h, a, hs, as, state, short, date = start) => ({ id: 'e' + (++n), date, status: { type: { state, shortDetail: short } }, competitions: [{ competitors: [{ homeAway: 'home', score: hs, team: { displayName: h, color: teamColor(h), logo: `http://127.0.0.1:${PORT}/escudo/${encodeURIComponent(h)}.svg` } }, { homeAway: 'away', score: as, team: { displayName: a, color: teamColor(a), logo: `http://127.0.0.1:${PORT}/escudo/${encodeURIComponent(a)}.svg` } }] }] });
     if (u.searchParams.get('dates') && u.pathname.includes('bra.1')) {
       const day = (d, h) => new Date(Math.floor(now / 86400000) * 86400000 + d * 86400000 + h * 3600000).toISOString();
       return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }).end(JSON.stringify({ events: [

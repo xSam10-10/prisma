@@ -1,3 +1,4 @@
+import { navSound } from './sound';
 // Navegação por controle remoto (D-pad): foco espacial.
 // Qualquer elemento com o atributo data-nav pode receber foco. As setas
 // procuram o vizinho mais próximo na direção apertada, dentro do escopo
@@ -177,6 +178,7 @@ function resetStageScroll() {
 
 export function focusEl(el: HTMLElement | null | undefined): boolean {
   if (!el) return false;
+  if (el !== document.activeElement && document.documentElement.classList.contains('kbd')) navSound('move');
   try {
     el.focus({ preventScroll: true });
   } catch {
@@ -233,6 +235,7 @@ export function installNavigation(): void {
   window.addEventListener('keydown', (e) => {
     const d = dirOf(e);
     if (d || isEnter(e)) html.classList.add('kbd');
+    if (isEnter(e)) navSound('ok');
     if (e.defaultPrevented) return;
 
     if (isBack(e)) {

@@ -9,7 +9,10 @@ import type { Tracks } from '../core/engine';
 import { Modal } from '../ui/Dialog';
 import { useLayout } from '../ui/layout';
 import { progressOf } from '../core/epg';
-import type { Channel, Playlist } from '../core/types';
+import type { Channel, EpgEntry, Playlist } from '../core/types';
+import { useTmdb } from '../ui/useTmdb';
+import { TitleLogo } from '../ui/premium';
+import { celebrate, pop, toast } from '../ui/premium2';
 import { ChannelLogo, Icon, fmtTime } from '../ui/bits';
 import { KEY, dirOf, focusFirst, isBack, isEnter } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
@@ -222,6 +225,12 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     v.addEventListener('play', onPause);
     const onEnded = () => {
       save();
+      // Fim de temporada (o próximo é de outra temporada, ou não há próximo): confete e parabéns.
+      const seasonOf = (c?: Channel | null) => Number(c?.name.match(/·\s*T(\d+)\s*E\d+/)?.[1] ?? NaN);
+      if (channel?.seriesId) {
+        const cur = seasonOf(channel);
+        if (!isNaN(cur) && (!nextEp || seasonOf(nextEp) !== cur)) celebrate(nextEp ? `Temporada ${cur} concluída!` : 'Série concluída! 🎬');
+      }
       if (nextEp) setNextIn(10);
     };
     v.addEventListener('ended', onEnded);
@@ -543,8 +552,12 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const full = mode === 'full';
 
   // ---------- Barra clássica: funções ----------
-  const classic = S.osdStyle !== 'prisma';
-  const showBar = full && !vod && !!channel && status !== 'error' && classic && (overlayKind === 'controls' || (overlayKind === 'info' && S.osd === 'full'));
+  // Visual da tela cheia: Clássica (barra de receptor), Prisma (escuro) ou Cartão (cartão que sobe ao trocar de canal;
+  // as funções continuam na barra clássica ao apertar OK/Menu).
+  const classic = S.osdStyle === 'classic';
+  const cardStyle = S.osdStyle === 'card';
+  const showBar = full && !vod && !!channel && status !== 'error' && (classic || cardStyle) && (overlayKind === 'controls' || (classic && overlayKind === 'info' && S.osd === 'full'));
+  const showCard = full && !vod && !!channel && status !== 'error' && cardStyle && overlayKind === 'info' && S.osd === 'full';
   const [barH, setBarH] = useState(0);
   useLayoutEffect(() => {
     setBarH(showBar && overlayRef.current ? overlayRef.current.offsetHeight : 0);
@@ -640,7 +653,11 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     });
     if (lastChannel) barActions.push({ id: 'last', label: 'Último canal', icon: BarIcon.last, onClick: goLast });
     barActions.push({ id: 'aspect', label: 'Formato: ' + FIT_LABEL[S.videoFit], icon: BarIcon.aspect, onClick: () => updateSettings({ videoFit: FIT_NEXT[S.videoFit] }) });
-    barActions.push({ id: 'fav', label: isFav(channel) ? 'Favorito' : 'Favoritar', icon: BarIcon.heart(isFav(channel)), onClick: () => toggleFav(channel) });
+    barActions.push({ id: 'fav', label: isFav(channel) ? 'Favorito' : 'Favoritar', icon: BarIcon.heart(isFav(channel)), onClick: () => {
+        const was = isFav(channel);
+        toggleFav(channel);
+        toast(was ? `${channel.name} saiu dos favoritos` : `${channel.name} nos favoritos`, was ? '✕' : '★');
+      } });
     const marked = isLockMarked(channel.id) || lockTick < 0;
     barActions.push({
       id: 'lock',
@@ -725,38 +742,33 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       )}
 
       {full && vod && channel && status !== 'error' && (overlayKind || time.paused) && (
-        <div
-          ref={overlayRef}
-          style={{
-            position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.35) 34%, transparent 58%), linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 22%)',
-          }}
-        >
+        <div ref={overlayRef} className={'vod-osd' + (time.paused ? ' paused' : '')}>
           <div style={{ position: 'absolute', left: padX, right: padX, top: padT, display: 'flex', alignItems: 'center' }}>
-            <span className="caps" style={{ fontSize: mobile ? 14 : 16, color: '#D6D6E0', flexGrow: 1 }}>{channel.group}</span>
+            <span className="caps" style={{ fontSize: mobile ? 14 : 16, color: '#D6D6E0', flexGrow: 1 }}>{channel.seriesId ? 'Série' : 'Filme'} · {channel.group}</span>
             <span style={{ fontSize: 18, fontWeight: 700 }}>{fmtTime(now)}</span>
           </div>
-          {time.paused && <div className="vod-paused" aria-hidden="true">❚❚</div>}
+          {time.paused && <PausedInfo ch={channel} padX={padX} mobile={mobile} />}
           <div className="gy-12" style={{ position: 'absolute', left: padX, right: padX, bottom: padB, display: 'flex', flexDirection: 'column' }}>
-            <span className="title caps" style={{ fontSize: mobile ? 22 : 34, lineHeight: 1.1 }}>{channel.name}</span>
-            <div className="vod-seek">
+            {!time.paused && <span className="title caps" style={{ fontSize: mobile ? 22 : 30, lineHeight: 1.1 }}>{channel.name}</span>}
+            <div className={'vod-seek' + (overlayKind === 'controls' || time.paused ? ' big' : '')}>
               <span>{fmtDuration(time.cur)}</span>
-              <div className="vod-bar"><div style={{ width: time.dur ? `${(time.cur / time.dur) * 100}%` : '0%' }} /></div>
+              <div className="vod-bar"><div style={{ width: time.dur ? `${(time.cur / time.dur) * 100}%` : '0%' }} /><i style={{ left: time.dur ? `${(time.cur / time.dur) * 100}%` : '0%' }} /></div>
               <span>{time.dur ? '-' + fmtDuration(time.dur - time.cur) : '--:--'}</span>
             </div>
             {overlayKind === 'controls' || time.paused ? (
-              <div className="gx-10" style={{ display: 'flex', alignItems: 'center', justifyContent: mobile ? 'center' : 'flex-start' }}>
-                <button className="btn" data-nav="" aria-label="Voltar 10 segundos" onClick={() => seek(-10)}>⟲ 10s</button>
-                <button className="btn primary" data-nav="" data-nav-default="" aria-label={time.paused ? 'Continuar' : 'Pausar'} onClick={togglePause} style={{ minWidth: 120, justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: mobile ? 'center' : 'flex-start', flexWrap: 'wrap' }}>
+                <button className="pbtn" data-nav="" aria-label="Voltar 10 segundos" onClick={() => seek(-10)}>⟲ 10s</button>
+                <button className="pbtn main" data-nav="" data-nav-default="" aria-label={time.paused ? 'Continuar' : 'Pausar'} onClick={togglePause}>
                   {time.paused ? '▶ Continuar' : '❚❚ Pausar'}
                 </button>
-                <button className="btn" data-nav="" aria-label="Avançar 10 segundos" onClick={() => seek(10)}>10s ⟳</button>
+                <button className="pbtn" data-nav="" aria-label="Avançar 10 segundos" onClick={() => seek(10)}>10s ⟳</button>
                 <div style={{ flexGrow: 1 }} />
-                {!mobile && <span className="muted" style={{ fontSize: 14, marginRight: 12 }}>◀ ▶ voltar/avançar · OK pausa · Voltar sai</span>}
-                {hasTracks && <button className="btn" data-nav="" onClick={() => setTrackDlg(true)}>Áudio e legendas</button>}
-                <button className="btn" data-nav="" onClick={() => onMode('preview')}>Sair</button>
+                {hasTracks && <button className="pbtn" data-nav="" onClick={() => setTrackDlg(true)}>Áudio e legendas</button>}
+                {nextEp && <button className="pbtn" data-nav="" onClick={() => onNext?.()}>Próximo episódio ›</button>}
+                <button className="pbtn" data-nav="" onClick={() => onMode('preview')}>Sair</button>
               </div>
             ) : null}
+            {(overlayKind === 'controls' || time.paused) && !mobile && <span className="muted" style={{ fontSize: 13 }}>◀ ▶ voltar/avançar · OK pausa · Voltar sai</span>}
           </div>
         </div>
       )}
@@ -768,7 +780,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         </div>
       )}
 
-      {full && !vod && channel && status !== 'error' && !classic && (overlayKind === 'controls' || (overlayKind === 'info' && S.osd === 'full')) && (
+      {showCard && channel && <NowCard ch={channel} epg={epg} now={now} padX={padX} padB={padB} mobile={mobile} />}
+
+      {full && !vod && channel && status !== 'error' && S.osdStyle === 'prisma' && (overlayKind === 'controls' || (overlayKind === 'info' && S.osd === 'full')) && (
         <div
           ref={overlayRef}
           style={{
@@ -821,7 +835,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
                   ↺ {mobile ? null : <span className="caps">{lastChannel.name}</span>}
                 </button>
               )}
-              <button className="btn" data-nav="" onClick={() => toggleFav(channel)} aria-pressed={fav}>
+              <button className="btn" data-nav="" onClick={(e) => { toggleFav(channel); pop(e.currentTarget); toast(fav ? `${channel.name} saiu dos favoritos` : `${channel.name} nos favoritos`, fav ? '✕' : '★'); }} aria-pressed={fav}>
                 {Icon.star(fav)} {mobile ? null : fav ? 'Favorito' : 'Favoritar'}
               </button>
               {hasTracks && (
@@ -1003,8 +1017,17 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
 
       {full && vod && nextEp && nextIn !== null && (
         <div className="next-ep">
-          <span className="muted" style={{ fontSize: 14, fontWeight: 700 }}>PRÓXIMO EPISÓDIO EM {nextIn}s</span>
-          <span className="caps" style={{ fontSize: 18, fontWeight: 800 }}>{nextEp.name}</span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <svg className="next-ring" width="54" height="54" viewBox="0 0 54 54" aria-hidden="true">
+              <circle cx="27" cy="27" r="23" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="4" />
+              <circle cx="27" cy="27" r="23" fill="none" stroke="#F4F4F8" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(2 * Math.PI * 23 * Math.max(0, nextIn)) / 10} 999`} transform="rotate(-90 27 27)" />
+              <text x="27" y="33" textAnchor="middle" fontSize="18" fontWeight="800" fill="#F4F4F8">{Math.max(0, nextIn)}</text>
+            </svg>
+            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 14, minWidth: 0 }}>
+              <span className="muted" style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1 }}>PRÓXIMO EPISÓDIO</span>
+              <span className="caps" style={{ fontSize: 18, fontWeight: 800 }}>{nextEp.name}</span>
+            </div>
+          </div>
           <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
             <button className="btn primary" data-nav="" data-nav-default="" onClick={() => { setNextIn(null); onNext?.(); }}>▶ Assistir agora</button>
             <button className="btn" data-nav="" onClick={() => setNextIn(null)}>Cancelar</button>
@@ -1024,3 +1047,43 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     </div>
   );
 }
+
+/** Pausa (filme/série): logo do título, nome do episódio e sinopse sobre o vídeo escurecido. */
+function PausedInfo({ ch, padX, mobile }: { ch: Channel; padX: number; mobile: boolean }) {
+  const series = ch.seriesId ? { ...ch, name: ch.group, kind: 'series' as const, fullName: undefined } : ch;
+  const tm = useTmdb(series);
+  const ep = ch.seriesId ? ch.name.split(' · ').slice(1).join(' · ') : '';
+  return (
+    <div className="paused-info" style={{ left: padX, maxWidth: mobile ? undefined : '52%', right: mobile ? padX : undefined }}>
+      <span className="paused-tag">Pausado</span>
+      <TitleLogo info={tm} name={series.name} height={mobile ? 56 : 96} maxW={mobile ? 280 : 520} />
+      <span className="title caps paused-title">{series.name}</span>
+      {ep && <span className="paused-ep">{ep}</span>}
+      {tm?.overview && !mobile && <p className="paused-plot">{tm.overview}</p>}
+    </div>
+  );
+}
+
+/** Estilo "Cartão": ao trocar de canal, um cartão sobe com logo, programa, tempo e o próximo. */
+function NowCard({ ch, epg, now, padX, padB, mobile }: { ch: Channel; epg: EpgEntry[] | null; now: number; padX: number; padB: number; mobile: boolean }) {
+  const cur = epg?.find((e) => e.start <= now && e.end > now);
+  const next = epg?.find((e) => e.start >= (cur ? cur.end : now));
+  return (
+    <div className="livecard" style={{ left: padX, right: mobile ? padX : undefined, bottom: padB }}>
+      <div className="livecard-logo"><ChannelLogo ch={ch} size={mobile ? 44 : 64} /></div>
+      <div className="livecard-body">
+        <span className="livecard-ch caps">{ch.number != null ? `${ch.number} · ` : ''}{ch.name}</span>
+        <span className="livecard-title">{cur ? cur.title : 'Ao vivo'}</span>
+        {cur && (
+          <div className="livecard-time">
+            <span>{fmtTime(cur.start)}</span>
+            <div className="livecard-bar"><div style={{ width: `${progressOf(cur, now) * 100}%` }} /></div>
+            <span>{fmtTime(cur.end)}</span>
+          </div>
+        )}
+        {next && <span className="livecard-next">A seguir · {fmtTime(next.start)} {next.title}</span>}
+      </div>
+    </div>
+  );
+}
+

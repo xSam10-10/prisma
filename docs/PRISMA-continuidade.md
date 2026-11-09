@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.20.0)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.21.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -437,6 +437,14 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Perfis: `src/ui/Avatar.tsx` (8 ilustrações SVG; botão "Avatar" em Ajustes › Perfis), `lastWatchedOf` (último título por perfil).
 - Correção: `StreamCarousel` gravava estado a cada desenho (laço infinito de renderização).
 - Servidor falso: TMDB `/images`, `/credits`, `/recommendations`, imagens variadas e `<icon>` no XMLTV.
+
+## 10ad. Versão 0.21.0 — visual premium II (18 sugestões)
+- `src/ui/premium2.tsx`: `TrailerLayer` (YouTube nocookie mudo, sem controles, após 3–3,5 s de foco, some em 60 s; fora na LG e no celular), `PosterTile` (capa de carrossel: prévia de fundo + card largo `Peek` após 1,8 s de foco, abre para o lado que cabe), `dominantColor`/`useDominantColor` (canvas 12×12, imagens com CORS — TMDB), `GenreCard`, `CollectionCard`, `EmptyState`, `toast`/`celebrate`/`Toasts` (classes `.ptoast*`, pois `.toast` já existia), `pop`, `Splash`, `setHomeScrolled`/`useHomeScrolled`. `src/ui/sound.ts`: `navSound` (WebAudio; `settings.navSounds`; chamado em `focusEl` e no OK).
+- Player: `.vod-osd` (pausa com `PausedInfo`: logo/episódio/sinopse; barra fina que engrossa `.vod-seek.big`; botões `.pbtn`), anel SVG do próximo episódio, confete no fim de temporada/série. Ao vivo: `osdStyle: 'card'` → `NowCard` (`.livecard`; `.now-card` já era do Agora na TV); OK/Menu continuam como na Clássica.
+- Coleções: gerador (`build-tops.mjs`) consulta `/movie/{id}` dos filmes das listas (até 300) → `belongs_to_collection` → `/collection/{id}` (até 40) → listas `group: 'colecao'` com `b` (arte). App: `collectionsIn`, `CollectionView` (Vod.tsx), fileiras no Início e no Top de Filmes. `StackedRows` aceita fileiras de cards (`Row.cards`) e marca `data-row-id`.
+- Início: "Porque você assistiu…" (`similarOf` do último visto), "Para assistir hoje à noite" (`tonightPicks`, 19h–meia-noite), menu transparente no alto (`.top.at-top`), trailer no Hero (foco no destaque).
+- Jogos: ESPN `team.logo`/`team.color` → `MatchHero` (escudos, degradê nas cores, minuto pulsando, gols na linha do tempo via `loadMatchStats`). Guia: `.guide-now` com brilho e horário, programa ao vivo com imagem (`EpgEntry.image`) e barra.
+- CSS: respiração do foco (`breathe`, `breatheApple`), inclinação com mouse (App, `.tilt-art`), títulos editoriais no `Carousel`. Regras de imagem de capa restritas a filhos diretos (`.peek > img` etc.) — antes pegavam a logo do título.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

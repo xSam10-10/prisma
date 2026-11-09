@@ -255,6 +255,34 @@ export async function build({ log = console.log } = {}) {
     }
   }
 
+  // 7b) Coleções e sagas: a que coleção pertencem os filmes das listas (até 300 consultas),
+  // depois os filmes de cada coleção em ordem de lançamento.
+  if (KEY) {
+    await safe('Coleções', async () => {
+      const ids = [];
+      for (const l of lists) if (l.kind === 'movie') for (const it of l.items) if (it.i && !ids.includes(it.i)) ids.push(it.i);
+      const cols = new Map();
+      for (const id of ids.slice(0, 300)) {
+        try {
+          const m = await tmdb(`/movie/${id}`);
+          const c = m.belongs_to_collection;
+          if (c && c.id) cols.set(c.id, { name: c.name, b: c.backdrop_path || undefined, n: (cols.get(c.id)?.n ?? 0) + 1 });
+        } catch {
+          /* filme sem detalhe: ignora */
+        }
+      }
+      const best = [...cols.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 40);
+      for (const [cid, c] of best) {
+        await safe(`Coleção ${c.name}`, async () => {
+          const r = await tmdb(`/collection/${cid}`);
+          const parts = (r.parts ?? []).filter((x) => x.release_date).sort((a, b) => String(a.release_date).localeCompare(String(b.release_date)));
+          if (parts.length < 2) return;
+          add({ id: `colecao-${cid}`, kind: 'movie', group: 'colecao', title: (r.name || c.name).replace(/\s*[-–]\s*Cole[cç][aã]o$|\s*Cole[cç][aã]o\s*$/i, '').replace(/^Cole[cç][aã]o\s+/i, '') || c.name, src: 'Coleção (TMDB), em ordem de lançamento', b: r.backdrop_path || c.b, items: parts.map((x) => compact(x)) });
+        });
+      }
+    });
+  }
+
   // 8) Canais (ranking editável)
   const channels = JSON.parse(readFileSync(join(here, 'canais.json'), 'utf8')).canais;
 

@@ -15,7 +15,9 @@ export interface Settings {
   /** Informações por cima do vídeo em tela cheia. */
   osd: 'full' | 'name' | 'none';
   /** Visual da barra do canal em tela cheia: clássica (estilo receptor) ou Prisma. */
-  osdStyle: 'classic' | 'prisma';
+  osdStyle: 'classic' | 'prisma' | 'card';
+  /** Clique suave ao mover o foco (premium). */
+  navSounds?: boolean;
   /** Segundos que as informações ficam na tela. */
   osdSeconds: number;
   /** Formato preferido dos canais ao vivo (quando a lista oferece os dois). */

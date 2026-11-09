@@ -1,6 +1,22 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.21.0 — visual premium II
+- Trailer silencioso no destaque do Início e no Destaque da semana (depois de alguns segundos com o foco)
+- Capas que se expandem: parado ~2 s numa capa, abre um card largo com arte, logo, nota, selos e sinopse
+- Player: pausa com logo, episódio e sinopse; barra de tempo fina que engrossa; botões em vidro; contagem circular do próximo episódio
+- Abertura animada do PRISMA
+- Início: "Porque você assistiu…", "Para assistir hoje à noite" e "Coleções e sagas"
+- Filmes › Top: "Explorar por gênero" em cartões ilustrados e "Coleções e sagas" (tela própria, em ordem de lançamento)
+- Cor do título (dominante do pôster) no fundo e no botão principal do detalhe
+- Capa em foco "respira" na TV e inclina com o mouse no computador; títulos editoriais ("Top 10 Netflix")
+- Menu do Início transparente no topo, com vidro ao rolar
+- Ao vivo: novo visual "Cartão" (Ajustes › Player › Visual da tela cheia)
+- Jogos com escudos, cores dos times, minuto pulsando e gols na linha do tempo
+- Guia: linha "agora" brilhando, programa em andamento com imagem e progresso
+- Favoritos e Minha lista com animação e aviso; confete ao terminar uma temporada
+- Estados vazios ilustrados; sons de navegação opcionais (Ajustes › Aparência)
+
 ## 0.20.0 — visual premium
 - Início: destaque com a arte do filme/série e a logo oficial do título; "Continuar assistindo" em cards horizontais com a cena e o tempo que falta; "Destaque da semana" com um card grande e dois médios
 - Top 10 com o número grande atrás da capa, em todas as fileiras de ranking

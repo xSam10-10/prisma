@@ -10,6 +10,15 @@ import { useLayout } from './layout';
 
 export const CAROUSEL_MAX = 10;
 
+/** Título editorial: "Top 10 Netflix" → **Top 10** Netflix; "Porque você assistiu X" → Porque você assistiu **X**. */
+function editorial(t: string): ReactNode {
+  const top = t.match(/^(Top 10)\s+(.+)$/);
+  if (top) return (<><b>{top[1]}</b> <span className="t-light">{top[2]}</span></>);
+  const because = t.match(/^(Porque você assistiu)\s+(.+)$/);
+  if (because) return (<><span className="t-light">{because[1]}</span> <b>{because[2]}</b></>);
+  return t;
+}
+
 /**
  * Ao focar um card, rola a página (contêiner .scroll-y mais próximo) até a
  * fileira INTEIRA aparecer — título e card já crescido pelo foco —, para nada
@@ -80,7 +89,7 @@ export function Carousel<T>({ title, subtitle, items, keyOf, render, minWidth, e
   return (
     <section className="carousel" style={{ marginTop: mobile ? 20 : 30 }}>
       <div className="carousel-head" style={{ padding: `0 ${L.px}px` }}>
-        <span className="title" style={{ fontSize: mobile ? 19 : 22, flexShrink: 0 }}>{title}</span>
+        <span className="title" style={{ fontSize: mobile ? 19 : 24, flexShrink: 0 }}>{editorial(title)}</span>
         {subtitle && !mobile ? <span className="carousel-sub">{subtitle}</span> : null}
         <div className="spacer" />
         {pages > 1 && (

@@ -5,8 +5,7 @@ import { logoUrl, type Streaming } from '../core/vod';
 import { Carousel } from '../ui/Carousel';
 import { LayoutContext, useLayout } from '../ui/layout';
 import { rgba } from '../ui/bits';
-import { PosterCard } from './Vod';
-import { RankedCard, setPreview } from '../ui/premium';
+import { PosterTile } from '../ui/premium2';
 
 // Filmes/Séries › Top e streaming escolhido: as listas uma embaixo da outra,
 // cada uma num carrossel (como no Início). A coluna da esquerda leva até a
@@ -19,6 +18,9 @@ export interface Row {
   items: Ranked[];
   /** Mostra a posição (1, 2, 3…) na capa. */
   ranked: boolean;
+  /** Fileira de cards especiais (gêneros, coleções) no lugar das capas. */
+  cards?: { key: string; node: (w: number) => React.ReactNode }[];
+  minWidth?: number;
 }
 
 const PAD = 14; // folga lateral para a capa em foco crescer sem ser cortada
@@ -89,6 +91,7 @@ export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
           {rows.map((r) => (
             <div
               key={r.id}
+              data-row-id={r.id}
               ref={(el) => {
                 secs.current[r.id] = el;
               }}
@@ -97,18 +100,18 @@ export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
                 onSeen?.(r.id);
               }}
             >
-              <Carousel
-                title={r.title}
-                subtitle={r.src}
-                items={r.items}
-                keyOf={(x) => x.item.id}
-                minWidth={r.ranked ? (mobile ? 140 : 168) : mobile ? 104 : 118}
-                render={(x, _i, w) => (
-                  <button className="tile grow" data-nav="" style={{ width: w }} onFocus={() => setPreview(x.item)} onClick={() => onPick(x.item)} aria-label={(r.ranked ? `${x.rank}º ` : '') + x.item.name}>
-                    {r.ranked ? <RankedCard rank={x.rank} w={w}>{(pw) => <PosterCard item={x.item} w={pw} />}</RankedCard> : <PosterCard item={x.item} w={w} />}
-                  </button>
-                )}
-              />
+              {r.cards ? (
+                <Carousel title={r.title} subtitle={r.src} items={r.cards} keyOf={(c) => c.key} minWidth={r.minWidth ?? 260} render={(c, _i, w) => c.node(w)} />
+              ) : (
+                <Carousel
+                  title={r.title}
+                  subtitle={r.src}
+                  items={r.items}
+                  keyOf={(x) => x.item.id}
+                  minWidth={r.ranked ? (mobile ? 140 : 168) : mobile ? 104 : 118}
+                  render={(x, _i, w) => <PosterTile item={x.item} w={w} rank={r.ranked ? x.rank : undefined} onPick={onPick} />}
+                />
+              )}
             </div>
           ))}
           {tail ? (

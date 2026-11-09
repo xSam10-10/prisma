@@ -161,9 +161,9 @@ export function Settings({
         />
         <Choice
           label="Visual da tela cheia"
-          help="Vale para a barra do canal e para a lista de canais por cima do vídeo (OK na tela cheia). Clássica: cinza translúcido, no estilo dos receptores (logo, número, Atual/próximo e a fileira de funções). Prisma: escuro, com as cores do tema escolhido."
+          help="Vale para a barra do canal e para a lista de canais por cima do vídeo (OK na tela cheia). Clássica: cinza translúcido, no estilo dos receptores (logo, número, Atual/próximo e a fileira de funções). Prisma: escuro, com as cores do tema escolhido. Cartão: ao trocar de canal sobe um cartão elegante com o programa e o tempo (OK abre a lista e Menu as funções, como na Clássica)."
           value={st.osdStyle}
-          options={[{ v: 'classic', label: 'Clássica' }, { v: 'prisma', label: 'Prisma' }]}
+          options={[{ v: 'classic', label: 'Clássica' }, { v: 'prisma', label: 'Prisma' }, { v: 'card', label: 'Cartão' }]}
           onChange={set('osdStyle')}
         />
         <Choice
@@ -205,6 +205,13 @@ export function Settings({
           value={st.structure === 'C' ? 'C' : 'A'}
           options={[{ v: 'A', label: 'Menu Horizontal' }, { v: 'C', label: 'Menu Vertical' }]}
           onChange={set('structure')}
+        />
+        <Choice
+          label="Sons de navegação"
+          help="Um clique bem suave ao mover o foco com o controle e ao confirmar com OK, como na Apple TV."
+          value={st.navSounds ? 'on' : 'off'}
+          options={[{ v: 'off', label: 'Desligados' }, { v: 'on', label: 'Ligados' }]}
+          onChange={(v) => update({ navSounds: v === 'on' })}
         />
         <Choice
           label="Tema"

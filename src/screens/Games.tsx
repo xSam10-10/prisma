@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ensureReminder, gamesStats, hasReminder, isSportsChannel, loadGames, matchOf, myTeams, setMyTeams, teamsOf, toggleReminder, type Game } from '../core/games';
-import { TABLE_LEAGUES, isMyTeam, loadFixtures, loadMatchStats, loadStandings, teamKey, type MatchStats, type Table } from '../core/scores';
+import { TABLE_LEAGUES, isMyTeam, loadFixtures, loadMatchStats, loadStandings, sameTeam, teamKey, type MatchStats, type Table } from '../core/scores';
 import type { Channel, Playlist } from '../core/types';
 import { loadScores, orderedScore, scoreFor, type Score } from '../core/scores';
-import { ChannelLogo, fmtTime } from '../ui/bits';
+import { ChannelLogo, fmtTime, rgba } from '../ui/bits';
 import { Modal } from '../ui/Dialog';
 import { useLayout } from '../ui/layout';
 import { T } from '../ui/tokens';
+import { EmptyState } from '../ui/premium2';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 
 type Filter = 'agora' | 'hoje' | 'amanha' | 'todos' | 'meus';
@@ -184,10 +185,14 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
             );
           }}
           empty={
-            <div className="gy-8" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
-              <span className="title" style={{ fontSize: 20 }}>{filter === 'agora' ? 'Nenhum jogo ao vivo agora' : 'Nenhum jogo encontrado'}</span>
-              <span className="muted" style={{ fontSize: 15 }}>Veja “Hoje” ou “Todos”. Os jogos vêm do guia dos {sports.length} canais de esporte da sua lista e do placar do dia da ESPN.</span>
-              {games.length === 0 && <GamesDiag />}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <EmptyState
+                kind="games"
+                title={filter === 'agora' ? 'Nenhum jogo ao vivo agora' : 'Nenhum jogo encontrado'}
+                text={`Veja “Hoje” ou “Todos”. Os jogos vêm do guia dos ${sports.length} canais de esporte da sua lista e do placar do dia da ESPN.`}
+                action={filter !== 'todos' && games.length ? { label: 'Ver todos os jogos', onClick: () => setFilter('todos') } : undefined}
+              />
+              {games.length === 0 && <div style={{ padding: '0 20px' }}><GamesDiag /></div>}
             </div>
           }
         />
@@ -220,7 +225,9 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
   return (
     <div className="gy-16" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <span className="muted caps" style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>{g.league}</span>
-      {teams.length === 2 ? (
+      {teams.length === 2 && score && (score.homeLogo || score.awayLogo) ? (
+        <MatchHero g={g} score={score} teams={teams as [string, string]} />
+      ) : teams.length === 2 ? (
         <div className="game-teams">
           <span>{teams[0]}</span>
           {sc ? (
@@ -509,3 +516,69 @@ function GamesDiag() {
     </div>
   );
 }
+
+/** Partida com escudos, fundo nas cores dos dois times, minuto pulsando e linha do tempo com os gols. */
+function MatchHero({ g, score, teams }: { g: Game; score: Score; teams: [string, string] }) {
+  const firstHome = sameTeam(teams[0], score.home) || !sameTeam(teams[0], score.away);
+  const left = firstHome ? { name: teams[0], logo: score.homeLogo, color: score.homeColor, goals: score.homeScore } : { name: teams[0], logo: score.awayLogo, color: score.awayColor, goals: score.awayScore };
+  const right = firstHome ? { name: teams[1], logo: score.awayLogo, color: score.awayColor, goals: score.awayScore } : { name: teams[1], logo: score.homeLogo, color: score.homeColor, goals: score.homeScore };
+  const live = score.state === 'in';
+  const started = score.state !== 'pre';
+  // Gols na linha do tempo (lances da ESPN), atualizados a cada minuto com o jogo rolando.
+  const [events, setEvents] = useState<MatchStats['events']>([]);
+  useEffect(() => {
+    setEvents([]);
+    if (!started) return;
+    let alive = true;
+    const load = () => loadMatchStats(score).then((m) => alive && m && setEvents(m.events.filter((e) => e.kind === 'goal' || e.kind === 'red')));
+    load();
+    const t = live ? setInterval(load, 60000) : undefined;
+    return () => {
+      alive = false;
+      if (t) clearInterval(t);
+    };
+  }, [g.key, score.state]); // eslint-disable-line react-hooks/exhaustive-deps
+  const minute = (m: string) => Math.min(100, (parseInt(m, 10) || 0) / 0.95);
+  const lc = left.color && left.color.length === 7 ? left.color : '#3D7BFF';
+  const rc = right.color && right.color.length === 7 ? right.color : '#FF6B3D';
+  return (
+    <div className="match-hero" style={{ background: `linear-gradient(105deg, ${rgba(lc, 0.55)} 0%, ${rgba(lc, 0.12)} 46%, ${rgba(rc, 0.12)} 54%, ${rgba(rc, 0.55)} 100%)` }}>
+      <div className="mh-row">
+        <div className="mh-team">
+          {left.logo ? <img src={left.logo} alt="" referrerPolicy="no-referrer" /> : <span className="mh-ini" style={{ background: lc }}>{left.name.slice(0, 1)}</span>}
+          <b>{left.name}</b>
+        </div>
+        <div className="mh-score">
+          {started ? (
+            <span className="mh-nums">
+              {left.goals}
+              <i>×</i>
+              {right.goals}
+            </span>
+          ) : (
+            <span className="mh-vs">×</span>
+          )}
+          <span className={'mh-min' + (live ? ' live' : '')}>{live ? `● ${score.detail}` : started ? score.detail : fmtTime(g.start)}</span>
+        </div>
+        <div className="mh-team r">
+          {right.logo ? <img src={right.logo} alt="" referrerPolicy="no-referrer" /> : <span className="mh-ini" style={{ background: rc }}>{right.name.slice(0, 1)}</span>}
+          <b>{right.name}</b>
+        </div>
+      </div>
+      {started && (
+        <div className="mh-line">
+          <span className="mh-ht" />
+          {events.map((e, i) => {
+            const isLeft = sameTeam(e.team, left.name) || (!sameTeam(e.team, right.name) && sameTeam(e.team, firstHome ? score.home : score.away));
+            return (
+              <span key={i} className={'mh-ev ' + e.kind + (isLeft ? ' up' : ' down')} style={{ left: `${minute(e.minute)}%` }} title={`${e.minute} ${e.text}`}>
+                {e.kind === 'goal' ? '⚽' : '■'}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
