@@ -1593,3 +1593,9 @@ html.mobile .gd-score { font-size: 30px; min-width: 90px; }
 .sub-dots span { width: 30px; height: 30px; border-radius: 8px; background: rgba(255, 255, 255, 0.12); margin-right: 8px; }
 .sub-dots span.on { background: #F4F4F8; }
 .sub-screens .chip { -webkit-align-self: flex-start; align-self: flex-start; margin-top: 10px; }
+/* Destaque da semana: o card grande cresce pouco no foco (senão invade os vizinhos) */
+html.kbd [data-nav].grow.feat-card:focus, html.kbd[data-theme] [data-nav].grow.feat-card:focus { -webkit-animation: none !important; animation: none !important; -webkit-transform: scale(1.03) !important; transform: scale(1.03) !important; }
+html.kbd [data-nav].grow.feat-card.big:focus, html.kbd[data-theme] [data-nav].grow.feat-card.big:focus { -webkit-transform: scale(1.015) !important; transform: scale(1.015) !important; }
+.feat-art > img.feat-blur { position: absolute; top: -10%; left: -10%; width: 120%; height: 120%; object-fit: cover; -webkit-filter: blur(28px) brightness(0.55); filter: blur(28px) brightness(0.55); }
+html.lite .feat-art > img.feat-blur { -webkit-filter: none; filter: none; opacity: 0.25 !important; }
+.feat-art > img.feat-poster { position: absolute; top: 6%; right: 6%; left: auto; height: 88%; width: auto; max-width: 40%; object-fit: cover; border-radius: 12px; -webkit-box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6); box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6); }

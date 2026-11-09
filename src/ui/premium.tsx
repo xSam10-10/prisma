@@ -201,13 +201,23 @@ export function FeatureRow({ title, items, onOpen }: { title: string; items: Cha
 function FeatureCard({ item, w, h, big, last, gap, onClick }: { item: Channel; w: number; h: number; big: boolean; last: boolean; gap: number; onClick: () => void }) {
   const tm = useTmdb(item);
   const [focused, setFocused] = useState(false);
-  const img = big ? tm?.backdrop : tm?.backdrop || tm?.poster;
+  // Arte larga do TMDB; sem ela, a capa da própria lista (ou do TMDB) com fundo desfocado.
+  const wide = tm?.backdrop;
+  const poster = tm?.poster || item.logo;
+  const img = wide || (!big ? poster : undefined);
   const [ok, setOk] = useState(false);
+  const [pOk, setPOk] = useState(false);
   const c = colorFor(item.name);
   return (
     <button className={'tile grow feat-card' + (big ? ' big' : '')} data-nav="" style={{ width: w, height: h, marginRight: last ? 0 : gap }} onFocus={(e) => { revealSection(e.currentTarget); setFocused(true); }} onBlur={() => setFocused(false)} onClick={onClick} aria-label={item.name}>
       <span className="feat-art" style={{ background: `linear-gradient(150deg, ${rgba(c, 0.55)} 0%, #15151F 85%)` }}>
         {img && <img className={'fade-img' + (ok ? ' in' : '')} src={img} alt="" referrerPolicy="no-referrer" onLoad={() => setOk(true)} />}
+        {!img && poster && (
+          <>
+            <img className={'feat-blur fade-img' + (pOk ? ' in' : '')} src={poster} alt="" referrerPolicy="no-referrer" />
+            <img className={'feat-poster fade-img' + (pOk ? ' in' : '')} src={poster} alt="" referrerPolicy="no-referrer" onLoad={() => setPOk(true)} />
+          </>
+        )}
         {big && <TrailerLayer info={tm} active={focused} delay={3000} />}
         <span className="feat-shade" />
         <span className="feat-txt">

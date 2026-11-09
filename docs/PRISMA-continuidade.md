@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.24.0)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.24.1)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -471,6 +471,9 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Busca tolerante (`core/fuzzy.ts`, até 1/2 erros por palavra com 5+/7+ letras; só quando a busca exata traz < 8) e `searchTitles` (TMDB /search/multi → `findInList`, fileira "Pelo nome em outro idioma").
 - Geral: `core/sources.ts` (listas usadas, até 8, sem conteúdo de arquivo M3U) + `switchSource` no App; `screens/Subscription.tsx` (cartão com dias, telas em uso via `login()`, aviso no Início ≤ 7 dias, 1×/dia).
 - Testes novos: test/catchup.test.ts, test/nextep.test.ts (55 no total). Servidor falso: categoria "ADULTOS +18", versões LEG/4K de "Rota 66".
+
+## 10ah. Versão 0.24.1
+- `FeatureCard`: foco com `scale(1.015)` no grande e 1.03 nos pequenos, sem "respiração" (antes 1.08–1.1 invadia os vizinhos); sem `backdrop` do TMDB usa `tm.poster || item.logo` (fundo desfocado + capa à direita no grande).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

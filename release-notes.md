@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.24.1
+- Destaque da semana: o card grande não cresce mais por cima dos vizinhos ao receber o foco
+- Destaque da semana sem a arte do TMDB: mostra a capa da própria lista sobre um fundo desfocado (antes ficava vazio)
+
 ## 0.24.0 — proteção, listas e conforto
 - Ajustes › Proteção: senha de 4 números; categorias de adulto (+18) ficam protegidas e somem do app até digitar a senha; proteja ou esconda qualquer categoria de Ao vivo, Filmes e Séries
 - Esconder canal pela barra do canal (volta em Ajustes › Proteção); "🔒 Protegidas" na lista de categorias do Ao vivo
