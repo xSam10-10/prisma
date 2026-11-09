@@ -277,7 +277,7 @@ export async function build({ log = console.log } = {}) {
           const r = await tmdb(`/collection/${cid}`);
           const parts = (r.parts ?? []).filter((x) => x.release_date).sort((a, b) => String(a.release_date).localeCompare(String(b.release_date)));
           if (parts.length < 2) return;
-          add({ id: `colecao-${cid}`, kind: 'movie', group: 'colecao', title: (r.name || c.name).replace(/\s*[-–]\s*Cole[cç][aã]o$|\s*Cole[cç][aã]o\s*$/i, '').replace(/^Cole[cç][aã]o\s+/i, '') || c.name, src: 'Coleção (TMDB), em ordem de lançamento', b: r.backdrop_path || c.b, items: parts.map((x) => compact(x)) });
+          add({ id: `colecao-${cid}`, kind: 'movie', group: 'colecao', title: (r.name || c.name).replace(/\s*[-–]\s*Cole[cç][aã]o$|\s*Cole[cç][aã]o\s*$/i, '').replace(/^Cole[cç][aã]o\s+/i, '').replace(/[\s:–-]+$/, '') || c.name, src: 'Coleção (TMDB), em ordem de lançamento', b: r.backdrop_path || c.b, items: parts.map((x) => compact(x)) });
         });
       }
     });
