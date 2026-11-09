@@ -1,5 +1,6 @@
 import { prefGet, prefSet } from './storage';
 import type { Channel } from './types';
+import { norm, searchTitle } from './tmdb';
 
 // Filmes, séries e anime: streamings, progresso, Minha lista e "continuar".
 
@@ -143,4 +144,91 @@ export function setWatched(ids: string[], on: boolean): void {
   const keys = Object.keys(all);
   if (keys.length > 3000) keys.sort((a, b) => all[a] - all[b]).slice(0, keys.length - 3000).forEach((k) => delete all[k]);
   prefSet('watched', all);
+}
+
+/** Próximo episódio a assistir (o card da série abre nele): o que está pela metade,
+ * senão o seguinte ao último visto, senão o primeiro não visto. */
+export function nextToWatch<E extends { id: string }>(eps: E[]): E | undefined {
+  if (!eps.length) return undefined;
+  let lastSeen = -1;
+  eps.forEach((e, i) => {
+    if (isWatched(e.id)) lastSeen = i;
+  });
+  let half = -1;
+  let halfAt = 0;
+  eps.forEach((e, i) => {
+    const p = getProgress(e.id);
+    if (p && p.at >= halfAt) {
+      half = i;
+      halfAt = p.at;
+    }
+  });
+  if (half >= 0 && half >= lastSeen) return eps[half];
+  if (lastSeen >= 0 && lastSeen + 1 < eps.length) return eps[lastSeen + 1];
+  return eps.find((e) => !isWatched(e.id)) ?? eps[0];
+}
+
+/** Tirar de "Continuar assistindo" (o progresso some; a lista "vistos" não muda). */
+export function removeFromContinue(ids: string[]): void {
+  const all = prefGet<Record<string, Progress>>('progress', {});
+  for (const id of ids) delete all[id];
+  prefSet('progress', all);
+  const set = new Set(ids);
+  prefSet('vodRecents', vodRecents().filter((v) => !set.has(v.id) && !(v.seriesId && set.has(v.seriesId))));
+}
+
+// ---- Versões do mesmo título (Dublado, Legendado, 4K…) ----
+const vKeyCache = new WeakMap<Channel, string>();
+export function versionKey(c: Channel): string {
+  let k = vKeyCache.get(c);
+  if (k === undefined) {
+    const st = searchTitle(c.fullName ?? c.name);
+    k = `${c.kind}|${norm(st.title)}|${c.year ?? st.year ?? ''}`;
+    vKeyCache.set(c, k);
+  }
+  return k;
+}
+export function versionLabel(c: Channel): string {
+  const s = `${c.fullName ?? c.name} ${c.group}`;
+  const parts: string[] = [];
+  if (/\b(4k|uhd|2160p?)\b/i.test(s)) parts.push('4K');
+  if (/\b(leg|legendad[oa]s?|sub)\b/i.test(s)) parts.push('Legendado');
+  else if (/\b(dual)\b/i.test(s)) parts.push('Dual áudio');
+  else if (/\b(dub|dublad[oa]s?)\b/i.test(s)) parts.push('Dublado');
+  if (!parts.length) parts.push(/\b(fhd|1080p?)\b/i.test(s) ? 'Full HD' : /\bsd\b/i.test(s) ? 'SD' : 'HD');
+  return parts.join(' · ');
+}
+const vIndex = new WeakMap<Channel[], Map<string, Channel[]>>();
+/** Todas as versões do título (inclui ele mesmo), na ordem da lista. */
+export function versionsOf(item: Channel, all: Channel[]): Channel[] {
+  if (item.kind === 'live') return [item];
+  let m = vIndex.get(all);
+  if (!m) {
+    m = new Map();
+    for (const c of all) {
+      if (c.kind === 'live') continue;
+      const k = versionKey(c);
+      const l = m.get(k);
+      if (l) l.push(c);
+      else m.set(k, [c]);
+    }
+    vIndex.set(all, m);
+  }
+  return m.get(versionKey(item)) ?? [item];
+}
+/** Numa grade/fileira: uma capa por título (a primeira versão). */
+export function collapseVersions(items: Channel[]): Channel[] {
+  const seen = new Set<string>();
+  const out: Channel[] = [];
+  for (const c of items) {
+    if (c.kind === 'live') {
+      out.push(c);
+      continue;
+    }
+    const k = versionKey(c);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(c);
+  }
+  return out;
 }

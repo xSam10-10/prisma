@@ -1,3 +1,5 @@
+import { prefGet, prefSet } from '../core/storage';
+import { canCatchup, startOverItem } from '../core/catchup';
 import { T } from '../ui/tokens';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Engine } from '../core/engine';
@@ -24,7 +26,7 @@ import { BarIcon, BarMenu, BarTop, ClassicBar, MenuItem, MenuToggle, PinDialog, 
 import { FullList } from './FullList';
 import { Guide } from './Guide';
 import { NowOnTV } from './NowOnTV';
-import { checkPin, hasPin, isLockMarked, isLocked, setLocked, setPin, unlockForSession } from '../core/parental';
+import { setChannelHidden, checkPin, hasPin, isLockMarked, isLocked, setLocked, setPin, unlockForSession } from '../core/parental';
 
 export type PlayerMode = 'off' | 'preview' | 'full';
 export interface Rect {
@@ -81,7 +83,41 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const [reconnecting, setReconnecting] = useState(0);
   // Áudio e legendas
   const [tracks, setTracks] = useState<Tracks | null>(null);
+  useEffect(() => {
+    if (!tracks || !channel || tracksApplied.current === channel.id) return;
+    tracksApplied.current = channel.id;
+    const pref = prefGet<Record<string, { a?: string; t?: string }>>('trackPref', {})[trackKey(channel)];
+    if (!pref || !engine.current) return;
+    let changed = false;
+    const a = pref.a ? tracks.audio.find((t) => t.label === pref.a) : undefined;
+    if (a && a.id !== tracks.audioId) {
+      engine.current.setAudio(a.id);
+      changed = true;
+    }
+    if (pref.t === 'off' && tracks.textId !== -1) {
+      engine.current.setText(-1);
+      changed = true;
+    } else if (pref.t && pref.t !== 'off') {
+      const t = tracks.text.find((x) => x.label === pref.t);
+      if (t && t.id !== tracks.textId) {
+        engine.current.setText(t.id);
+        changed = true;
+      }
+    }
+    if (changed) setTracks(engine.current.tracks());
+  }, [tracks, channel?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [trackDlg, setTrackDlg] = useState(false);
+  // Lembrar áudio e legenda por série (todas as temporadas) ou por canal/filme.
+  const trackKey = (c?: Channel | null) => (c ? c.seriesId ?? c.id : '');
+  const tracksApplied = useRef('');
+  const saveTrackPref = (patch: { a?: string; t?: string }) => {
+    if (!channel) return;
+    const all = prefGet<Record<string, { a?: string; t?: string }>>('trackPref', {});
+    all[trackKey(channel)] = { ...all[trackKey(channel)], ...patch };
+    const keys = Object.keys(all);
+    if (keys.length > 400) delete all[keys[0]];
+    prefSet('trackPref', all);
+  };
   const hasTracks = !!tracks && (tracks.audio.length > 1 || tracks.text.length > 0);
   // Próximo episódio
   const [nextIn, setNextIn] = useState<number | null>(null);
@@ -768,7 +804,16 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       },
     });
     if (hasTracks) barActions.push({ id: 'audio', label: 'Áudio e legendas', icon: BarIcon.audio, onClick: () => setTrackDlg(true) });
+    {
+      const curProg = epg?.find((x) => x.start <= Date.now() && Date.now() < x.end);
+      const so = curProg && playlist && canCatchup(channel) ? startOverItem(playlist, channel, curProg) : null;
+      if (so) barActions.unshift({ id: 'startover', label: 'Do início', icon: BarIcon.last, onClick: () => onPlayVod?.(so) });
+    }
     barActions.push({ id: 'sec', label: 'Seção', icon: BarIcon.folder, onClick: () => setPicker(true) });
+    barActions.push({ id: 'hide', label: 'Esconder', icon: BarIcon.hide, onClick: () => {
+        setChannelHidden(channel, true);
+        toast(`${channel.name} escondido · volta em Ajustes › Proteção`, '👁');
+      } });
     barActions.push({ id: 'list', label: 'Lista de canais', icon: BarIcon.list, onClick: () => openList() });
   }
   const pipBox = full
@@ -1095,14 +1140,14 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         <Modal title="Áudio e legendas" onClose={() => { setTrackDlg(false); showOverlay(true); }} width={560}>
           {tracks.audio.length > 0 && <span className="muted" style={{ fontSize: 15, fontWeight: 700 }}>ÁUDIO</span>}
           {tracks.audio.map((t) => (
-            <button key={'a' + t.id} className={'pick-row' + (t.id === tracks.audioId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setAudio(t.id); setTracks(engine.current?.tracks() ?? null); }}>
+            <button key={'a' + t.id} className={'pick-row' + (t.id === tracks.audioId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setAudio(t.id); setTracks(engine.current?.tracks() ?? null); saveTrackPref({ a: t.label }); }}>
               <span className="pick-check">{t.id === tracks.audioId ? '✓' : ''}</span>
               <span className="sec-name">{t.label}</span>
             </button>
           ))}
           <span className="muted" style={{ fontSize: 15, fontWeight: 700 }}>LEGENDAS</span>
           {[{ id: -1, label: 'Desligadas' }, ...tracks.text].map((t) => (
-            <button key={'t' + t.id} className={'pick-row' + (t.id === tracks.textId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setText(t.id); setTracks(engine.current?.tracks() ?? null); }}>
+            <button key={'t' + t.id} className={'pick-row' + (t.id === tracks.textId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setText(t.id); setTracks(engine.current?.tracks() ?? null); saveTrackPref({ t: t.id === -1 ? 'off' : t.label }); }}>
               <span className="pick-check">{t.id === tracks.textId ? '✓' : ''}</span>
               <span className="sec-name">{t.label}</span>
             </button>

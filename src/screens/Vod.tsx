@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '../core/settings';
 import type { Channel, ItemKind, Playlist } from '../core/types';
-import { ANIME, STREAMINGS, getProgress, inMyList, isWatched, setWatched, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
+import { ANIME, STREAMINGS, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, versionLabel, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
 import { Symbol, colorFor, initials, rgba } from '../ui/bits';
 import { PreviewBackdrop, SkeletonRow, TitleLogo, badgesOf, setPreview } from '../ui/premium';
@@ -19,6 +19,7 @@ import { StackedRows, StreamBanner, type Row } from './TopRows';
 import { useTopsState } from '../ui/useTops';
 import { categoryColumnWidth } from '../ui/catColumn';
 import { Modal } from '../ui/Dialog';
+import { fuzzyMatch } from '../core/fuzzy';
 import { hasEpAlert, newEpisodeOf, onNewEpisodes, toggleEpAlert } from '../core/newEpisodes';
 import { ZoomFrom } from '../ui/premium4';
 
@@ -190,7 +191,10 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const list = useMemo(() => {
     if (!q && topMode) return [];
     let l = q
-      ? all.filter((i) => norm(i.fullName ?? i.name).includes(q))
+      ? (() => {
+          const ex = all.filter((i) => norm(i.fullName ?? i.name).includes(q));
+          return ex.length >= 8 || q.length < 4 ? ex : [...ex, ...all.filter((i) => !ex.includes(i) && fuzzyMatch(i.fullName ?? i.name, q))];
+        })()
       : cat === RECENT
         ? inStream.filter((i) => i.added).sort((a, b) => (b.added ?? 0) - (a.added ?? 0)).slice(0, RECENT_MAX)
         : cat
@@ -199,7 +203,8 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     if (sort === 'az') l = [...l].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     else if (sort === 'rating') l = [...l].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else l = [...l].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
-    return l;
+    // Mesmo título em várias versões (Dublado, Legendado, 4K): uma capa só; a versão escolhe no detalhe.
+    return collapseVersions(l);
   }, [all, inStream, cat, q, sort, topMode]);
   const openTop = () => {
     setStream(TOPS);
@@ -507,7 +512,15 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
   });
   // Próximo episódio a assistir: o último com progresso, ou o 1º.
   const allEps = info && 'episodes' in info ? info.episodes : [];
-  const resumeEp = allEps.find((e) => getProgress(e.id)) ?? allEps[0];
+  const resumeEp = nextToWatch(allEps);
+  // A série abre na temporada do próximo episódio, com ele selecionado.
+  const placed = useRef('');
+  useEffect(() => {
+    if (!resumeEp || placed.current === item.id) return;
+    placed.current = item.id;
+    setSeason(resumeEp.season);
+    setEpIndex(Math.max(0, allEps.filter((e) => e.season === resumeEp.season).indexOf(resumeEp)));
+  }, [resumeEp?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const tm = useTmdb(item);
   const backdrop = tm?.backdrop || info?.backdrop || info?.cover || item.logo;
   const plot = info?.plot || tm?.overview;
@@ -588,6 +601,20 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
             {badges.map((b) => <span key={b.t} className={'pbadge ' + b.k}>{b.t}</span>)}
             <span className="vd-pill ghost">{item.group}</span>
           </div>
+          {(() => {
+            const vers = versionsOf(item, playlist.items);
+            if (vers.length < 2) return null;
+            return (
+              <div className="versions">
+                <span className="muted">Versões:</span>
+                {vers.slice(0, 6).map((v) => (
+                  <button key={v.id} className={'chip' + (v.id === item.id ? ' on' : '')} data-nav="" onClick={() => v.id !== item.id && setItem(v)}>
+                    {versionLabel(v)}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
           {(nextEp || freshEp) && (
             <span className="next-ep-line">
               {freshEp && <b className="newep-tag">NOVO EPISÓDIO · T{freshEp.s} E{freshEp.e}</b>}
@@ -606,6 +633,20 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
                   ▶ {prog ? `Continuar (${Math.round((prog.pos / Math.max(1, prog.dur)) * 100)}%)` : 'Assistir'}
                 </button>
                 {prog && <button className="btn" data-nav="" onClick={() => onPlay(item, 0)}>Do início</button>}
+                <button
+                  className={'btn' + (isWatched(item.id) ? ' on-alert' : '')}
+                  data-nav=""
+                  onClick={(e) => {
+                    const on = !isWatched(item.id);
+                    setWatched([item.id], on);
+                    if (on) removeFromContinue([item.id]);
+                    pop(e.currentTarget);
+                    toast(on ? 'Marcado como visto' : 'Desmarcado', on ? '✓' : '✕');
+                    bump((x) => x + 1);
+                  }}
+                >
+                  {isWatched(item.id) ? '✓ Visto' : 'Marcar como visto'}
+                </button>
               </>
             )}
             {isSeries && resumeEp && (
@@ -677,6 +718,23 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
                   >
                     {all ? 'Desmarcar temporada' : '✓ Marcar temporada como vista'}
                   </button>
+                  {info && 'episodes' in info && info.seasons.length > 1 && (() => {
+                    const allSeen = info.episodes.every((e) => isWatched(e.id));
+                    return (
+                      <button
+                        className="chip"
+                        data-nav=""
+                        onClick={() => {
+                          setWatched(info.episodes.map((e) => e.id), !allSeen);
+                          if (!allSeen) removeFromContinue([...info.episodes.map((e) => e.id), item.id]);
+                          toast(allSeen ? 'Série desmarcada' : 'Série inteira marcada como vista', allSeen ? '✕' : '✓');
+                          bump((x) => x + 1);
+                        }}
+                      >
+                        {allSeen ? 'Desmarcar série' : '✓ Série toda vista'}
+                      </button>
+                    );
+                  })()}
                 </div>
               );
             })()}

@@ -34,6 +34,7 @@ export const BarIcon = {
   ),
   lock: (on: boolean) => sv(<><rect x="5" y="10.5" width="14" height="10" rx="2" fill={on ? 'currentColor' : 'none'} /><path d={on ? 'M8 10.5V7.5a4 4 0 0 1 8 0v3' : 'M8 10.5V7.5a4 4 0 0 1 7.6-1.7'} /></>),
   audio: sv(<><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M7 13.5h4M13 13.5h4M7 10h10" /></>),
+  hide: sv(<><path d="M3 12s3.5-6.5 9-6.5S21 12 21 12s-3.5 6.5-9 6.5S3 12 3 12z" /><circle cx="12" cy="12" r="2.6" /><path d="M4 20 20 4" /></>),
   folder: sv(<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />),
   list: sv(<><path d="M8 6h13M8 12h13M8 18h13" /><circle cx="3.5" cy="6" r="1" fill="currentColor" /><circle cx="3.5" cy="12" r="1" fill="currentColor" /><circle cx="3.5" cy="18" r="1" fill="currentColor" /></>),
   up: sv(<path d="m6 15 6-6 6 6" />),

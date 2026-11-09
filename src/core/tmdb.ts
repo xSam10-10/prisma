@@ -348,3 +348,22 @@ export function searchPerson(q: string): Promise<{ id: number; name: string; pho
     }
   });
 }
+
+/** Títulos do TMDB para um texto (português ou inglês), para achar na lista pelo outro nome. */
+export function searchTitles(q: string): Promise<{ t: string; o?: string; y?: number; kind: 'movie' | 'tv' }[]> {
+  return cached(`smulti|${q.toLowerCase()}`, async () => {
+    try {
+      type R = { results?: (Raw & { media_type?: string })[] };
+      const r = await call<R>('/search/multi', { query: q });
+      return (r.results ?? [])
+        .filter((x) => x.media_type === 'movie' || x.media_type === 'tv')
+        .slice(0, 8)
+        .map((x) => {
+          const date = x.release_date || x.first_air_date || '';
+          return { t: x.title || x.name || '', o: x.original_title || x.original_name, y: date ? Number(date.slice(0, 4)) : undefined, kind: x.media_type as 'movie' | 'tv' };
+        });
+    } catch {
+      return [];
+    }
+  });
+}

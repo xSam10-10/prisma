@@ -44,8 +44,8 @@ function fillTemplate(tpl: string, e: EpgEntry, now: number): string {
 }
 
 /** Endereço do programa gravado. */
-export function catchupUrl(pl: Playlist, ch: Channel, e: EpgEntry, now = Date.now()): string | null {
-  if (!inArchive(ch, e, now)) return null;
+export function catchupUrl(pl: Playlist, ch: Channel, e: EpgEntry, now = Date.now(), live = false): string | null {
+  if (live ? !(canCatchup(ch) && e.start <= now && now < e.end) : !inArchive(ch, e, now)) return null;
   if (pl.source.type === 'xtream') {
     const c = pl.source;
     const id = ch.id.replace(/^l/, '');
@@ -68,4 +68,11 @@ export function catchupItem(pl: Playlist, ch: Channel, e: EpgEntry): Channel | n
   const url = catchupUrl(pl, ch, e);
   if (!url) return null;
   return { id: `cu:${ch.id}:${e.start}`, kind: 'movie', name: e.title, group: `${ch.name} · gravado`, logo: ch.logo, url };
+}
+
+/** "Começar do início": o programa que está passando agora, desde o começo (canal que grava). */
+export function startOverItem(pl: Playlist, ch: Channel, e: EpgEntry, now = Date.now()): Channel | null {
+  const url = catchupUrl(pl, ch, e, now, true);
+  if (!url) return null;
+  return { id: `so:${ch.id}:${e.start}`, kind: 'movie', name: e.title, group: `${ch.name} · do início`, logo: ch.logo, url };
 }

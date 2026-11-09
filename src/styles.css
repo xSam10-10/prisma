@@ -1555,3 +1555,41 @@ html.mobile .gd-score { font-size: 30px; min-width: 90px; }
 .guide-live-prog b { display: block; height: 100%; background: #FF453A; }
 @-webkit-keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* Ajustes › Proteção */
+.prot-card { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-align-items: center; align-items: center; -webkit-justify-content: space-between; justify-content: space-between; padding: 16px 18px; border-radius: 16px; background: rgba(255, 255, 255, 0.06); margin-bottom: 18px; }
+.prot-txt { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; max-width: 560px; margin-right: 16px; }
+.prot-txt b { font-size: 19px; margin-bottom: 4px; }
+.prot-txt .muted { font-size: 15px; line-height: 1.4; }
+.prot-h { display: block; font-size: 20px; font-weight: 800; margin: 14px 0 6px; }
+.prot-list { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
+.prot-row { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.prot-row.off .prot-name { opacity: 0.45; text-decoration: line-through; }
+.prot-name { -webkit-flex: 1; flex: 1; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prot-count { width: 70px; text-align: right; margin-right: 14px; font-size: 14px; }
+.prot-row .chip { margin-left: 8px; }
+.cat-locked { color: #FFD60A; }
+/* Continuar assistindo: card "tirar títulos" */
+.edit-card { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; text-align: left; }
+.edit-card-art { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; border-radius: 16px; border: 2px dashed rgba(255, 255, 255, 0.22); color: rgba(255, 255, 255, 0.7); }
+.edit-card-art b { font-size: 34px; margin-bottom: 6px; }
+.edit-card:focus .edit-card-art, .edit-card:hover .edit-card-art { border-color: #F4F4F8; color: #fff; background: rgba(255, 255, 255, 0.06); }
+.versions { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 2px; }
+.versions .muted { font-size: 15px; font-weight: 700; margin-right: 10px; }
+.versions .chip { margin-right: 8px; }
+/* Painel da assinatura */
+.sub-card { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-justify-content: space-between; justify-content: space-between; padding: 20px 24px; border-radius: 20px; margin-bottom: 18px; background: -webkit-linear-gradient(120deg, rgba(48, 209, 88, 0.16), rgba(255, 255, 255, 0.04)); background: linear-gradient(120deg, rgba(48, 209, 88, 0.16), rgba(255, 255, 255, 0.04)); border: 1px solid rgba(48, 209, 88, 0.3); }
+.sub-card.warn { background: linear-gradient(120deg, rgba(255, 214, 10, 0.18), rgba(255, 255, 255, 0.04)); border-color: rgba(255, 214, 10, 0.4); }
+.sub-card.bad { background: linear-gradient(120deg, rgba(255, 69, 58, 0.2), rgba(255, 255, 255, 0.04)); border-color: rgba(255, 69, 58, 0.5); }
+.sub-main, .sub-screens { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; min-width: 260px; }
+.sub-label { font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255, 255, 255, 0.65); }
+.sub-status { font-size: 15px; font-weight: 800; margin-top: 4px; }
+.sub-status.ok { color: #30D158; } .sub-status.warn { color: #FFD60A; } .sub-status.bad { color: #FF453A; }
+.sub-days { font-size: 46px; font-weight: 800; line-height: 1.05; margin-top: 6px; }
+.sub-days.small { font-size: 22px; }
+.sub-sub { font-size: 15px; color: rgba(255, 255, 255, 0.75); margin-top: 2px; }
+.sub-bar { display: block; width: 260px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.15); margin-top: 10px; overflow: hidden; }
+.sub-bar span { display: block; height: 100%; background: #F4F4F8; }
+.sub-dots { display: -webkit-flex; display: flex; margin: 10px 0 4px; }
+.sub-dots span { width: 30px; height: 30px; border-radius: 8px; background: rgba(255, 255, 255, 0.12); margin-right: 8px; }
+.sub-dots span.on { background: #F4F4F8; }
+.sub-screens .chip { -webkit-align-self: flex-start; align-self: flex-start; margin-top: 10px; }

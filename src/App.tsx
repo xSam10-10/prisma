@@ -1,3 +1,5 @@
+import { rememberSource } from './core/sources';
+import { applyParental, onParental, parentalVersion } from './core/parental';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { applyTheme, themeById } from './ui/themes';
 import { askOnStart, chosenThisSession, currentProfile, switchProfile } from './core/profiles';
@@ -68,7 +70,11 @@ export function App() {
     html.classList.toggle('touch', touch || mobileForm);
   }, [mobileForm]);
   const [phase, setPhase] = useState<'boot' | 'who' | 'add' | 'app'>(() => (askOnStart() && !chosenThisSession() ? 'who' : 'boot'));
-  const [playlist, setPlaylist] = useState<Playlist>();
+  const [fullPlaylist, setPlaylist] = useState<Playlist>();
+  // Controle parental e itens escondidos: o app inteiro usa a lista já filtrada.
+  const [parVer, setParVer] = useState(0);
+  useEffect(() => onParental(() => setParVer(parentalVersion())), []);
+  const playlist = useMemo(() => (fullPlaylist ? applyParental(fullPlaylist) : undefined), [fullPlaylist, parVer]); // eslint-disable-line react-hooks/exhaustive-deps
   const [progress, setProgress] = useState('');
   const [bootError, setBootError] = useState<SourceError | null>(null);
   // A aba Anime virou parte de Séries (as categorias de anime e o Crunchyroll estão lá).
@@ -312,6 +318,20 @@ export function App() {
     });
   }, [phase, tab]);
 
+  // Lista em uso entra em "Suas listas" (Ajustes › Lista).
+  useEffect(() => {
+    if (fullPlaylist) rememberSource(fullPlaylist.source);
+  }, [fullPlaylist?.source]); // eslint-disable-line react-hooks/exhaustive-deps
+  const switchSource = async (src: SourceConfig) => {
+    const prev = phase;
+    setPhase('boot');
+    try {
+      await submitSource(src);
+    } catch (e) {
+      setBootError(e instanceof SourceError ? e : null);
+      setPhase(prev === 'app' ? 'add' : prev);
+    }
+  };
   const submitSource = async (src: SourceConfig) => {
     const p = await loadSource(src, setProgress);
     await savePlaylist(p);
@@ -414,10 +434,11 @@ export function App() {
                   location.reload();
                 },
               }}
-              playlist={playlist}
+              playlist={fullPlaylist ?? playlist}
               reloading={reloading}
               onReload={reload}
               onChange={() => setPhase('add')}
+              onSwitch={switchSource}
               onRemove={async () => {
                 await clearPlaylist();
                 setPlaying(undefined);

@@ -56,7 +56,7 @@ export async function idbDel(key: string): Promise<void> {
 
 // Preferências por perfil: cada perfil tem os seus. O 1º perfil usa as chaves
 // antigas (sem prefixo), para não perder nada de quem já usava o app.
-const PER_PROFILE = new Set(['favs', 'recents', 'sections', 'myList', 'progress', 'vodRecents', 'reminders', 'settings', 'live.cat', 'tab', 'lastKind', 'locked', 'myTeams', 'watched', 'epAlerts']);
+const PER_PROFILE = new Set(['favs', 'recents', 'sections', 'myList', 'progress', 'vodRecents', 'reminders', 'settings', 'live.cat', 'tab', 'lastKind', 'locked', 'myTeams', 'watched', 'epAlerts', 'lockedCats', 'hiddenCats', 'hiddenCh', 'trackPref']);
 
 function profileId(): string {
   try {

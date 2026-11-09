@@ -1,3 +1,5 @@
+import { checkPin, closedCats, unlockCats } from '../core/parental';
+import { PinDialog } from './ChannelBar';
 import { categoryColumnWidth } from '../ui/catColumn';
 import { pop, toast } from '../ui/premium2';
 import { T } from '../ui/tokens';
@@ -90,6 +92,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
   const { data: secData, set: setSecData } = useSections();
   const cats = useMemo(() => orderedSections(native, secData, live), [native, secData, live]);
   const [dialog, setDialog] = useState<null | 'new' | 'organize'>(null);
+  const [pinOpen, setPinOpen] = useState(false);
   const [cat, setCat] = useState<string>(() => {
     const saved = prefGet<string>('live.cat', favIds.length ? FAV : ALL);
     // Categoria salva que não existe mais (lista mudou): volta para Todos.
@@ -219,6 +222,12 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
                 <span className="cat-count">{c.count.toLocaleString('pt-BR')}</span>
               </button>
             ))}
+            {closedCats() > 0 && (
+              <button className="cat cat-locked" data-nav="" onClick={() => setPinOpen(true)}>
+                <span className="cat-name">🔒 Protegidas</span>
+                <span className="cat-count">{closedCats()}</span>
+              </button>
+            )}
           </div>
           </div>
         )}
@@ -250,6 +259,7 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
               {c.name}
             </button>
           ))}
+          {closedCats() > 0 && <button className="chip cat-locked" data-nav="" onClick={() => setPinOpen(true)}>🔒 Protegidas</button>}
         </div>
         )}
         <div className="live-search">
@@ -415,6 +425,19 @@ export function LiveTV({ playlist, live, favIds, playing, isFav, toggleFav, onPl
         />
       )}
       {dialog === 'organize' && <OrganizeSections views={cats} onClose={() => setDialog(null)} />}
+      {pinOpen && (
+        <PinDialog
+          title="Categorias protegidas"
+          help="Digite a senha. As categorias protegidas aparecem até fechar o app."
+          onClose={() => setPinOpen(false)}
+          onSubmit={(p) => {
+            if (!checkPin(p)) return 'Senha incorreta.';
+            setPinOpen(false);
+            unlockCats();
+            return null;
+          }}
+        />
+      )}
     </>
   );
 }

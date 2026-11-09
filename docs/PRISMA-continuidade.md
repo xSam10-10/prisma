@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.23.0)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.24.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -18,7 +18,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Atualização dentro do app:** lê `https://github.com/xSam10-10/prisma/releases/latest/download/` — conferida no Windows pelo usuário em 09/11 — repositório **público** desde 08/11 23h (conferido: `prisma-update.json` 0.18.0 e `prisma-tops.json` respondem 200). Ver 10i e 10r.
 
-**Verificações antes de publicar:** `npx tsc --noEmit` · `npx vitest run` (46 testes) · `npm run build:webos` + `npx es-check@8.0.2 es5 "dist-webos/assets/*.js"` (TV de 2017: sem CSS gap/variáveis/grid; flex com prefixos -webkit-; nada de sintaxe nova no JS final).
+**Verificações antes de publicar:** `npx tsc --noEmit` · `npx vitest run` (55 testes) · `npm run build:webos` + `npx es-check@8.0.2 es5 "dist-webos/assets/*.js"` (TV de 2017: sem CSS gap/variáveis/grid; flex com prefixos -webkit-; nada de sintaxe nova no JS final).
 **Testes de tela:** `node test/fake-xtream.mjs` (servidor Xtream falso na porta 8090, usuário `teste` / senha `1234`; também ESPN falsa em `/espn/...`, TMDB falso em `/tmdb/...`, `/updates/` com `UPDATE_DIR`) + `npx vite --port 5173` + roteiros Playwright. O Chromium do ambiente não decodifica H.264: nos testes, segurar as requisições de vídeo (`page.route(... /live/ ..., () => {})`).
 **Limites do ambiente de desenvolvimento:** ESPN, TMDB, guias públicos e o servidor da Goldcard não são acessíveis de lá — testar com o servidor falso e pedir ao Samuel o teste real.
 
@@ -463,6 +463,14 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - `src/screens/GameDay.tsx`: Meus times + `loadGames` (3,5 s depois de abrir o Início) + `loadScores` a cada minuto; faixa compacta.
 - Guia: cabeçalho de 204 px com arte (EPG ou TMDB filtrando telejornal/esporte), sinopse em 3 linhas, barra "termina em".
 - Correções: detalhe/coleção do Início renderizados fora da área rolável (antes cortavam com o Início rolado); polyfill de `Element.closest` em main.tsx (Chrome 38).
+
+## 10ag. Versão 0.24.0 — pendências [1º] de todas as categorias
+- Proteção (`core/parental.ts`): `lockedCats` (pref, por perfil; sem lista salva = categorias com nome de adulto), `hiddenCats`, `hiddenChannels`, `applyParental(pl)` — o App guarda `fullPlaylist` e entrega a todas as telas a lista filtrada (Ajustes recebe a completa); `onParental` avisa mudanças; `closedCats()` alimenta "🔒 Protegidas" no Ao vivo. Tela `screens/Protection.tsx`. Barra do canal: ação "Esconder".
+- Player: "Do início" (`startOverItem` em catchup.ts: timeshift do programa no ar, canal com `catchupDays`); `trackPref` (pref por perfil, chave `seriesId ?? id`, guarda o rótulo do áudio/legenda e reaplica no 1º `tracks`).
+- Filmes/Séries (`core/vod.ts`): `versionKey`/`versionLabel`/`versionsOf`/`collapseVersions` (grade e busca mostram uma capa; chips "Versões" no detalhe trocam o item); `nextToWatch` (meio do episódio > seguinte ao último visto > 1º não visto; o detalhe abre nessa temporada); `removeFromContinue` + card "Tirar títulos daqui" e janela no Início; "Marcar como visto" (filme) e "Série toda vista".
+- Busca tolerante (`core/fuzzy.ts`, até 1/2 erros por palavra com 5+/7+ letras; só quando a busca exata traz < 8) e `searchTitles` (TMDB /search/multi → `findInList`, fileira "Pelo nome em outro idioma").
+- Geral: `core/sources.ts` (listas usadas, até 8, sem conteúdo de arquivo M3U) + `switchSource` no App; `screens/Subscription.tsx` (cartão com dias, telas em uso via `login()`, aviso no Início ≤ 7 dias, 1×/dia).
+- Testes novos: test/catchup.test.ts, test/nextep.test.ts (55 no total). Servidor falso: categoria "ADULTOS +18", versões LEG/4K de "Rota 66".
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

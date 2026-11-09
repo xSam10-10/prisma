@@ -1,6 +1,18 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.24.0 — proteção, listas e conforto
+- Ajustes › Proteção: senha de 4 números; categorias de adulto (+18) ficam protegidas e somem do app até digitar a senha; proteja ou esconda qualquer categoria de Ao vivo, Filmes e Séries
+- Esconder canal pela barra do canal (volta em Ajustes › Proteção); "🔒 Protegidas" na lista de categorias do Ao vivo
+- Ao vivo: "Do início" na barra do canal para ver desde o começo o programa que está passando (canais que gravam)
+- O app lembra o áudio e a legenda escolhidos em cada série e canal
+- Um card só para o mesmo filme em várias versões; no detalhe, escolha HD, Legendado, Dublado ou 4K
+- Marcar filme como visto e marcar a série inteira; a série abre direto no próximo episódio
+- "Continuar assistindo": card "Tirar títulos daqui" para limpar o que você não vai terminar
+- Busca tolerante a erros de digitação e pelo nome em outro idioma (TMDB)
+- Várias listas IPTV no mesmo app: as listas usadas ficam em Ajustes › Lista para trocar com um toque
+- Painel da assinatura: dias até vencer, telas em uso agora e aviso no Início faltando 7 dias
+
 ## 0.23.0 — visual premium IV
 - Busca nova: teclado em grade na tela, resultados com capas em fileiras e busca por ator/diretor ("ana souza") e por gênero ("terror")
 - Capa que cresce até virar a tela de detalhes ao apertar OK (fora na TV LG)

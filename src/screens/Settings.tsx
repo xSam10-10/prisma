@@ -1,7 +1,10 @@
+import { ProtectionPanel } from './Protection';
+import { SubscriptionCard } from './Subscription';
+import { forgetSource, savedSources, sourceKey } from '../core/sources';
 import { useEffect, useRef, useState } from 'react';
 import { IS_WEBOS, IS_ANDROID } from '../core/platform';
 import { DEFAULT_SETTINGS, useSettings, type Settings as S } from '../core/settings';
-import type { Channel, Playlist } from '../core/types';
+import type { Channel, Playlist, SourceConfig } from '../core/types';
 import { useLayout } from '../ui/layout';
 import { dirOf, focusFirst } from '../ui/nav';
 import { T } from '../ui/tokens';
@@ -22,13 +25,14 @@ import { clearXmltv } from '../core/xmltv';
 // Ajustes do PRISMA: Tela · Player · Aparência · Lista · Sobre.
 // Cada opção é um seletor: OK (ou clique) avança; ◀ ▶ no controle trocam.
 
-export type Section = 'tela' | 'player' | 'aparencia' | 'perfis' | 'lista' | 'servicos' | 'dados' | 'sobre';
+export type Section = 'tela' | 'player' | 'aparencia' | 'perfis' | 'protecao' | 'lista' | 'servicos' | 'dados' | 'sobre';
 
 const SECTIONS: { id: Section; label: string; hint: string }[] = [
   { id: 'tela', label: 'Tela', hint: 'Tamanho, margens e formato da interface' },
   { id: 'player', label: 'Player', hint: 'Vídeo e informações na tela cheia' },
   { id: 'aparencia', label: 'Aparência', hint: 'Estrutura e tema' },
   { id: 'perfis', label: 'Perfis', hint: 'Quem está assistindo' },
+  { id: 'protecao', label: 'Proteção', hint: 'Senha, categorias protegidas e escondidas' },
   { id: 'lista', label: 'Lista', hint: 'Sua assinatura IPTV' },
   { id: 'servicos', label: 'Serviços', hint: 'TMDB, tops e recomendações, placar' },
   { id: 'dados', label: 'Dados e limpeza', hint: 'Histórico, favoritos e cache' },
@@ -100,11 +104,13 @@ export interface DataActions {
 }
 
 export function Settings({
-  playlist, onReload, onChange, onRemove, reloading, data, initialSection,
+  playlist, onReload, onChange, onSwitch, onRemove, reloading, data, initialSection,
 }: {
   playlist: Playlist;
   onReload: () => void;
   onChange: () => void;
+  /** Trocar para outra lista já usada. */
+  onSwitch?: (src: SourceConfig) => void;
   onRemove: () => void;
   reloading: boolean;
   data: DataActions;
@@ -112,6 +118,7 @@ export function Settings({
   initialSection?: Section;
 }) {
   const [sec, setSec] = useState<Section>(initialSection ?? 'tela');
+  const [, setTickL] = useState(0);
   const { settings: st, update } = useSettings();
   const L = useLayout();
   const mobile = L.form === 'mobile';
@@ -248,9 +255,10 @@ export function Settings({
     );
   } else if (sec === 'perfis') {
     panel = <ProfilesPanel />;
+  } else if (sec === 'protecao') {
+    panel = <ProtectionPanel playlist={playlist} />;
   } else if (sec === 'lista') {
     const s = playlist.source;
-    const a = playlist.account;
     const count = (k: Channel['kind']) => playlist.items.filter((i) => i.kind === k).length.toLocaleString('pt-BR');
     const kind = s.type === 'xtream' ? 'Xtream (Smarters / XCIPTV)' : s.type === 'm3u' ? 'Link M3U' : 'Arquivo M3U';
     const rows: [string, string][] = [
@@ -258,8 +266,6 @@ export function Settings({
       ['Tipo', kind],
       ...(s.type === 'xtream' ? ([['Servidor', s.server], ['Usuário', s.username]] as [string, string][]) : []),
       ...(s.type === 'm3u' ? ([['Link', s.url.replace(/(password=)[^&]+/i, '$1••••')]] as [string, string][]) : []),
-      ...(a?.expiresAt ? ([['Vence em', new Date(a.expiresAt).toLocaleDateString('pt-BR')]] as [string, string][]) : []),
-      ...(a?.maxConnections ? ([['Telas ao mesmo tempo', `${a.activeConnections ?? 0} em uso de ${a.maxConnections}`]] as [string, string][]) : []),
       ['Conteúdo', `${count('live')} canais · ${count('movie')} filmes · ${count('series')} séries`],
       ['Atualizada', new Date(playlist.loadedAt).toLocaleString('pt-BR')],
       ['Guia de programação', guideSummary(playlist)],
@@ -267,12 +273,32 @@ export function Settings({
     ];
     panel = (
       <>
+        <SubscriptionCard playlist={playlist} />
         <Info rows={rows} />
+        {(() => {
+          const others = savedSources().filter((x) => sourceKey(x) !== sourceKey(s));
+          if (!others.length) return null;
+          return (
+            <>
+              <span className="prot-h">Suas outras listas</span>
+              <div className="prot-list">
+                {others.map((x) => (
+                  <div key={sourceKey(x)} className="prot-row">
+                    <span className="prot-name">{x.name || (x.type === 'xtream' ? x.server : 'Lista M3U')}</span>
+                    <span className="muted prot-count" style={{ width: 'auto' }}>{x.type === 'xtream' ? 'Xtream' : x.type === 'm3u' ? 'Link M3U' : 'Arquivo'}</span>
+                    {x.type !== 'm3u-file' && <button className="chip" data-nav="" onClick={() => onSwitch?.(x)}>Usar esta</button>}
+                    <button className="chip" data-nav="" onClick={() => { forgetSource(x); setSec('lista'); setTickL((v) => v + 1); }}>Esquecer</button>
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
         <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', marginTop: 12 }}>
           <button className="btn primary" data-nav="" disabled={reloading || s.type === 'm3u-file'} onClick={onReload}>
             {reloading ? 'Atualizando…' : 'Atualizar lista agora'}
           </button>
-          <button className="btn" data-nav="" onClick={onChange}>Trocar lista</button>
+          <button className="btn" data-nav="" onClick={onChange}>+ Adicionar ou trocar lista</button>
           <button className="btn" data-nav="" onClick={onRemove}>Remover lista</button>
         </div>
         <ExtraGuides playlist={playlist} />

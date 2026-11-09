@@ -11,21 +11,26 @@ import { focusEl, focusFirst } from '../ui/nav';
 import { LayoutContext, useLayout } from '../ui/layout';
 import { Carousel } from '../ui/Carousel';
 import { CollectionView, PosterCard, VodDetail } from './Vod';
-import { getProgress, myList, vodRecents } from '../core/vod';
+import { collapseVersions, getProgress, myList, removeFromContinue, vodRecents } from '../core/vod';
+import { Modal } from '../ui/Dialog';
 import { collectionsIn, homeShelves, topChannels, upcomingOf, type Collection, type TopChannelPick, type Upcoming } from '../core/tops';
 import { useTopsState } from '../ui/useTops';
 import { TitleLogo } from '../ui/premium';
 import { useTmdb } from '../ui/useTmdb';
 import { FeatureRow, PreviewBackdrop, SkeletonRow, WideCard } from '../ui/premium';
 import { CollectionCard, EmptyState, PosterTile, TrailerLayer, pop, setHomeScrolled, toast } from '../ui/premium2';
-import { episodesOf, lookup, personOf, searchPerson, similarOf, tmdbKey } from '../core/tmdb';
+import { episodesOf, lookup, personOf, searchPerson, searchTitles, similarOf, tmdbKey } from '../core/tmdb';
+import { fuzzyMatch } from '../core/fuzzy';
 import { DAYPART, LivePeek, ResumeOpen, UpcomingCard, dayPart, takeResumeOnce, useLivePeek } from '../ui/premium3';
 import { currentProfile } from '../core/profiles';
 import { SEARCH_GENRES, findInList, genreMatches } from '../core/tops';
 import { prefGet } from '../core/storage';
 import { VoiceButton } from '../ui/Voice';
 import { GameDay } from './GameDay';
+import { expiryWarning } from './Subscription';
 import { setNewEpisodes, takeDueAlerts } from '../core/newEpisodes';
+
+const EDIT_CARD: Channel = { id: '__edit', kind: 'movie', name: '', group: '', url: '' };
 
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -45,6 +50,9 @@ export function Home({
 }) {
   const root = useRef<HTMLDivElement>(null);
   // Filmes/episódios em andamento (com progresso) e Minha lista.
+  useEffect(() => expiryWarning(playlist), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [editCont, setEditCont] = useState(false);
+  const [, setEditTick] = useState(0);
   const vodNow = vodRecents().filter((v) => getProgress(v.id));
   const saved = myList();
   const lastVod = prefGet<string>('lastKind', 'live') === 'vod' ? vodNow[0] : undefined;
@@ -174,12 +182,24 @@ export function Home({
       {vodNow.length > 0 && (
         <Carousel
           title="Continuar assistindo"
-          items={vodNow}
+          items={[...vodNow, EDIT_CARD]}
           keyOf={(v) => v.id}
           minWidth={mobile ? 220 : 330}
-          render={(v, _i, w) => <WideCard item={v} w={w} onClick={() => onPlayVod(v, getProgress(v.id)?.pos)} />}
+          render={(v, _i, w) =>
+            v === EDIT_CARD ? (
+              <button className="tile grow edit-card" data-nav="" style={{ width: w }} onClick={() => setEditCont(true)} aria-label="Editar Continuar assistindo">
+                <span className="edit-card-art" style={{ height: Math.round((w * 9) / 16) }}>
+                  <b>✕</b>
+                  <span>Tirar títulos daqui</span>
+                </span>
+              </button>
+            ) : (
+              <WideCard item={v} w={w} onClick={() => onPlayVod(v, getProgress(v.id)?.pos)} />
+            )
+          }
         />
       )}
+
       {shelves[0] && shelves[0].items.length >= 3 && <FeatureRow title="Destaque da semana" items={shelves[0].items.slice(0, 3).map((r) => r.item)} onOpen={onGoVod} />}
       {because.length >= 3 && becauseBase && (
         <Carousel
@@ -343,6 +363,22 @@ export function Home({
     {/* Fora da área rolável: senão o detalhe fica preso ao alto do conteúdo quando o Início está rolado. */}
     {coll && <CollectionView playlist={playlist} c={coll} onPlay={onPlayVod} onClose={() => setColl(null)} />}
     {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => setDetail(null)} />}
+    {editCont && (
+        <Modal title="Continuar assistindo" onClose={() => setEditCont(false)} width={620}>
+          <span className="muted" style={{ fontSize: 15 }}>Tire o que você não vai terminar. O título continua na lista; só sai desta fileira.</span>
+          {vodNow.length === 0 && <span className="muted">Nada aqui agora.</span>}
+          {vodNow.map((v) => (
+            <div key={v.id} className="prot-row">
+              <span className="prot-name">{v.name}</span>
+              <button className="chip" data-nav="" onClick={() => { removeFromContinue([v.id]); setEditTick((x) => x + 1); toast('Tirado de Continuar assistindo', '✕'); }}>✕ Tirar</button>
+            </div>
+          ))}
+          <div className="wrap-row" style={{ display: 'flex' }}>
+            {vodNow.length > 1 && <button className="btn" data-nav="" onClick={() => { removeFromContinue(vodNow.map((v) => v.id)); setEditTick((x) => x + 1); setEditCont(false); }}>Limpar tudo</button>}
+            <button className="btn primary" data-nav="" onClick={() => setEditCont(false)}>Concluir</button>
+          </div>
+        </Modal>
+      )}
     {resume && (
       <ResumeOpen
         item={resume}
@@ -537,11 +573,36 @@ export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; o
   const results = useMemo(() => {
     const n = normalize(qt);
     if (n.length < 2) return [];
-    return playlist.items.filter((i) => normalize(i.fullName ?? i.name).includes(n)).slice(0, 500);
+    const exact = playlist.items.filter((i) => normalize(i.fullName ?? i.name).includes(n)).slice(0, 500);
+    if (exact.length >= 8 || n.length < 4) return exact;
+    // Poucos resultados: tolera erros de digitação.
+    const ids = new Set(exact.map((e) => e.id));
+    const fuzzy = playlist.items.filter((i) => !ids.has(i.id) && fuzzyMatch(i.fullName ?? i.name, n)).slice(0, 300);
+    return [...exact, ...fuzzy];
+  }, [qt, playlist]);
+  // Pelo nome em outro idioma (TMDB): "The Office", "La Casa de Papel"…
+  const [alt, setAlt] = useState<Channel[]>([]);
+  useEffect(() => {
+    setAlt([]);
+    if (qt.length < 4 || !tmdbKey()) return;
+    let alive = true;
+    const t = setTimeout(async () => {
+      const r = await searchTitles(qt);
+      const out: Channel[] = [];
+      for (const x of r) {
+        const hit = findInList({ t: x.t, o: x.o, y: x.y }, x.kind, playlist.items);
+        if (hit && !out.some((o) => o.id === hit.id)) out.push(hit);
+      }
+      if (alive) setAlt(out);
+    }, 700);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
   }, [qt, playlist]);
   const live = results.filter((r) => r.kind === 'live').slice(0, 30);
-  const movies = results.filter((r) => r.kind === 'movie');
-  const series = results.filter((r) => r.kind === 'series');
+  const movies = collapseVersions(results.filter((r) => r.kind === 'movie'));
+  const series = collapseVersions(results.filter((r) => r.kind === 'series'));
   const genre = useMemo(() => genreMatches(tops, qt, playlist.items), [tops, qt, playlist]);
   // Ator/diretor (TMDB): espera parar de digitar e mostra os títulos dele que estão na lista.
   useEffect(() => {
@@ -595,7 +656,7 @@ export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; o
   const resW = L.W - L.px * 2 - (mobile ? 0 : kbW + gapK);
   const inner = { ...L, W: resW + 2, px: 1 };
   const keys = 'abcdefghijklmnopqrstuvwxyz1234567890'.split('');
-  const nothing = qt.length >= 2 && !results.length && !genre && !person;
+  const nothing = qt.length >= 2 && !results.length && !genre && !person && !alt.length;
   return (
     <>
     <div ref={box} className="search2 screen-in" style={{ position: 'absolute', left: L.px, right: L.px, top: L.top + (mobile ? 0 : 10), bottom: L.bottom, display: 'flex', flexDirection: mobile ? 'column' : 'row' }}>
@@ -694,6 +755,12 @@ export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; o
               {series.length > 0 && (
                 <Carousel title="Séries" subtitle={`${series.length}`} items={series} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
               )}
+              {(() => {
+                const extra = alt.filter((a) => !results.some((r) => r.id === a.id));
+                return extra.length > 0 ? (
+                  <Carousel title="Pelo nome em outro idioma" subtitle="Encontrados pelo TMDB" items={extra} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
+                ) : null;
+              })()}
               {person && (
                 <div className="sr-person">
                   <div className="sr-person-head">
