@@ -1,5 +1,7 @@
 # Como continuar o PRISMA numa nova conversa
 
+> **Mudou de conta do Claude?** Use `docs/MIGRAR-CONTA.md` (tem os passos para ligar o GitHub na conta nova).
+
 Este arquivo existe para trocar de conversa sem perder nada. Tudo o que importa está no repositório
 **xSam10-10/prisma** (branch `main`), que a nova conversa lê sozinha.
 
