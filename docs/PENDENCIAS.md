@@ -1,4 +1,4 @@
-# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 08/11/2026, versão 0.18.0)
+# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 09/11/2026, versão 0.19.3)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -8,7 +8,8 @@ Já feito desde a lista original (não repetir): 8 qualidade (ícone HD), 21 úl
 33 aviso de gol (app aberto), 42 guia extra, 45 guias públicos sugeridos, grupo Gravações,
 PIP (1 janela, Desl/Lig + Trocar), barra clássica, lista em tela cheia com menu e programação por dia,
 atualização dentro do app, logotipos dos streamings (coloridos + brancos), bloquear canal com senha,
-48 fileiras automáticas (parcial: Tops por streaming/gênero/especiais, 0.18.0), Top 10 canais agora.
+48 fileiras automáticas (parcial: Tops por streaming/gênero/especiais e Adicionados recentemente, 0.18–0.19),
+Top 10 canais agora, banner por streaming, coluna de categorias padrão, navegação dos carrosséis revisada (0.19.x).
 
 ## 1. TV ao vivo (lista de canais, guia e jogos)
 - **7 · Controle parental completo** [1º] — PIN para abrir categorias "ADULTOS +18" e perfil infantil. *(Parcial: bloquear um canal com senha já existe.)*
@@ -58,10 +59,11 @@ atualização dentro do app, logotipos dos streamings (coloridos + brancos), blo
 - **9 · Sincronização automática pela nuvem** (hoje por arquivo) · **14 · App para Roku** · **13 · Assinatura digital do instalador Windows (paga)** [Grande]
 
 ## Depende do Samuel
-- **Secret `TMDB_KEY`** no repositório (Settings › Secrets and variables › Actions › New repository secret, valor = chave v3 do TMDB). Sem ele, os Tops trazem só o ranking oficial da Netflix (títulos em inglês, que casam pouco com a lista) e o ranking de canais. Depois rodar Actions › Tops › Run workflow.
-- **Jogos vazios com a Goldcard**: na 0.18.0, se continuar sem jogos, a tela mostra um diagnóstico (canais consultados, com guia, exemplos de programas) — mandar print.
-- ✅ Repositório público desde 08/11 23h (atualização dentro do app e tops conferidos: os dois arquivos respondem). Instalar a 0.18.0 manualmente uma vez em cada aparelho; depois, botão Atualizar.
-- Testar na TV LG OLED B7 (webOS 3.5) e no celular/Google TV com a Goldcard: vídeo, PIP com 2 telas, atualização, placar/tabela da ESPN, guias públicos.
-- Conferir o "0 filmes" da Goldcard.
-- Logos de canais que faltam (ex.: ESPN) em `public/logos/custom/`.
-- Chave do TMDB (themoviedb.org › Configurações › API › Chave v3) em Ajustes › Serviços.
+- ✅ Repositório público (08/11) e atualização dentro do app conferida no Windows pelo Samuel (09/11, 0.18.1 → 0.19.x).
+- ✅ Secret `TMDB_KEY` cadastrado (09/11): Tops com 223 listas (Netflix oficial em português, streamings, gêneros, gêneros por streaming, especiais).
+- **Jogos com a Goldcard**: conferir na TV/PC se a aba Jogos traz partidas (0.18.0 passou a usar guia completo + placar da ESPN). Se vier vazia, a tela mostra um diagnóstico — mandar print.
+- Atualização dentro do app na **TV LG** e no **Android/Google TV**: conferir uma vez (no Windows já funciona).
+- Testar na TV LG OLED B7 (webOS 3.5) e no celular/Google TV: vídeo, PIP com 2 telas, placar/tabela da ESPN, guias públicos, banners dos streamings (na LG ficam sem animação).
+- Conferir o "0 filmes" da Goldcard (provavelmente resolvido: em 09/11 a lista mostrava 44 mil filmes).
+- Logos de canais que faltam (ex.: ESPN) em `public/logos/custom/`; logotipos de Star+, Discovery+ e Hulu (hoje tipográficos).
+- Opcional: a mesma chave do TMDB em Ajustes › Serviços de cada aparelho (capas, sinopses em português e trailers).

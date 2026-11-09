@@ -1,16 +1,15 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Channel } from '../core/types';
 import type { Ranked } from '../core/tops';
 import { logoUrl, type Streaming } from '../core/vod';
 import { Carousel } from '../ui/Carousel';
 import { LayoutContext, useLayout } from '../ui/layout';
 import { rgba } from '../ui/bits';
-import { focusFirst } from '../ui/nav';
 import { PosterCard } from './Vod';
 
 // Filmes/Séries › Top e streaming escolhido: as listas uma embaixo da outra,
 // cada uma num carrossel (como no Início). A coluna da esquerda leva até a
-// lista; descer com o controle alinha a lista em foco no alto (nada cortado).
+// descer com o controle alinha a lista em foco no alto (nada cortado).
 
 export interface Row {
   id: string;
@@ -21,16 +20,9 @@ export interface Row {
   ranked: boolean;
 }
 
-export interface StackedHandle {
-  /** Rola até a lista (sem tirar o foco da coluna). */
-  show: (id: string) => void;
-  /** Rola e põe o foco na primeira capa da lista. */
-  enter: (id: string) => void;
-}
-
 const PAD = 14; // folga lateral para a capa em foco crescer sem ser cortada
 
-export const StackedRows = forwardRef<StackedHandle, {
+export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
   rows: Row[];
   width: number;
   banner?: React.ReactNode;
@@ -38,7 +30,7 @@ export const StackedRows = forwardRef<StackedHandle, {
   tail?: React.ReactNode;
   onSeen?: (id: string) => void;
   onPick: (item: Channel) => void;
-}>(function StackedRows({ rows, width, banner, tail, onSeen, onPick }, ref) {
+}) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const box = useRef<HTMLDivElement>(null);
@@ -58,13 +50,6 @@ export const StackedRows = forwardRef<StackedHandle, {
     // A primeira lista mantém o banner à vista; as outras sobem até o alto.
     b.scrollTop = rows[0]?.id === id ? 0 : Math.max(0, el.offsetTop - 4);
   };
-  useImperativeHandle(ref, () => ({
-    show: scrollTo,
-    enter: (id) => {
-      scrollTo(id);
-      focusFirst(secs.current[id]);
-    },
-  }));
   // Carrossel calcula o tamanho pela "tela": aqui a tela é a coluna da direita.
   const inner = { ...L, W: width + PAD * 2, px: PAD };
   return (
@@ -113,7 +98,7 @@ export const StackedRows = forwardRef<StackedHandle, {
       </LayoutContext.Provider>
     </div>
   );
-});
+}
 
 // ---------------------------------------------------------------- Banner do streaming
 
