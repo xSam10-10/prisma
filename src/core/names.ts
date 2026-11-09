@@ -7,6 +7,9 @@
 /** Siglas de qualidade (resolução) que encerram o nome. */
 const QUALITY = /^(SD|HD|FHD|UHD|4K|8K|HQ|FULLHD|FULL\s?HD)$/i;
 
+/** Termos técnicos que podem vir depois da qualidade e não fazem parte do nome. */
+const TECH_AFTER = /^(SD|HD|FHD|UHD|4K|8K|HQ|FULLHD|FULL|FHDR|HDR|HDR10|HLG|DV|H265|H264|HEVC|AVC|X265|X264|FPS|60FPS|50FPS|ALT|BACKUP|BKP)$/i;
+
 export function simplifyName(name: string): string {
   // Tira o que está entre colchetes ou parênteses: [ALT], [H265], (BACKUP)...
   // — menos numeração ("(1)", "[02]"), que diferencia canais ("XXX 01", "XXX 02").
@@ -19,9 +22,10 @@ export function simplifyName(name: string): string {
   for (let i = 1; i < words.length; i++) {
     const w = words[i].replace(/[^A-Za-z0-9]/g, '');
     if (QUALITY.test(w)) {
-      // Número depois da qualidade continua no nome: "CANAL HD 02".
-      const num = words.slice(i + 1).filter((x) => /^#?\d{1,3}$/.test(x));
-      return [...words.slice(0, i + 1), ...num].join(' ');
+      // Depois da qualidade sai só o que é técnico ("FHDR", "H265"); o resto continua no nome:
+      // "CANAL HD 02", "XXX 4K HOLED 01" (antes virava "XXX 4K 01" e estúdios diferentes ficavam iguais).
+      const rest = words.slice(i + 1).filter((x) => !TECH_AFTER.test(x.replace(/[^A-Za-z0-9]/g, '')) && /[A-Za-z0-9]/.test(x));
+      return [...words.slice(0, i + 1), ...rest].join(' ');
     }
   }
   return base || name.trim();

@@ -47,6 +47,20 @@ describe('canais com o mesmo nome', () => {
   });
 });
 
+describe('nome curto do canal', () => {
+  it('não perde o nome que vem depois da qualidade', () => {
+    const out = tidy([...ten((n) => `XXX 4K HOLED ${String(n).padStart(2, '0')}`), ...ten((n) => `XXX 4K BLACKED ${String(n).padStart(2, '0')}`)]);
+    expect(out).toHaveLength(20);
+    expect(out[0].name).toBe('XXX 4K HOLED 01');
+    expect(out[10].name).toBe('XXX 4K BLACKED 01');
+  });
+
+  it('continua tirando os termos técnicos', () => {
+    const out = tidy([live('GLOBO SP 4K FHDR', 'http://a.com/1.ts', 'Abertos'), live('SPORTV 2 FHD H265 60FPS', 'http://a.com/2.ts', 'Esportes')]);
+    expect(out.map((c) => c.name)).toEqual(['GLOBO SP 4K', 'SPORTV 2 FHD']);
+  });
+});
+
 describe('números decorados', () => {
   it('viram números comuns', () => {
     expect(plainDigits('XXX 4K ❿')).toBe('XXX 4K 10');
@@ -56,6 +70,12 @@ describe('números decorados', () => {
     expect(cleanLabel('XXX 4K 🔟')).toBe('XXX 4K 10');
     expect(cleanLabel('XXX 4K 1️⃣')).toBe('XXX 4K 1');
     expect(plainDigits('GLOBO SP HD')).toBe('GLOBO SP HD');
+  });
+
+  it('romanos e sobrescritos também', () => {
+    expect(plainDigits('HOLED Ⅹ')).toBe('HOLED 10');
+    expect(plainDigits('HOLED ¹⁰')).toBe('HOLED 10');
+    expect(plainDigits('HOLED ₃')).toBe('HOLED 3');
   });
 
   it('canais com números decorados ficam separados', () => {

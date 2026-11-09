@@ -26,10 +26,16 @@ function fancyDigit(cp: number): number {
   if (cp >= 0xff10 && cp <= 0xff19) return cp - 0xff10; // ０ a ９
   if (cp >= 0x1d7ce && cp <= 0x1d7ff) return (cp - 0x1d7ce) % 10; // 𝟎 𝟏 𝟐…
   if (cp === 0x1f51f) return 10; // 🔟
+  if (cp === 0xb9) return 1; // ¹
+  if (cp === 0xb2 || cp === 0xb3) return cp - 0xb0; // ² ³
+  if (cp === 0x2070 || (cp >= 0x2074 && cp <= 0x2079)) return cp - 0x2070; // ⁰ ⁴ a ⁹
+  if (cp >= 0x2080 && cp <= 0x2089) return cp - 0x2080; // ₀ a ₉
+  if (cp >= 0x2160 && cp <= 0x216b) return cp - 0x2160 + 1; // Ⅰ a Ⅻ
+  if (cp >= 0x2170 && cp <= 0x217b) return cp - 0x2170 + 1; // ⅰ a ⅻ
   return -1;
 }
 
-const MAYBE_FANCY = /[①-⓿❶-➓０-９\ud835\ud83d]/;
+const MAYBE_FANCY = /[²³¹⁰-₉Ⅰ-ⅻ①-⓿❶-➓０-９\ud835\ud83d]/;
 
 /** Troca números decorados por números comuns: "XXX 4K ❿" → "XXX 4K 10" (senão canais numerados viram um só). */
 export function plainDigits(s: string): string {

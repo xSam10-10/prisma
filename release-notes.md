@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.24.7
+- Correção: o nome do canal não perde mais o que vem depois da qualidade — "XXX 4K HOLED 01" aparecia como "XXX 4K 01", e canais de estúdios diferentes ficavam com o mesmo nome
+- Números romanos e pequenos (Ⅰ, Ⅹ, ¹, ²) no nome viram números comuns e esses canais não são mais juntados
+- Depois de atualizar, use Ajustes › Lista › "Atualizar lista agora" para recarregar os canais
+
 ## 0.24.6
 - Correção: canais diferentes com o mesmo nome no servidor (ex.: 10 canais "XXX 4K" na categoria Adultos) eram juntados num só; agora aparecem todos, numerados de 1 a 10. Só o mesmo canal vindo de outro servidor, ou marcado como [ALT], BACKUP ou H265, continua como fonte reserva
 - Canais com números decorados (❶, ①, 🔟, ０…) agora mostram o número normal e não são mais juntados
