@@ -274,7 +274,7 @@ export function installNavigation(): void {
     // Bloco com borda (ex.: coluna de categorias, data-nav-stop="left"): na borda, fica parado.
     const stop = upTo(cur, 'data-nav-stop');
     if (stop && (stop.getAttribute('data-nav-stop') || '').indexOf(d) >= 0) {
-      const inside = findNeighbor(cur, d, stop);
+      const inside = findNeighbor(cur, d, stop, d === 'up' || d === 'down' ? curRow : null);
       if (inside) focusEl(inside);
       return;
     }

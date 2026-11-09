@@ -1,6 +1,16 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.23.0 — visual premium IV
+- Busca nova: teclado em grade na tela, resultados com capas em fileiras e busca por ator/diretor ("ana souza") e por gênero ("terror")
+- Capa que cresce até virar a tela de detalhes ao apertar OK (fora na TV LG)
+- Selo "NOVO EP." com brilho nas séries que você acompanha quando sai episódio novo, e botão "Me avise" no próximo episódio
+- Coleções viraram maratona: progresso de quantos filmes já viu, "Continuar maratona" e, em Star Wars e X-Men, ordem da história
+- "Ainda está assistindo?" depois de 3 episódios seguidos sem tocar no controle
+- Dia de jogo: quando um dos Meus times joga hoje, faixa no alto do Início com as cores do time, contagem regressiva, placar ao vivo e o canal
+- Guia: o programa em foco aparece com imagem grande (do guia ou do TMDB), sinopse e quanto falta para terminar
+- Correção: detalhe de filme/série aberto do Início rolado aparecia cortado
+
 ## 0.22.0 — visual premium III
 - Ao abrir o app depois de ver um filme ou série, tela "Continuar assistindo" com a arte, o tempo que falta e o botão de retomar
 - Início muda com a hora do dia: "Bom dia, Samuel", cor de fundo e ordem das fileiras (de manhã os canais, à noite "Para assistir hoje à noite")

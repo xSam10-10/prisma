@@ -14,6 +14,7 @@ import { useTmdb } from '../ui/useTmdb';
 import { TitleLogo } from '../ui/premium';
 import { celebrate, pop, toast } from '../ui/premium2';
 import { CinemaIntro, EndCredits, Screensaver, SeekThumb } from '../ui/premium3';
+import { StillWatching } from '../ui/premium4';
 import { scenesOf } from '../core/tmdb';
 import { collectionsIn, topsNow } from '../core/tops';
 import { ChannelLogo, Icon, fmtTime } from '../ui/bits';
@@ -281,18 +282,45 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     };
   }, [channel?.id, vod, nextEp?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "Ainda está assistindo?": 3 episódios seguidos começando sozinhos, sem tocar no controle.
+  const autoEps = useRef(0);
+  const [still, setStill] = useState(false);
+  const stillRef = useRef(false);
+  stillRef.current = still;
+  useEffect(() => {
+    const reset = () => {
+      autoEps.current = 0;
+    };
+    window.addEventListener('keydown', reset, true);
+    window.addEventListener('mousedown', reset, true);
+    window.addEventListener('touchstart', reset, true);
+    return () => {
+      window.removeEventListener('keydown', reset, true);
+      window.removeEventListener('mousedown', reset, true);
+      window.removeEventListener('touchstart', reset, true);
+    };
+  }, []);
   // Contagem do próximo episódio
   useEffect(() => {
     if (nextIn === null) return;
     if (nextIn <= 0) {
       setNextIn(null);
+      if (autoEps.current >= 3) {
+        videoRef.current?.pause();
+        setStill(true);
+        return;
+      }
+      autoEps.current += 1;
       onNext?.();
       return;
     }
     const t = setTimeout(() => setNextIn((n) => (n === null ? n : n - 1)), 1000);
     return () => clearTimeout(t);
   }, [nextIn]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => setNextIn(null), [channel?.id]);
+  useEffect(() => {
+    setNextIn(null);
+    setStill(false);
+  }, [channel?.id]);
   useEffect(() => {
     if (nextIn === 10) requestAnimationFrame(() => focusFirst(document.querySelector<HTMLElement>('.next-ep')));
   }, [nextIn]);
@@ -463,6 +491,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     const onKey = (e: KeyboardEvent) => {
       // Janela aberta (ex.: escolher seção) ou lista de canais: elas tratam as teclas.
       if (document.querySelector('.modal-back') || listOpenRef.current || guideOpenRef.current) return;
+      if (stillRef.current) return;
       // Protetor de tela: qualquer tecla volta (sem mais efeito).
       if (saverRef.current) {
         setSaver(false);
@@ -1088,6 +1117,23 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         <EndCredits item={channel} items={playlist.items} next={nextInColl} onDismiss={() => setCreditsOff(true)} onPlay={(c) => { setCreditsOff(true); onPlayVod?.(c); }} />
       )}
       {intro && channel && <CinemaIntro item={channel} />}
+      {still && channel && (
+        <StillWatching
+          title={channel.seriesId ? `${channel.group} · a seguir: ${nextEp?.name.split('·').slice(1).join('·').trim() || 'próximo episódio'}` : channel.name}
+          poster={tmP?.poster}
+          onContinue={() => {
+            setStill(false);
+            autoEps.current = 0;
+            onNext?.();
+          }}
+          onStop={() => {
+            setStill(false);
+            autoEps.current = 0;
+            videoRef.current?.pause();
+            onMode('preview');
+          }}
+        />
+      )}
       {saver && channel && <Screensaver items={[channel, ...vodRecents(), ...myList()].filter((c, i, a) => a.findIndex((x) => x.id === c.id) === i)} title={channel.seriesId ? channel.group : channel.name} onExit={() => setSaver(false)} />}
       {full && vod && nextEp && nextIn !== null && (
         <div className="next-ep">

@@ -4,12 +4,11 @@ import type { Channel, Playlist } from '../core/types';
 import { hasReminder, toggleReminder } from '../core/games';
 import { todayHighlights, tonightPicks } from '../core/highlights';
 import { hasXmltv, loadXmltv } from '../core/xmltv';
-import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol, colorFor, fmtTime, rgba } from '../ui/bits';
+import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol, colorFor, fmtTime, initials, rgba } from '../ui/bits';
 import { progressOf } from '../core/epg';
 import { useClock, useEpg } from '../ui/useEpg';
-import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
-import { focusFirst } from '../ui/nav';
-import { useLayout } from '../ui/layout';
+import { focusEl, focusFirst } from '../ui/nav';
+import { LayoutContext, useLayout } from '../ui/layout';
 import { Carousel } from '../ui/Carousel';
 import { CollectionView, PosterCard, VodDetail } from './Vod';
 import { getProgress, myList, vodRecents } from '../core/vod';
@@ -19,12 +18,14 @@ import { TitleLogo } from '../ui/premium';
 import { useTmdb } from '../ui/useTmdb';
 import { FeatureRow, PreviewBackdrop, SkeletonRow, WideCard } from '../ui/premium';
 import { CollectionCard, EmptyState, PosterTile, TrailerLayer, pop, setHomeScrolled, toast } from '../ui/premium2';
-import { lookup, nextEpisodeOf, similarOf } from '../core/tmdb';
+import { episodesOf, lookup, personOf, searchPerson, similarOf, tmdbKey } from '../core/tmdb';
 import { DAYPART, LivePeek, ResumeOpen, UpcomingCard, dayPart, takeResumeOnce, useLivePeek } from '../ui/premium3';
 import { currentProfile } from '../core/profiles';
-import { findInList } from '../core/tops';
+import { SEARCH_GENRES, findInList, genreMatches } from '../core/tops';
 import { prefGet } from '../core/storage';
 import { VoiceButton } from '../ui/Voice';
+import { GameDay } from './GameDay';
+import { setNewEpisodes, takeDueAlerts } from '../core/newEpisodes';
 
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -84,22 +85,34 @@ export function Home({
   useEffect(() => {
     let alive = true;
     const series: Channel[] = [];
-    for (const v of vodRecents()) {
-      if (!v.seriesId || series.some((x) => x.id === v.seriesId)) continue;
-      const s = playlist.items.find((i) => i.id === v.seriesId);
+    const ids = [...vodRecents().map((v) => v.seriesId), ...myList().filter((m) => m.kind === 'series').map((m) => m.id)];
+    for (const id of ids) {
+      if (!id || series.some((x) => x.id === id)) continue;
+      const s = playlist.items.find((i) => i.id === id);
       if (s) series.push(s);
-      if (series.length >= 6) break;
+      if (series.length >= 10) break;
     }
+    // Lembretes "Me avise" cujo episódio já saiu
+    const today = new Date().toISOString().slice(0, 10);
+    for (const a of takeDueAlerts(today)) toast(`Saiu T${a.s} E${a.e} de ${a.name}`, '🔔');
+    const fresh = new Map<string, { s: number; e: number; date: string }>();
     Promise.all(
       series.map(async (s) => {
         const info = await lookup(s);
-        const n = info ? await nextEpisodeOf(info) : null;
+        const eps = info ? await episodesOf(info) : {};
+        const l = eps.last;
+        if (l && Date.parse(l.date + 'T12:00:00') > Date.now() - 7 * 86400000 && Date.parse(l.date + 'T12:00:00') <= Date.now() + 86400000) fresh.set(s.id, { s: l.season, e: l.episode, date: l.date });
+        const n = eps.next && Date.parse(eps.next.date + 'T12:00:00') <= Date.now() + 9 * 86400000 ? eps.next : l;
         if (!n) return null;
         const d = Date.parse(n.date + 'T12:00:00');
         if (d < Date.now() - 2 * 86400000 || d > Date.now() + 9 * 86400000) return null;
         return { key: 'f' + s.id, title: s.name, date: d, kind: 'tv' as const, poster: info?.poster, item: s, ep: `Novo episódio · T${n.season} E${n.episode}` };
       }),
-    ).then((r) => alive && setFollowed(r.filter(Boolean) as Upcoming[]));
+    ).then((r) => {
+      if (!alive) return;
+      setFollowed(r.filter(Boolean) as Upcoming[]);
+      setNewEpisodes(fresh);
+    });
     return () => {
       alive = false;
     };
@@ -139,6 +152,9 @@ export function Home({
       <div className="daypart-hi" style={{ order: -3, padding: `${mobile ? 0 : 4}px ${L.px}px 0` }}>
         <b>{DAYPART[part].hi}, {currentProfile().name}</b>
         {!mobile && <span>{DAYPART[part].sub}</span>}
+      </div>
+      <div style={{ order: -2 }}>
+        <GameDay playlist={playlist} onWatch={onWatch} />
       </div>
       <div style={{ order: -2 }}>
       <Hero
@@ -323,9 +339,10 @@ export function Home({
         />
       )}
       <Shelf playlist={playlist} title="Vistos por último" badgeFor={(_c, i) => (i === 0 ? 'Último' : undefined)} items={recents} empty="Os canais que você assistir aparecem aqui." onWatch={(c) => onWatch(c, recents)} />
-      {coll && <CollectionView playlist={playlist} c={coll} onPlay={onPlayVod} onClose={() => setColl(null)} />}
-      {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => setDetail(null)} />}
     </div>
+    {/* Fora da área rolável: senão o detalhe fica preso ao alto do conteúdo quando o Início está rolado. */}
+    {coll && <CollectionView playlist={playlist} c={coll} onPlay={onPlayVod} onClose={() => setColl(null)} />}
+    {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => setDetail(null)} />}
     {resume && (
       <ResumeOpen
         item={resume}
@@ -504,89 +521,195 @@ function Shelf({ playlist, title, items, empty, onWatch, badgeFor }: { playlist:
 // ---------------------------------------------------------------- Busca
 export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; onWatch: (c: Channel, list: Channel[]) => void; onPlayVod: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const [detail, setDetail] = useState<Channel | null>(null);
-  const [kind, setKind] = useState<'all' | 'live' | 'movie' | 'series'>('all');
   const [q, setQ] = useState('');
-  const [index, setIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<VirtualListHandle>(null);
-  useEffect(() => inputRef.current?.focus(), []);
-  const results = useMemo(() => {
-    const n = normalize(q.trim());
-    if (n.length < 2) return [];
-    return playlist.items.filter((i) => normalize(i.fullName ?? i.name).includes(n)).slice(0, 500);
-  }, [q, playlist]);
-  const live = results.filter((r) => r.kind === 'live');
-  const movies = results.filter((r) => r.kind === 'movie');
-  const series = results.filter((r) => r.kind === 'series');
-  // Canais primeiro, depois filmes e séries.
-  const shown = kind === 'live' ? live : kind === 'movie' ? movies : kind === 'series' ? series : [...live, ...movies, ...series];
+  const box = useRef<HTMLDivElement>(null);
+  const lastFocus = useRef<HTMLElement | null>(null);
   const L = useLayout();
   const mobile = L.form === 'mobile';
+  const tops = useTopsState(playlist).data;
+  const [person, setPerson] = useState<null | { name: string; photo?: string; items: Channel[] }>(null);
+  useEffect(() => {
+    if (mobile) inputRef.current?.focus();
+    else requestAnimationFrame(() => box.current?.querySelector<HTMLElement>('.sk-key')?.focus());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const qt = q.trim();
+  const results = useMemo(() => {
+    const n = normalize(qt);
+    if (n.length < 2) return [];
+    return playlist.items.filter((i) => normalize(i.fullName ?? i.name).includes(n)).slice(0, 500);
+  }, [qt, playlist]);
+  const live = results.filter((r) => r.kind === 'live').slice(0, 30);
+  const movies = results.filter((r) => r.kind === 'movie');
+  const series = results.filter((r) => r.kind === 'series');
+  const genre = useMemo(() => genreMatches(tops, qt, playlist.items), [tops, qt, playlist]);
+  // Ator/diretor (TMDB): espera parar de digitar e mostra os títulos dele que estão na lista.
+  useEffect(() => {
+    setPerson(null);
+    if (qt.length < 4 || !tmdbKey() || genre) return;
+    let alive = true;
+    const t = setTimeout(async () => {
+      const p = await searchPerson(qt);
+      if (!alive || !p) return;
+      const full = await personOf(p.id);
+      if (!alive || !full) return;
+      const mine: Channel[] = [];
+      for (const x of full.credits) {
+        const hit = findInList({ t: x.title, o: x.original, y: x.year }, x.type, playlist.items);
+        if (hit && !mine.some((m) => m.id === hit.id)) mine.push(hit);
+        if (mine.length >= 20) break;
+      }
+      if (alive && mine.length) setPerson({ name: p.name, photo: p.photo, items: mine });
+    }, 650);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [qt, playlist, !!genre]); // eslint-disable-line react-hooks/exhaustive-deps
+  const type = (k: string) => setQ((v) => (k === '⌫' ? v.slice(0, -1) : k === 'limpar' ? '' : k === 'espaço' ? (v && !v.endsWith(' ') ? v + ' ' : v) : v + k));
+  // No computador: digitar com o teclado físico mesmo com o foco nas teclas da tela.
+  useEffect(() => {
+    if (mobile) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (detail || e.ctrlKey || e.altKey || e.metaKey) return;
+      const a = document.activeElement;
+      if (a && a.tagName === 'INPUT') return;
+      if (e.key.length === 1 && /[a-z0-9à-ÿ ]/i.test(e.key)) {
+        e.preventDefault();
+        type(e.key === ' ' ? 'espaço' : e.key.toLowerCase());
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        type('⌫');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobile, detail]); // eslint-disable-line react-hooks/exhaustive-deps
+  const open = (c: Channel) => {
+    lastFocus.current = document.activeElement as HTMLElement | null;
+    if (c.kind === 'live') onWatch(c, live);
+    else setDetail(c);
+  };
+  const kbW = mobile ? 0 : Math.min(470, Math.round(L.W * 0.3));
+  const gapK = 40;
+  const resW = L.W - L.px * 2 - (mobile ? 0 : kbW + gapK);
+  const inner = { ...L, W: resW + 2, px: 1 };
+  const keys = 'abcdefghijklmnopqrstuvwxyz1234567890'.split('');
+  const nothing = qt.length >= 2 && !results.length && !genre && !person;
   return (
-    <div className="gy-16" style={{ position: 'absolute', left: L.px, right: L.px, top: L.top + (mobile ? 0 : 10), bottom: L.bottom, display: 'flex', flexDirection: 'column' }}>
-      <div className="field" style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <input
-          ref={inputRef}
-          data-nav=""
-          placeholder="Buscar canal, filme ou série"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setIndex(0);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && shown.length) {
-              e.preventDefault();
-              listRef.current?.focus();
-            }
-          }}
-          style={{ height: mobile ? 50 : 60, fontSize: mobile ? 18 : 22, flexGrow: 1, textTransform: 'uppercase' }}
-        />
-        <span style={{ marginLeft: 12 }}><VoiceButton size={mobile ? 46 : 56} onText={(t) => { setQ(t); setIndex(0); }} /></span>
-      </div>
-      {q.trim().length < 2 ? (
-        <span className="muted" style={{ fontSize: 16 }}>Digite pelo menos 2 letras. Procura em canais, filmes e séries. Na TV, o teclado do aparelho aparece ao apertar OK no campo.</span>
-      ) : (
-        <div className="scroll-x" style={{ flexShrink: 0 }}>
-          {([['all', 'Tudo', results.length], ['live', 'Canais', live.length], ['movie', 'Filmes', movies.length], ['series', 'Séries', series.length]] as const).map(([id, label, n]) => (
-            <button key={id} className={'chip' + (kind === id ? ' on' : '')} data-nav="" onClick={() => { setKind(id); setIndex(0); }}>{label} · {n}</button>
-          ))}
+    <>
+    <div ref={box} className="search2 screen-in" style={{ position: 'absolute', left: L.px, right: L.px, top: L.top + (mobile ? 0 : 10), bottom: L.bottom, display: 'flex', flexDirection: mobile ? 'column' : 'row' }}>
+      <div className="sk-col" data-nav-stop="down" style={mobile ? { flexShrink: 0 } : { width: kbW, flexShrink: 0, marginRight: gapK }}>
+        <div className="sk-field">
+          <span className="sk-ic">{Icon.search}</span>
+          <input
+            ref={inputRef}
+            data-nav=""
+            placeholder="Buscar"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const first = box.current?.querySelector<HTMLElement>('.sr-col [data-nav]');
+                first?.focus();
+              }
+            }}
+          />
+          <VoiceButton size={mobile ? 44 : 50} onText={(t) => setQ(t)} />
         </div>
-      )}
-      <div className={mobile ? '' : 'glass'} style={{ flexGrow: 1, borderRadius: T.radiusPanel, padding: mobile ? 0 : 16, display: 'flex', minHeight: 0 }}>
-        <VirtualList
-          ref={listRef}
-          items={shown}
-          index={index}
-          onIndex={setIndex}
-          onPick={(c) => (c.kind === 'live' ? onWatch(c, live) : setDetail(c))}
-          label="Resultados"
-          rowHeight={60}
-          render={(c) => (
-            <>
-              <span className="num">{c.kind === 'live' ? c.number ?? '' : ''}</span>
-              {c.kind === 'live' ? (
-                <ChannelLogo ch={c} />
-              ) : (
-                <span className="mini-poster">{c.logo ? <img src={c.logo} alt="" loading="lazy" referrerPolicy="no-referrer" /> : null}</span>
-              )}
-              <div className="txt">
-                <span className="name">{c.name}</span>
-                <span className="sub caps" style={{ fontSize: 13 }}>
-                  {c.kind === 'live' ? 'Canal' : c.kind === 'movie' ? 'Filme' : 'Série'}{c.year ? ` · ${c.year}` : ''} · {c.group}
-                </span>
+        {!mobile && (
+          <>
+            <div className="sk-grid" data-nav-group="">
+              {keys.map((k) => (
+                <button key={k} className="sk-key" data-nav="" onClick={() => type(k)}>{k}</button>
+              ))}
+            </div>
+            <div className="sk-row">
+              <button className="sk-key wide" data-nav="" onClick={() => type('espaço')}>espaço</button>
+              <button className="sk-key" data-nav="" aria-label="Apagar" onClick={() => type('⌫')}>⌫</button>
+              <button className="sk-key wide" data-nav="" onClick={() => type('limpar')}>limpar</button>
+            </div>
+            <span className="muted sk-hint">Busca por nome, ator, diretor ou gênero. No computador, pode digitar direto.</span>
+          </>
+        )}
+      </div>
+      <div
+        className="scroll-y sr-col"
+        data-nav-stop="down"
+        style={{ flexGrow: 1, minWidth: 0, paddingBottom: 80 }}
+        onKeyDown={(e) => {
+          // ◀ na primeira capa de uma fileira: volta para o teclado (a fileira prende ◀▶).
+          if (mobile || (e.key !== 'ArrowLeft' && e.keyCode !== 37)) return;
+          const a = document.activeElement as HTMLElement | null;
+          const row = a?.closest('[data-nav-row]');
+          if (!a || !row) return;
+          const items = Array.prototype.slice.call(row.querySelectorAll('[data-nav]')) as HTMLElement[];
+          const left = Math.min(...items.filter((i) => i.getBoundingClientRect().width > 0).map((i) => i.getBoundingClientRect().left));
+          const ar = a.getBoundingClientRect();
+          if (ar.left > left + 2) return;
+          const keys = Array.prototype.slice.call(box.current?.querySelectorAll('.sk-key') ?? []) as HTMLElement[];
+          const cy = ar.top + ar.height / 2;
+          let best: HTMLElement | null = null;
+          let bd = Infinity;
+          for (const k of keys) {
+            const r = k.getBoundingClientRect();
+            const dd = Math.abs(r.top + r.height / 2 - cy) * 3 - r.right;
+            if (dd < bd) {
+              bd = dd;
+              best = k;
+            }
+          }
+          if (best) {
+            e.preventDefault();
+            focusEl(best);
+          }
+        }}
+      >
+        <LayoutContext.Provider value={inner}>
+          {qt.length < 2 ? (
+            <div className="sr-intro">
+              <span className="sr-h">Explorar por gênero</span>
+              <div className="sr-genres">
+                {SEARCH_GENRES.slice(0, 14).map((g, i) => (
+                  <button key={g} className="sr-genre" data-nav="" onClick={() => setQ(g)} style={{ background: `linear-gradient(135deg, ${rgba(colorFor(g + i), 0.55)} 0%, ${rgba(colorFor(g), 0.18)} 100%)` }}>
+                    {g}
+                  </button>
+                ))}
               </div>
+            </div>
+          ) : nothing ? (
+            <EmptyState kind="search" title={`Nada encontrado para “${qt}”`} text="Tente outra palavra, sem “HD” ou “FHD”, só parte do nome, o nome de um ator ou um gênero." />
+          ) : (
+            <>
+              {genre && (
+                <Carousel title={`Gênero: ${genre.genre}`} subtitle={`${genre.items.length} títulos na sua lista`} items={genre.items} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
+              )}
+              {live.length > 0 && (
+                <Carousel title="Canais" subtitle={`${live.length}`} items={live} keyOf={(i) => i.id} minWidth={mobile ? 150 : 190} render={(c, _i, w) => <ChannelTile ch={c} width={w} onClick={() => open(c)} sub={c.group} />} />
+              )}
+              {movies.length > 0 && (
+                <Carousel title="Filmes" subtitle={`${movies.length}`} items={movies} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
+              )}
+              {series.length > 0 && (
+                <Carousel title="Séries" subtitle={`${series.length}`} items={series} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
+              )}
+              {person && (
+                <div className="sr-person">
+                  <div className="sr-person-head">
+                    <span className="sr-person-ph">{person.photo ? <img src={person.photo} alt="" referrerPolicy="no-referrer" /> : initials(person.name)}</span>
+                    <span><span className="paused-tag">Elenco e direção</span><b>{person.name}</b></span>
+                  </div>
+                  <Carousel title="Na sua lista" subtitle={`${person.items.length} títulos com ${person.name.split(' ')[0]}`} items={person.items} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
+                </div>
+              )}
             </>
           )}
-          empty={
-            q.trim().length >= 2 ? (
-              <EmptyState kind="search" title={`Nada encontrado para “${q.trim()}”`} text="Tente outra palavra, sem “HD” ou “FHD”, ou só parte do nome." />
-            ) : null
-          }
-        />
+        </LayoutContext.Provider>
       </div>
-      {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => { setDetail(null); requestAnimationFrame(() => listRef.current?.focus()); }} />}
     </div>
+    {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlayVod} onClose={() => { setDetail(null); requestAnimationFrame(() => lastFocus.current?.focus()); }} />}
+    </>
   );
 }
 

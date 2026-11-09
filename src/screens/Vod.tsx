@@ -12,13 +12,15 @@ import { VirtualGrid, type VirtualGridHandle } from '../ui/VirtualGrid';
 import { VirtualList } from '../ui/VirtualList';
 import { VoiceButton, voiceSupported } from '../ui/Voice';
 import { useTmdb } from '../ui/useTmdb';
-import { castOf, personOf, ratingOf, searchTitle, similarOf, trailerOf, type CastMember, type Person } from '../core/tmdb';
+import { castOf, episodesOf, personOf, ratingOf, searchTitle, similarOf, trailerOf, type CastMember, type Person } from '../core/tmdb';
 import { collectionsIn, findInList, matchedLists, streamCatalog, streamGenreLists, type Collection, type MatchedList } from '../core/tops';
 import { CollectionCard, EmptyState, GenreCard, PosterTile, pop, toast, useDominantColor } from '../ui/premium2';
 import { StackedRows, StreamBanner, type Row } from './TopRows';
 import { useTopsState } from '../ui/useTops';
 import { categoryColumnWidth } from '../ui/catColumn';
 import { Modal } from '../ui/Dialog';
+import { hasEpAlert, newEpisodeOf, onNewEpisodes, toggleEpAlert } from '../core/newEpisodes';
+import { ZoomFrom } from '../ui/premium4';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
 // grade de capas com busca; OK abre o detalhe (sinopse, elenco, episódios).
@@ -41,9 +43,11 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
   }, [img]);
   const p = getProgress(item.id);
   const c = colorFor(item.group || item.name);
+  const [, tick] = useState(0);
+  useEffect(() => (item.kind === 'series' ? onNewEpisodes(() => tick((x) => x + 1)) : undefined), [item.kind]);
   const badges = badgesOf(item);
   return (
-    <div className={'poster' + (selected ? ' sel' : '')}>
+    <div className={'poster' + (selected ? ' sel' : '') + (badges.some((b) => b.k === 'newep') ? ' newep' : '')}>
       <div className="poster-art" style={{ height: Math.round(w * 1.5), background: `linear-gradient(160deg, ${rgba(c, 0.6)} 0%, ${rgba(c, 0.18)} 45%, #12121a 100%)` }}>
         {(!img || broken || !loaded) && (
           <div className="poster-fb" aria-hidden={!!img && !broken}>
@@ -523,6 +527,20 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
       alive = false;
     };
   }, [tm?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Série: próximo episódio a sair ("Me avise") e episódio novo.
+  const [nextEp, setNextEp] = useState<{ date: string; season: number; episode: number } | null>(null);
+  const [alert, setAlert] = useState(false);
+  useEffect(() => {
+    setNextEp(null);
+    setAlert(hasEpAlert(item.id));
+    if (!tm || item.kind !== 'series') return;
+    let alive = true;
+    episodesOf(tm).then((r) => alive && r.next && Date.parse(r.next.date + 'T12:00:00') > Date.now() - 86400000 && setNextEp(r.next));
+    return () => {
+      alive = false;
+    };
+  }, [tm?.id, item.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const freshEp = item.kind === 'series' ? newEpisodeOf(item.id) : undefined;
   // Elenco com foto e "Semelhantes" (TMDB, só o que existe na lista)
   const [cast, setCast] = useState<CastMember[]>([]);
   const [similar, setSimilar] = useState<Channel[]>([]);
@@ -551,10 +569,11 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
   // Paleta do título: cor dominante do pôster no brilho do fundo e no botão principal.
   const tint = useDominantColor(tm?.poster, colorFor(item.name));
   const rating = info?.rating ?? item.rating ?? tm?.rating;
-  const badges = badgesOf(item);
+  const badges = badgesOf(item).filter((b) => b.k !== 'newep');
   const epH = mobile ? 92 : 112;
   return (
     <div className="vod-detail screen-in" data-nav-scope="" ref={box}>
+      <ZoomFrom />
       {backdrop && <img className={'vd-backdrop fade-img' + (bgOk ? ' in' : '')} src={backdrop} alt="" referrerPolicy="no-referrer" onLoad={() => setBgOk(true)} />}
       <div className="vd-shade" />
       <div className="vd-tint" style={{ background: `radial-gradient(ellipse 60% 70% at 15% 85%, ${rgba(tint, 0.28)} 0%, rgba(0,0,0,0) 70%)` }} />
@@ -569,6 +588,12 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
             {badges.map((b) => <span key={b.t} className={'pbadge ' + b.k}>{b.t}</span>)}
             <span className="vd-pill ghost">{item.group}</span>
           </div>
+          {(nextEp || freshEp) && (
+            <span className="next-ep-line">
+              {freshEp && <b className="newep-tag">NOVO EPISÓDIO · T{freshEp.s} E{freshEp.e}</b>}
+              {nextEp && <span>Próximo: T{nextEp.season} E{nextEp.episode} · {new Date(nextEp.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}</span>}
+            </span>
+          )}
           {!info && !failed && <span className="muted">Carregando informações…</span>}
           {plot && <p className="vd-plot">{plot}</p>}
           {info?.director && <span className="muted" style={{ fontSize: 15 }}><b style={{ color: '#D6D6E0' }}>Direção:</b> {info.director}</span>}
@@ -603,6 +628,20 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
             >
               {saved ? '✓ Na Minha lista' : '+ Minha lista'}
             </button>
+            {nextEp && (
+              <button
+                className={'btn' + (alert ? ' on-alert' : '')}
+                data-nav=""
+                onClick={(e) => {
+                  const on = toggleEpAlert({ id: item.id, name: item.name, date: nextEp.date, s: nextEp.season, e: nextEp.episode });
+                  setAlert(on);
+                  pop(e.currentTarget);
+                  toast(on ? `Vamos avisar quando sair T${nextEp.season} E${nextEp.episode}` : 'Aviso cancelado', on ? '🔔' : '✕');
+                }}
+              >
+                {alert ? '🔔 Aviso ligado' : '🔔 Me avise'}
+              </button>
+            )}
             <button className="btn" data-nav="" onClick={onClose}>Voltar</button>
           </div>
         </div>
@@ -845,30 +884,66 @@ export function CollectionView({ playlist, c, onClose, onPlay }: { playlist: Pla
       return true;
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [chrono, setChrono] = useState(false);
+  const [, bump] = useState(0);
+  const list = chrono && c.chrono ? c.chrono : c.items;
   const years = c.items.map((i) => i.year ?? searchTitle(i.fullName ?? i.name).year).filter(Boolean) as number[];
+  // Maratona: quantos já foram vistos e qual é o próximo na ordem escolhida.
+  const seen = (i: Channel) => isWatched(i.id) || (() => {
+    const p = getProgress(i.id);
+    return !!p && p.dur > 0 && p.pos / p.dur > 0.95;
+  })();
+  const done = list.filter(seen).length;
+  const next = list.find((i) => !seen(i));
+  const nextIdx = next ? list.indexOf(next) : -1;
+  const started = done > 0 || list.some((i) => getProgress(i.id));
   return (
     <div className="vod-detail screen-in" data-nav-scope="" ref={box}>
+      <ZoomFrom />
       {c.backdrop && <img className={'vd-backdrop fade-img' + (ok ? ' in' : '')} src={c.backdrop} alt="" referrerPolicy="no-referrer" onLoad={() => setOk(true)} />}
       <div className="vd-shade" />
       <div className="scroll-y vd-scroll" style={{ padding: `${mobile ? 20 : 70}px ${L.px}px 60px` }}>
         <div className="vd-hero" style={{ minHeight: mobile ? undefined : Math.round(L.H * 0.42), maxWidth: mobile ? undefined : Math.round(L.W * 0.55) }}>
-          <span className="paused-tag">Coleção</span>
+          <span className="paused-tag">Coleção · maratona</span>
           <span className="title vd-title" style={{ fontSize: mobile ? 32 : 56 }}>{c.title}</span>
           <div className="vd-pills">
             <span className="vd-pill">{c.items.length} filmes na sua lista</span>
             {years.length > 1 && <span className="vd-pill">{Math.min(...years)} – {Math.max(...years)}</span>}
-            <span className="vd-pill ghost">Em ordem de lançamento</span>
+          </div>
+          <div className="marathon">
+            <span className="marathon-txt">
+              <b>{done === list.length ? 'Maratona concluída ✓' : `${done} de ${list.length} vistos`}</b>
+              {next && done > 0 ? ` · a seguir: ${next.name}` : ''}
+            </span>
+            <span className="marathon-bar">
+              {list.map((i) => (
+                <span key={i.id} className={seen(i) ? 'on' : i === next ? 'next' : ''} />
+              ))}
+            </span>
           </div>
           <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', marginTop: 10 }}>
-            <button className="btn primary" data-nav="" data-nav-default="" onClick={() => setDetail(c.items[0])}>▶ Começar pelo primeiro</button>
+            {next ? (
+              <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onPlay(next, getProgress(next.id)?.pos, list.slice(nextIdx))}>
+                ▶ {started ? `Continuar maratona · ${nextIdx + 1}º` : 'Começar a maratona'}
+              </button>
+            ) : (
+              <button className="btn primary" data-nav="" data-nav-default="" onClick={() => onPlay(list[0], 0, list)}>↺ Rever do primeiro</button>
+            )}
+            {c.chrono && (
+              <span className="seg">
+                <button className={'chip' + (!chrono ? ' on' : '')} data-nav="" onClick={() => setChrono(false)}>Ordem de lançamento</button>
+                <button className={'chip' + (chrono ? ' on' : '')} data-nav="" onClick={() => setChrono(true)}>Ordem da história</button>
+              </span>
+            )}
             <button className="btn" data-nav="" onClick={onClose}>Voltar</button>
           </div>
+          {!c.chrono && <span className="muted" style={{ fontSize: 15, marginTop: 6 }}>Em ordem de lançamento</span>}
         </div>
         <div className="vd-sec-wide" style={{ marginLeft: -L.px, marginRight: -L.px }}>
-          <Carousel title="Filmes da coleção" items={c.items} keyOf={(i) => i.id} minWidth={mobile ? 110 : 168} render={(it, i, w) => <PosterTile item={it} w={w} rank={i + 1} onPick={setDetail} />} />
+          <Carousel title="Filmes da coleção" subtitle={chrono ? 'Na ordem da história' : 'Na ordem de lançamento'} items={list} keyOf={(i) => i.id} minWidth={mobile ? 110 : 168} render={(it, i, w) => <PosterTile item={it} w={w} rank={i + 1} onPick={setDetail} />} />
         </div>
       </div>
-      {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlay} onClose={() => setDetail(null)} />}
+      {detail && <VodDetail playlist={playlist} item={detail} onPlay={onPlay} onClose={() => { setDetail(null); bump((x) => x + 1); }} />}
     </div>
   );
 }

@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.22.0)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.23.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -453,6 +453,16 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Gerador dos Tops: bloco 7a `estreias-movie`/`estreias-tv` (discover −2…+8 dias, itens com `d` data e `p` pôster); app: `upcomingOf` + próximos episódios das séries vistas → "Chegando esta semana".
 - Tema `oled` em `themes.ts`. Player: `useLayoutEffect` do `barH` só faz setState quando muda (antes laço "Maximum update depth" nos filmes).
 - Servidor falso: /person, release_dates, content_ratings, /tv/{id} com próximo episódio, elenco com `id`, discover com datas.
+
+## 10af. Versão 0.23.0 — visual premium IV (rodada 4: aprovados 2, 4, 5, 6, 10, 12, 13; o resto descartado)
+- Busca (`Search` em Other.tsx): teclado em grade `.sk-*` (foco inicial na tecla A; teclado físico digita direto), resultados em `Carousel` com `LayoutContext` da coluna da direita; `genreMatches`/`SEARCH_GENRES` (tops.ts: listas genero/stgenero + categorias com o nome), `searchPerson` (tmdb.ts) + `personOf` → fileira "Na sua lista". ◀ na 1ª capa volta ao teclado; `data-nav-stop="down"` nas duas colunas. nav.ts: no bloco `data-nav-stop`, ▲▼ ignoram a própria fileira.
+- `src/ui/premium4.tsx`: `ZoomFrom` (listener de clique em captura guarda o retângulo da `.poster-art`; o detalhe aberto em < 900 ms cresce a partir dele; fora em `lite`), `StillWatching`.
+- `src/core/newEpisodes.ts`: mapa de episódios novos (último episódio nos últimos 7 dias, `episodesOf` no TMDB) calculado no Início para até 10 séries (vistas + Minha lista); selo `newep` em `badgesOf`; "Me avise" (pref `epAlerts`, por perfil) → aviso no Início quando a data chega (`takeDueAlerts`).
+- Coleção: `Collection.chrono` (tabela `CHRONO` com ids do TMDB de Star Wars e X-Men), barra de maratona, `onPlay(next, pos, fila)`.
+- Player: `autoEps` conta próximos episódios automáticos; qualquer tecla/clique zera; no 4º automático mostra `StillWatching`.
+- `src/screens/GameDay.tsx`: Meus times + `loadGames` (3,5 s depois de abrir o Início) + `loadScores` a cada minuto; faixa compacta.
+- Guia: cabeçalho de 204 px com arte (EPG ou TMDB filtrando telejornal/esporte), sinopse em 3 linhas, barra "termina em".
+- Correções: detalhe/coleção do Início renderizados fora da área rolável (antes cortavam com o Início rolado); polyfill de `Element.closest` em main.tsx (Chrome 38).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

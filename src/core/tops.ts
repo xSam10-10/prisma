@@ -244,6 +244,25 @@ export interface Collection {
   /** Arte larga (URL completa) */
   backdrop?: string;
   items: Channel[];
+  /** Ordem da história, quando é diferente da de lançamento (ex.: Star Wars, X-Men). */
+  chrono?: Channel[];
+}
+
+// Ordem cronológica da história (ids de filmes do TMDB), só das sagas em que ela muda.
+const CHRONO: number[][] = [
+  // Star Wars: I, II, III, Solo, Rogue One, IV, V, VI, VII, VIII, IX
+  [1893, 1894, 1895, 348350, 330459, 11, 1891, 1892, 140607, 181808, 181812],
+  // X-Men: Primeira Classe, Dias de um Futuro Esquecido, Apocalipse, Fênix Negra, X-Men, X2, O Confronto Final
+  [49538, 127585, 246655, 320288, 36657, 36658, 36668],
+];
+
+function chronoOf(l: TopList, ranked: Ranked[]): Channel[] | undefined {
+  const ids = ranked.map((r) => l.items[r.rank - 1]?.i);
+  const order = CHRONO.find((c) => ids.filter((id) => id && c.includes(id)).length >= 2);
+  if (!order) return undefined;
+  const pos = (id?: number) => (id && order.includes(id) ? order.indexOf(id) : 999);
+  const sorted = ranked.map((r, k) => ({ item: r.item, p: pos(ids[k]), k })).sort((a, b) => a.p - b.p || a.k - b.k);
+  return sorted.some((x, k) => x.k !== k) ? sorted.map((x) => x.item) : undefined;
 }
 
 /** Coleções e sagas (TMDB) com 2+ filmes na lista, em ordem de lançamento; as mais completas primeiro. */
@@ -251,7 +270,10 @@ export function collectionsIn(data: TopsData | null, items: Channel[]): Collecti
   if (!data) return [];
   return data.lists
     .filter((l) => l.group === 'colecao')
-    .map((l) => ({ id: l.id, title: l.title, backdrop: l.b ? tmdbImage(l.b, 'w780') : undefined, items: matchList(l, items, 50).items.map((r) => r.item) }))
+    .map((l) => {
+      const m = matchList(l, items, 50).items;
+      return { id: l.id, title: l.title, backdrop: l.b ? tmdbImage(l.b, 'w780') : undefined, items: m.map((r) => r.item), chrono: chronoOf(l, m) };
+    })
     .filter((c) => c.items.length >= 2)
     .sort((a, b) => b.items.length - a.items.length);
 }
@@ -412,4 +434,29 @@ export function topChannels(data: TopsData | null, live: Channel[], favIds: stri
     .sort((a, b) => b.score - a.score)
     .slice(0, max)
     .map(({ ch, cat, why }) => ({ ch, cat, why }));
+}
+
+/** Gêneros que a busca reconhece (os das listas de Tops). */
+export const SEARCH_GENRES = ['Ação', 'Aventura', 'Animação', 'Comédia', 'Crime', 'Documentário', 'Drama', 'Família', 'Fantasia', 'Ficção científica', 'Mistério', 'Romance', 'Suspense', 'Terror', 'Guerra', 'Faroeste', 'Infantil', 'Novelas', 'Reality'];
+
+/** Busca por gênero: títulos das listas de Tops desse gênero + itens de categorias com o nome do gênero. */
+export function genreMatches(data: TopsData | null, q: string, items: Channel[]): { genre: string; items: Channel[] } | null {
+  const n = norm(q.trim());
+  if (n.length < 3) return null;
+  const genre = SEARCH_GENRES.find((g) => norm(g) === n || (n.length >= 4 && norm(g).startsWith(n)));
+  if (!genre) return null;
+  const gn = norm(genre);
+  const out: Channel[] = [];
+  const push = (c?: Channel) => c && !out.some((o) => o.id === c.id) && out.push(c);
+  for (const l of data?.lists ?? []) {
+    if (l.group !== 'genero' && l.group !== 'stgenero') continue;
+    if (!norm(l.title).includes(gn)) continue;
+    for (const it of l.items) push(findInList(it, l.kind, items));
+    if (out.length >= 60) break;
+  }
+  for (const c of items) {
+    if (out.length >= 80) break;
+    if (c.kind !== 'live' && norm(c.group).includes(gn)) push(c);
+  }
+  return out.length ? { genre, items: out } : null;
 }

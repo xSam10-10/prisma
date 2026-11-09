@@ -7,6 +7,7 @@ import { ChannelLogo, fmtTime } from '../ui/bits';
 import { useLayout } from '../ui/layout';
 import { KEY, dirOf, focusEl, isEnter, pushBack } from '../ui/nav';
 import { T } from '../ui/tokens';
+import { lookup, tmdbKey } from '../core/tmdb';
 
 // Guia de programação em grade: canais nas linhas, horário nas colunas.
 // ◀ ▶ programa anterior/seguinte · ▲ ▼ canal · OK: assistir / gravação / lembrete.
@@ -119,7 +120,7 @@ export function Guide({ playlist, channels, startIndex, onWatch, onPlayVod, onCl
 
   // Geometria
   const top = (mobile ? 12 : 30) + L.safeY;
-  const infoH = mobile ? 120 : 150;
+  const infoH = mobile ? 120 : 204;
   const gridTop = top + 64 + infoH + 12;
   const chW = mobile ? 120 : 230;
   const gridW = L.W - L.px * 2 - chW;
@@ -132,6 +133,28 @@ export function Guide({ playlist, channels, startIndex, onWatch, onPlayVod, onCl
   for (let t = t0 - (t0 % (30 * 60000)); t < t0 + SPAN; t += 30 * 60000) if (t >= t0) ticks.push(t);
 
   const status = sel ? (sel.start <= now && now < sel.end ? 'live' : sel.end <= now ? 'past' : 'future') : null;
+  // Arte do programa em foco: a do guia ou, sem ela, a do TMDB (filmes e séries; não telejornal/esporte).
+  const [art, setArt] = useState<string | undefined>();
+  useEffect(() => {
+    setArt(undefined);
+    if (!sel || sel.image || mobile || !tmdbKey() || /jornal|not[ií]cia|futebol|esporte|ao vivo|campeonato|\bx\b|×|programa[cç][aã]o|encerramento|pol[ií]tica|missa|culto|igreja/i.test(sel.title)) return;
+    let alive = true;
+    const name = sel.title.replace(/^(sess[aã]o da tarde|coruj[aã]o|tela quente|temperatura m[aá]xima|domingo maior|cinema especial|supercine)\s*[:\-–]\s*/i, '').trim();
+    const t = setTimeout(async () => {
+      for (const kind of ['movie', 'series'] as const) {
+        const r = await lookup({ id: `epg:${kind}:${name}`, kind, name, group: '', url: '' }).catch(() => null);
+        if (r?.backdrop) {
+          if (alive) setArt(r.backdrop);
+          return;
+        }
+      }
+    }, 450);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [sel?.title, sel?.start]); // eslint-disable-line react-hooks/exhaustive-deps
+  const heroImg = sel?.image || art;
   const archived = !!(selCh && sel && inArchive(selCh, sel, now));
 
   return (
@@ -153,16 +176,16 @@ export function Guide({ playlist, channels, startIndex, onWatch, onPlayVod, onCl
 
       {/* Detalhes do programa selecionado */}
       <div className="guide-info" style={{ left: L.px, right: L.px, top: top + 64, height: infoH }}>
-        {sel?.image && !mobile && <img className="guide-info-img" src={sel.image} alt="" referrerPolicy="no-referrer" />}
+        {heroImg && !mobile && <img key={heroImg} className="guide-info-img" src={heroImg} alt="" referrerPolicy="no-referrer" />}
         {selCh && (
           <>
             <ChannelLogo ch={selCh} size={mobile ? 48 : 72} />
-            <div className="gy-6" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flexGrow: 1 }}>
+            <div className="gy-6 guide-info-txt" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flexGrow: 1, maxWidth: mobile ? undefined : '58%' }}>
               <span className="muted caps" style={{ fontSize: 14, fontWeight: 700 }}>
                 {selCh.number} · {selCh.name}
                 {sel ? ` · ${new Date(sel.start).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} ${fmtTime(sel.start)} – ${fmtTime(sel.end)}` : ''}
               </span>
-              <span className="title" style={{ fontSize: mobile ? 20 : 28, lineHeight: 1.1 }}>{sel ? sel.title : ready ? 'Sem programação neste horário' : 'Carregando o guia…'}</span>
+              <span className="title" style={{ fontSize: mobile ? 20 : 38, lineHeight: 1.08 }}>{sel ? sel.title : ready ? 'Sem programação neste horário' : 'Carregando o guia…'}</span>
               {sel?.description && !mobile && <span className="muted guide-desc">{sel.description}</span>}
               <span style={{ fontSize: 14, fontWeight: 700, color: status === 'live' ? T.live : archived ? T.primary : T.warn }}>
                 {status === 'live'
@@ -177,6 +200,12 @@ export function Guide({ playlist, channels, startIndex, onWatch, onPlayVod, onCl
                         : 'Em breve · OK para criar lembrete'
                       : ''}
               </span>
+              {status === 'live' && sel && !mobile && (
+                <span className="guide-live-prog">
+                  <i><b style={{ width: `${Math.max(0, Math.min(1, (now - sel.start) / (sel.end - sel.start))) * 100}%` }} /></i>
+                  termina em {Math.max(1, Math.round((sel.end - now) / 60000))} min
+                </span>
+              )}
             </div>
           </>
         )}

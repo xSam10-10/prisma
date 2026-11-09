@@ -318,11 +318,31 @@ export interface NextEpisode {
 
 /** Próximo episódio da série no TMDB (para "Chegando esta semana"). */
 export function nextEpisodeOf(info: TmdbInfo): Promise<NextEpisode | null> {
-  return cached(`next|${info.id}`, async () => {
+  return episodesOf(info).then((r) => r.next ?? null);
+}
+
+/** Próximo episódio a sair e o último que saiu (para o selo "NOVO EPISÓDIO"). */
+export function episodesOf(info: TmdbInfo): Promise<{ next?: NextEpisode; last?: NextEpisode }> {
+  return cached(`eps|${info.id}`, async () => {
     try {
-      const r = await call<{ next_episode_to_air?: { air_date: string; season_number: number; episode_number: number; name?: string } | null }>(`/tv/${info.id}`);
-      const n = r.next_episode_to_air;
-      return n && n.air_date ? { date: n.air_date, season: n.season_number, episode: n.episode_number, name: n.name } : null;
+      type E = { air_date: string; season_number: number; episode_number: number; name?: string } | null;
+      const r = await call<{ next_episode_to_air?: E; last_episode_to_air?: E }>(`/tv/${info.id}`);
+      const conv = (n?: E) => (n && n.air_date ? { date: n.air_date, season: n.season_number, episode: n.episode_number, name: n.name } : undefined);
+      return { next: conv(r.next_episode_to_air), last: conv(r.last_episode_to_air) };
+    } catch {
+      return {};
+    }
+  });
+}
+
+/** Busca por pessoa (ator/diretor) para a busca do app: a mais conhecida com esse nome. */
+export function searchPerson(q: string): Promise<{ id: number; name: string; photo?: string } | null> {
+  return cached(`sperson|${q.toLowerCase()}`, async () => {
+    try {
+      type R = { results?: { id: number; name: string; profile_path?: string; popularity?: number; known_for_department?: string }[] };
+      const r = await call<R>('/search/person', { query: q });
+      const p = (r.results ?? []).filter((x) => (x.known_for_department === 'Acting' || x.known_for_department === 'Directing') && (x.popularity ?? 0) >= 1)[0];
+      return p ? { id: p.id, name: p.name, photo: p.profile_path ? `${IMG()}/w185${p.profile_path}` : undefined } : null;
     } catch {
       return null;
     }
