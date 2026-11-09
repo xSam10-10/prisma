@@ -7,7 +7,8 @@ import { join } from 'node:path';
 const dir = process.argv[2] || 'out';
 const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 const md = readFileSync(new URL('../release-notes.md', import.meta.url), 'utf8');
-const sec = md.split(/^## /m).find((s) => s.startsWith(version + '\n') || s.startsWith(version + '\r'));
+// Aceita "## 0.22.0" e "## 0.22.0 — subtítulo".
+const sec = md.split(/^## /m).find((s) => s.startsWith(version) && /^[\s—–-]/.test(s.slice(version.length)));
 const notes = sec ? sec.split('\n').slice(1).filter((l) => l.startsWith('- ')).map((l) => l.slice(2).trim()) : [];
 const files = readdirSync(dir);
 const pick = (re) => files.find((f) => re.test(f));

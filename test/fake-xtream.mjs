@@ -185,7 +185,7 @@ createServer((req, res) => {
     if (hit) return j({ results: [hit] });
     if (path.startsWith('watch/providers/')) return j({ results: [{ provider_id: 8, provider_name: 'Netflix', display_priority: 1 }, { provider_id: 1899, provider_name: 'HBO Max', display_priority: 2 }, { provider_id: 337, provider_name: 'Disney Plus', display_priority: 3 }, { provider_id: 307, provider_name: 'Globoplay', display_priority: 4 }] });
     const type = path.startsWith('discover/') ? path.slice(9) : path.split('/')[0];
-    const prov = Number(u.searchParams.get('with_watch_providers') || 0);
+    const prov = parseInt(u.searchParams.get('with_watch_providers') || '0', 10) || 0;
     const genre = Number(u.searchParams.get('with_genres') || 0);
     const pool = type === 'movie' ? vods.map((v) => ({ title: v.name.replace(/ \(\d{4}\)$/, ''), date: v.year + '-01-01' })) : seriesList.map((x) => ({ title: x.name, date: x.releaseDate }));
     const seed = prov + genre + (path.includes('top_rated') ? 7 : 0) + (u.searchParams.get('with_original_language') || '').length * 3;

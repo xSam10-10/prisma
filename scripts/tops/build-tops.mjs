@@ -263,7 +263,26 @@ export async function build({ log = console.log } = {}) {
       const mv = await tmdb('/discover/movie', { region: 'BR', watch_region: 'BR', with_release_type: '4|5', 'release_date.gte': day(-2), 'release_date.lte': day(8), sort_by: 'popularity.desc' });
       const tv = await tmdb('/discover/tv', { watch_region: 'BR', 'first_air_date.gte': day(-2), 'first_air_date.lte': day(8), sort_by: 'popularity.desc', 'vote_count.gte': '0', with_watch_monetization_types: 'flatrate' });
       add({ id: 'estreias-movie', kind: 'movie', group: 'estreias', title: 'Chegando esta semana', src: 'Lançamentos digitais da semana (TMDB)', items: (mv.results ?? []).slice(0, 14).map((x) => withDate(x, x.release_date)) });
-      add({ id: 'estreias-tv', kind: 'tv', group: 'estreias', title: 'Chegando esta semana', src: 'Séries que estreiam esta semana (TMDB)', items: (tv.results ?? []).slice(0, 14).map((x) => withDate(x, x.first_air_date)) });
+      const tvItems = (tv.results ?? []).slice(0, 14).map((x) => withDate(x, x.first_air_date));
+      // Séries novas com streaming na semana são raras: completa com novas temporadas/episódios
+      // nos streamings acompanhados (data = episódio que sai ou saiu nesta janela).
+      if (tvItems.length < 10) {
+        const prov = await tmdb('/watch/providers/tv', { watch_region: 'BR' });
+        const ids = PROVIDERS.map(([, , re]) => (prov.results ?? []).find((x) => re.test(x.provider_name.trim()))?.provider_id).filter(Boolean);
+        const ep = await tmdb('/discover/tv', { watch_region: 'BR', with_watch_providers: ids.join('|'), with_watch_monetization_types: 'flatrate', 'air_date.gte': day(-2), 'air_date.lte': day(8), sort_by: 'popularity.desc', 'vote_count.gte': '20' });
+        for (const x of ep.results ?? []) {
+          if (tvItems.length >= 14) break;
+          if (tvItems.some((t) => t.i === x.id)) continue;
+          try {
+            const d = await tmdb(`/tv/${x.id}`);
+            const pick = [d.next_episode_to_air, d.last_episode_to_air].find((e) => e && e.air_date && e.air_date >= day(-2) && e.air_date <= day(8));
+            if (pick) tvItems.push(withDate(x, pick.air_date));
+          } catch {
+            /* série sem detalhe: ignora */
+          }
+        }
+      }
+      add({ id: 'estreias-tv', kind: 'tv', group: 'estreias', title: 'Chegando esta semana', src: 'Séries e novas temporadas da semana (TMDB)', items: tvItems });
     });
   }
 
