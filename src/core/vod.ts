@@ -179,10 +179,12 @@ export function removeFromContinue(ids: string[]): void {
 
 // ---- Versões do mesmo título (Dublado, Legendado, 4K…) ----
 const vKeyCache = new WeakMap<Channel, string>();
+/** Número ou parte entre colchetes diferencia títulos: "Holed [01]", "Duna [Parte 2]", "Kill Bill [Vol. 2]". */
+const PART_IN_BRACKETS = /\[\s*((?:parte|part|pt|vol|volume|cap[ií]tulo|cap|cena|scene|ep|epis[oó]dio|n[ºo°]?|#)?\.?\s*\d{1,3})\s*\]/gi;
 export function versionKey(c: Channel): string {
   let k = vKeyCache.get(c);
   if (k === undefined) {
-    const st = searchTitle(c.fullName ?? c.name);
+    const st = searchTitle((c.fullName ?? c.name).replace(PART_IN_BRACKETS, ' $1 '));
     k = `${c.kind}|${norm(st.title)}|${c.year ?? st.year ?? ''}`;
     vKeyCache.set(c, k);
   }

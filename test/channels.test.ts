@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cleanLabel, plainDigits } from '../src/core/logos';
 import { parseM3U } from '../src/core/m3u';
 import { tidyPlaylist } from '../src/core/source';
+import { collapseVersions } from '../src/core/vod';
 import type { Channel, Playlist } from '../src/core/types';
 
 const live = (name: string, url: string, group = 'ADULTOS +18'): Channel => ({ id: url, kind: 'live', name, group, url });
@@ -58,6 +59,20 @@ describe('nome curto do canal', () => {
   it('continua tirando os termos técnicos', () => {
     const out = tidy([live('GLOBO SP 4K FHDR', 'http://a.com/1.ts', 'Abertos'), live('SPORTV 2 FHD H265 60FPS', 'http://a.com/2.ts', 'Esportes')]);
     expect(out.map((c) => c.name)).toEqual(['GLOBO SP 4K', 'SPORTV 2 FHD']);
+  });
+});
+
+describe('filmes e séries numerados entre colchetes', () => {
+  const movies = (f: (n: number) => string) =>
+    tidy(Array.from({ length: 4 }, (_, i) => ({ id: 'm' + i, kind: 'movie' as const, name: f(i + 1), group: 'FILMES', url: `http://a.com/movie/${i}.mp4` })));
+  it('não viram uma capa só', () => {
+    expect(collapseVersions(movies((n) => `Holed [0${n}]`))).toHaveLength(4);
+    expect(collapseVersions(movies((n) => `Duna [Parte ${n}]`))).toHaveLength(4);
+    expect(collapseVersions(movies((n) => `Kill Bill [Vol. ${n}]`))).toHaveLength(4);
+  });
+  it('Dublado e Legendado continuam como versões do mesmo título', () => {
+    expect(collapseVersions(movies((n) => (n % 2 ? 'Duna (2021) [DUB]' : 'Duna (2021) [LEG]')))).toHaveLength(1);
+    expect(collapseVersions(movies((n) => (n % 2 ? 'Duna [4K]' : 'Duna [H265]')))).toHaveLength(1);
   });
 });
 

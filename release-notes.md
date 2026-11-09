@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.24.8
+- Correção: filmes e séries com número ou parte entre colchetes ("Holed [01]", "Duna [Parte 2]", "Kill Bill [Vol. 2]") eram juntados numa capa só como se fossem versões; agora cada um tem sua capa. Dublado, Legendado e 4K do mesmo título continuam juntos
+
 ## 0.24.7
 - Correção: o nome do canal não perde mais o que vem depois da qualidade — "XXX 4K HOLED 01" aparecia como "XXX 4K 01", e canais de estúdios diferentes ficavam com o mesmo nome
 - Números romanos e pequenos (Ⅰ, Ⅹ, ¹, ²) no nome viram números comuns e esses canais não são mais juntados
