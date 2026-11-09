@@ -47,6 +47,25 @@ pendências [1º] 0.24.0: 7 controle parental (senha para categorias +18 e qualq
 - **34 · Avatar com foto e PIN por perfil** · **35 · Tempo de tela infantil** · **37 · Apagar histórico item a item** · **43 · Atalhos para apps oficiais (Claro TV+, SKY+, DirecTV GO)** [Sem prior.]
 - **9 · Sincronização automática pela nuvem** (hoje por arquivo) · **14 · App para Roku** · **13 · Assinatura digital do instalador Windows (paga)** [Grande]
 
+## 5. Jogos — novo "centro de esportes" (proposta aprovada em 09/11; **esperar o Samuel dizer "pode fazer"**)
+Pedido do Samuel: temas próprios para as principais ligas, cada uma com banner moderno, calendário, destaques e menu lateral; destaque à parte para a Fórmula 1 (banner, calendário de corridas, lembrete e destaques). Organizado, intuitivo e premium.
+
+**Estrutura proposta (a que ele aprovou):**
+1. **Tela inicial de Jogos (hub):** carrossel grande "Ao vivo e a seguir" (todas as ligas: escudos, placar, minuto, canal, Assistir) · fileira **Campeonatos** (um cartão por liga, na cor dela, "Rodada 12 · hoje 16h"; a F1 entra como cartão com visual próprio) · **Meus times** (próximos jogos, lembrete automático) · **Hoje** (linha do tempo do dia com jogos e corridas).
+2. **Página de cada campeonato:** Champions League, Espanhol (La Liga), Inglês (Premier League), Italiano (Serie A), Alemão (Bundesliga), Francês (Ligue 1), Libertadores, Copa do Brasil, Copa Sul-Americana (+ Brasileirão, a confirmar).
+   - Banner temático (cor/gradiente da liga, nome, temporada, rodada/fase, contagem para o próximo jogo).
+   - Menu lateral: Visão geral · Calendário · Tabela (ou Chaves nas copas) · Destaques · Times.
+   - Calendário por rodada (ligas) ou fase (copas); cada jogo com escudos, horário de Brasília, canal achado no guia e lembrete.
+   - Destaques de dados: jogo da rodada, artilheiros, líderes, sequências, maiores goleadas.
+   - Times: grade de escudos → próximos jogos do time + "Seguir" (Meus times).
+3. **Fórmula 1:** banner do próximo GP (país, circuito, data, contagem) · fim de semana completo (TL1–3, sprint, classificação, corrida) no horário de Brasília, lembrete por sessão e canal (Band, se no guia) · classificação de pilotos e construtores com as cores das equipes · pódio da última corrida · calendário da temporada (passadas com vencedor).
+
+**Decisões técnicas sugeridas:** futebol pela ESPN (já usada: `src/core/scores.ts`; códigos `uefa.champions`, `esp.1`, `eng.1`, `ita.1`, `ger.1`, `fra.1`, `conmebol.libertadores`, `conmebol.sudamericana`, `bra.copa_do_brazil`, `bra.1`); F1 por fonte aberta (Jolpica/Ergast ou OpenF1) — de preferência gerar um `prisma-sports.json` no GitHub Actions, como os Tops, para a TV só baixar. Temas **inspirados** (cor, gradiente, tipografia), sem copiar o visual oficial das marcas. Sem vídeos de gols (não há fonte confiável). Na TV LG, menos animação (`html.lite`). Canal do jogo depende do guia da Goldcard ("provável" quando não achar).
+
+**Ordem sugerida:** (1) hub + páginas das ligas com banner, calendário e tabela; (2) Fórmula 1 completa; (3) destaques/estatísticas e acabamento.
+
+**Perguntas em aberto para o Samuel:** ordem das ligas (sugestão: Brasileirão, Libertadores, Copa do Brasil, Sul-Americana, Champions, Inglês, Espanhol, Italiano, Alemão, Francês) · incluir o Brasileirão? · F1 também com "semana do GP" no Início (como o Dia de jogo)? · incluir manchetes (notícias da ESPN) ou só dados?
+
 ## Depende do Samuel
 - ✅ Repositório público (08/11) e atualização dentro do app conferida no Windows pelo Samuel (09/11, 0.18.1 → 0.19.x).
 - ✅ Secret `TMDB_KEY` cadastrado (09/11): Tops com 223 listas (Netflix oficial em português, streamings, gêneros, gêneros por streaming, especiais).

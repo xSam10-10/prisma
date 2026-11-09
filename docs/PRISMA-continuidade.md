@@ -26,6 +26,10 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Histórico de versões:** seções 10b–10t (0.10.0 → 0.18.0). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
+**Próximo trabalho combinado (09/11):** novo "centro de esportes" na aba Jogos (ligas com tema próprio + Fórmula 1) — proposta completa em `docs/PENDENCIAS.md` seção 5. O Samuel aprovou a ideia mas ainda vai responder as perguntas em aberto; só implementar depois do "pode fazer".
+
+**Como o Samuel gosta de trabalhar:** tudo em português; visual "mega premium" com cara de app oficial; quando ele pede "só sugira / não crie nada", responder só com a opinião; depois de cada lote, testar navegação pelo controle (setas/OK/Voltar) e publicar uma versão; avisar com honestidade o que depende da TV real, do TMDB ou da Goldcard. Sugestões de design descartadas estão listadas no topo de `docs/PENDENCIAS.md` (não oferecer de novo). Chave do TMDB fica só no secret `TMDB_KEY` e nos Ajustes de cada aparelho.
+
 **Referências do app usado pelo Samuel (vídeos que ele mandou):** barra do canal estilo receptor + PIP (10f), programação do canal por dia (10h), lista de canais por cima da tela cheia com menu lateral e grupos (10j).
 
 ## 1. O que é o projeto
