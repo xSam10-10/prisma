@@ -1599,3 +1599,8 @@ html.kbd [data-nav].grow.feat-card.big:focus, html.kbd[data-theme] [data-nav].gr
 .feat-art > img.feat-blur { position: absolute; top: -10%; left: -10%; width: 120%; height: 120%; object-fit: cover; -webkit-filter: blur(28px) brightness(0.55); filter: blur(28px) brightness(0.55); }
 html.lite .feat-art > img.feat-blur { -webkit-filter: none; filter: none; opacity: 0.25 !important; }
 .feat-art > img.feat-poster { position: absolute; top: 6%; right: 6%; left: auto; height: 88%; width: auto; max-width: 40%; object-fit: cover; border-radius: 12px; -webkit-box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6); box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6); }
+/* "Ver todos" nas fileiras e grade da busca */
+.see-all { margin-left: auto; margin-right: 14px; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.06); color: inherit; border-radius: 999px; padding: 6px 16px; font-size: 15px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.see-all:hover, .see-all:focus { background: #F4F4F8; color: #0B0B10; outline: 0; }
+.sr-all-head { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: space-between; justify-content: space-between; margin: 6px 0 16px; }
+.sr-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; padding: 10px 0 0 10px; }

@@ -48,9 +48,11 @@ interface Props<T> {
   /** Largura mínima de cada card (unidades de projeto). */
   minWidth?: number;
   empty?: ReactNode;
+  /** Botão "Ver todos" no título: abre todos os itens (ex.: resultados da busca). */
+  onAll?: () => void;
 }
 
-export function Carousel<T>({ title, subtitle, items, keyOf, render, minWidth, empty }: Props<T>) {
+export function Carousel<T>({ title, subtitle, items, keyOf, render, minWidth, empty, onAll }: Props<T>) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const gap = mobile ? 14 : 22;
@@ -92,6 +94,11 @@ export function Carousel<T>({ title, subtitle, items, keyOf, render, minWidth, e
         <span className="title" style={{ fontSize: mobile ? 19 : 24, flexShrink: 0 }}>{editorial(title)}</span>
         {subtitle && !mobile ? <span className="carousel-sub">{subtitle}</span> : null}
         <div className="spacer" />
+        {onAll && pages > 1 && (
+          <button className="see-all" data-nav="" onClick={onAll}>
+            Ver todos · {items.length}
+          </button>
+        )}
         {pages > 1 && (
           <>
             <div className="dots" aria-hidden="true">

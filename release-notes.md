@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.24.3
+- Busca: botão "Ver todos" em cada fileira (Filmes, Séries, Canais, Gênero) que mostra todos os resultados de uma vez, em grade; Voltar retorna às fileiras
+
 ## 0.24.2
 - Dublado/legendado: reconhece mais jeitos de a lista marcar ([L], (D), Leg, Dual, Nacional e categorias como "Legendados"), com selo na capa e nas versões do detalhe
 - Versões que não dizem o áudio mostram a categoria de onde vêm, para dar para diferenciar

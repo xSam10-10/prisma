@@ -7,7 +7,7 @@ import { hasXmltv, loadXmltv } from '../core/xmltv';
 import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol, colorFor, fmtTime, initials, rgba } from '../ui/bits';
 import { progressOf } from '../core/epg';
 import { useClock, useEpg } from '../ui/useEpg';
-import { focusEl, focusFirst } from '../ui/nav';
+import { focusEl, focusFirst, pushBack } from '../ui/nav';
 import { LayoutContext, useLayout } from '../ui/layout';
 import { Carousel } from '../ui/Carousel';
 import { CollectionView, PosterCard, VodDetail } from './Vod';
@@ -571,6 +571,21 @@ export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; o
   const mobile = L.form === 'mobile';
   const tops = useTopsState(playlist).data;
   const [person, setPerson] = useState<null | { name: string; photo?: string; items: Channel[] }>(null);
+  // "Ver todos" de uma fileira: grade com todos os resultados dela.
+  const [allView, setAllView] = useState<null | { title: string; items: Channel[] }>(null);
+  useEffect(() => setAllView(null), [q]);
+  useEffect(() => {
+    if (!allView) return;
+    requestAnimationFrame(() => {
+      box.current?.querySelector<HTMLElement>('.sr-grid [data-nav]')?.focus();
+      const col = box.current?.querySelector<HTMLElement>('.sr-col');
+      if (col) col.scrollTop = 0;
+    });
+    return pushBack(() => {
+      setAllView(null);
+      return true;
+    });
+  }, [allView]);
   useEffect(() => {
     if (mobile) inputRef.current?.focus();
     else requestAnimationFrame(() => box.current?.querySelector<HTMLElement>('.sk-key')?.focus());
@@ -745,21 +760,45 @@ export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; o
                 ))}
               </div>
             </div>
+          ) : allView ? (
+            <div className="sr-all">
+              <div className="sr-all-head">
+                <span className="sr-h" style={{ margin: 0 }}>{allView.title} <span className="muted" style={{ fontSize: 18, fontWeight: 600 }}>· {allView.items.length}</span></span>
+                <button className="chip" data-nav="" onClick={() => setAllView(null)}>← Voltar às fileiras</button>
+              </div>
+              {(() => {
+                const isLive = allView.items[0]?.kind === 'live';
+                const gap = mobile ? 12 : 18;
+                const minW = isLive ? (mobile ? 150 : 190) : mobile ? 100 : 132;
+                const gw = resW - 20;
+                const per = Math.max(2, Math.floor((gw + gap) / (minW + gap)));
+                const w = Math.floor((gw - gap * (per - 1)) / per);
+                return (
+                  <div className="sr-grid">
+                    {allView.items.map((it, i) => (
+                      <div key={it.id} style={{ width: w, marginRight: (i + 1) % per ? gap : 0, marginBottom: gap }}>
+                        {it.kind === 'live' ? <ChannelTile ch={it} width={w} onClick={() => open(it)} sub={it.group} /> : <PosterTile item={it} w={w} onPick={open} />}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
           ) : nothing ? (
             <EmptyState kind="search" title={`Nada encontrado para “${qt}”`} text="Tente outra palavra, sem “HD” ou “FHD”, só parte do nome, o nome de um ator ou um gênero." />
           ) : (
             <>
               {genre && (
-                <Carousel title={`Gênero: ${genre.genre}`} subtitle={`${genre.items.length} títulos na sua lista`} items={genre.items} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
+                <Carousel title={`Gênero: ${genre.genre}`} subtitle={`${genre.items.length} títulos na sua lista`} onAll={() => setAllView({ title: `Gênero: ${genre.genre}`, items: genre.items })} items={genre.items} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
               )}
               {live.length > 0 && (
-                <Carousel title="Canais" subtitle={`${live.length}`} items={live} keyOf={(i) => i.id} minWidth={mobile ? 150 : 190} render={(c, _i, w) => <ChannelTile ch={c} width={w} onClick={() => open(c)} sub={c.group} />} />
+                <Carousel title="Canais" subtitle={`${live.length}`} onAll={() => setAllView({ title: 'Canais', items: live })} items={live} keyOf={(i) => i.id} minWidth={mobile ? 150 : 190} render={(c, _i, w) => <ChannelTile ch={c} width={w} onClick={() => open(c)} sub={c.group} />} />
               )}
               {movies.length > 0 && (
-                <Carousel title="Filmes" subtitle={`${movies.length}`} items={movies} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
+                <Carousel title="Filmes" subtitle={`${movies.length}`} onAll={() => setAllView({ title: 'Filmes', items: movies })} items={movies} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
               )}
               {series.length > 0 && (
-                <Carousel title="Séries" subtitle={`${series.length}`} items={series} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
+                <Carousel title="Séries" subtitle={`${series.length}`} onAll={() => setAllView({ title: 'Séries', items: series })} items={series} keyOf={(i) => i.id} minWidth={mobile ? 100 : 132} render={(it, _i, w) => <PosterTile item={it} w={w} onPick={open} />} />
               )}
               {(() => {
                 const extra = alt.filter((a) => !results.some((r) => r.id === a.id));
