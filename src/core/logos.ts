@@ -12,13 +12,61 @@ const TAGS = /\b(hd|fhd|uhd|sd|4k|8k|hdr|fhdr|hevc|h ?265|h ?264|60 ?fps|50 ?fps
 /** Símbolos e emojis decorativos que alguns provedores colocam nos nomes. */
 const DECOR = /[←-⇿⌀-⏿■-◿☀-➿⬀-⯿️‍⃣]|[\uD83C-\uD83E][\uDC00-\uDFFF]/g;
 
+/** Valor de um número decorado (①, ❶, ➊, ⑴, ⒈, ０, 🔟…), ou -1 se não for um. */
+function fancyDigit(cp: number): number {
+  if (cp >= 0x2460 && cp <= 0x2473) return cp - 0x2460 + 1; // ① a ⑳
+  if (cp >= 0x2474 && cp <= 0x2487) return cp - 0x2474 + 1; // ⑴ a ⒇
+  if (cp >= 0x2488 && cp <= 0x249b) return cp - 0x2488 + 1; // ⒈ a ⒛
+  if (cp === 0x24ea || cp === 0x24ff) return 0; // ⓪ ⓿
+  if (cp >= 0x24eb && cp <= 0x24f4) return cp - 0x24eb + 11; // ⓫ a ⓴
+  if (cp >= 0x24f5 && cp <= 0x24fe) return cp - 0x24f5 + 1; // ⓵ a ⓾
+  if (cp >= 0x2776 && cp <= 0x277f) return cp - 0x2776 + 1; // ❶ a ❿
+  if (cp >= 0x2780 && cp <= 0x2789) return cp - 0x2780 + 1; // ➀ a ➉
+  if (cp >= 0x278a && cp <= 0x2793) return cp - 0x278a + 1; // ➊ a ➓
+  if (cp >= 0xff10 && cp <= 0xff19) return cp - 0xff10; // ０ a ９
+  if (cp >= 0x1d7ce && cp <= 0x1d7ff) return (cp - 0x1d7ce) % 10; // 𝟎 𝟏 𝟐…
+  if (cp === 0x1f51f) return 10; // 🔟
+  return -1;
+}
+
+const MAYBE_FANCY = /[①-⓿❶-➓０-９\ud835\ud83d]/;
+
+/** Troca números decorados por números comuns: "XXX 4K ❿" → "XXX 4K 10" (senão canais numerados viram um só). */
+export function plainDigits(s: string): string {
+  if (!MAYBE_FANCY.test(s)) return s;
+  let out = '';
+  let lastFancy = false;
+  for (let i = 0; i < s.length; i++) {
+    let cp = s.charCodeAt(i);
+    let len = 1;
+    if (cp >= 0xd800 && cp <= 0xdbff && i + 1 < s.length) {
+      const lo = s.charCodeAt(i + 1);
+      if (lo >= 0xdc00 && lo <= 0xdfff) {
+        cp = (cp - 0xd800) * 0x400 + (lo - 0xdc00) + 0x10000;
+        len = 2;
+      }
+    }
+    const d = fancyDigit(cp);
+    if (d >= 0) {
+      if (!lastFancy && /[A-Za-z0-9]$/.test(out)) out += ' ';
+      out += String(d);
+      lastFancy = true;
+    } else {
+      out += s.substr(i, len);
+      lastFancy = false;
+    }
+    i += len - 1;
+  }
+  return out;
+}
+
 /** Nome para exibir: sem emojis e símbolos decorativos, espaços arrumados. */
 export function cleanLabel(s: string): string {
-  return s
+  return plainDigits(s)
     .replace(DECOR, ' ')
     .replace(/\s+/g, ' ')
     .replace(/^[\s|•·\-–—:]+|[\s|•·\-–—:]+$/g, '')
-    .trim() || s.trim();
+    .trim() || plainDigits(s).trim();
 }
 
 /** Chave de comparação: "SPORTV 2 FHD [H265]" → "sportv 2". */

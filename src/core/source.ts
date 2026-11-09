@@ -1,6 +1,6 @@
 import { detectXtreamFromUrl, parseM3U } from './m3u';
 import { cleanLabel } from './logos';
-import { parseEpisodeName, sameChannelKey, simplifyGroups, simplifyName } from './names';
+import { isBackupOf, parseEpisodeName, sameChannelKey, simplifyGroups, simplifyName } from './names';
 import { fetchText } from './net';
 import { idbDel, idbGet, idbSet } from './storage';
 import { SourceError, type Category, type Channel, type ItemKind, type Playlist, type SourceConfig } from './types';
@@ -15,11 +15,13 @@ export type Progress = (msg: string) => void;
  *  · tira emojis e símbolos decorativos (ex.: "♦ CANAIS | FHD ⭐");
  *  · categoria sem termos de codificação ("CANAIS | FHD H265" → "CANAIS | FHD"), se não repetir nome;
  *  · nome curto do canal, até a qualidade ("GLOBO RJ HD [ALT]" → "GLOBO RJ HD");
- *  · canais ao vivo que ficam com o mesmo nome na mesma categoria viram um só,
- *    e as outras versões passam a ser "fonte 2, 3…" (o player troca sozinho se uma cair).
+ *  · fontes reserva do mesmo canal ([ALT], BACKUP, H265… ou o mesmo nome em outro servidor) viram um só,
+ *    e as outras versões passam a ser "fonte 2, 3…" (o player troca sozinho se uma cair);
+ *  · canais diferentes com o mesmo nome no mesmo servidor ficam separados e numerados: "XXX 4K 1" … "XXX 4K 10".
  */
 export function tidyPlaylist(p: Playlist): Playlist {
   const seen = new Map<string, Channel>();
+  const twins = new Map<string, Channel[]>();
   const out: Channel[] = [];
   for (const it of p.items) it.group = cleanLabel(it.group);
   const groupName = simplifyGroups(p.items.map((i) => i.group));
@@ -32,16 +34,24 @@ export function tidyPlaylist(p: Playlist): Playlist {
       // Junta só fontes do mesmo canal ([ALT], BACKUP, H265…); canais numerados ou de nome parecido ficam separados.
       const key = it.group + '|' + sameChannelKey(full);
       const first = seen.get(key);
-      if (first) {
+      const sameName = !!first && (first.fullName ?? '').toLowerCase() === full.toLowerCase();
+      if (first && sameName && !isBackupOf(first.url, it.url)) {
+        // Mesmo nome, mesmo servidor: outro canal. Fica separado e ganha número no fim.
+        const list = twins.get(key) ?? [first];
+        list.push(it);
+        twins.set(key, list);
+      } else if (first) {
         const extra = [it.url, ...(it.altUrls ?? [])].filter((u) => u && u !== first.url && !(first.altUrls ?? []).includes(u));
         first.altUrls = [...(first.altUrls ?? []), ...extra];
         if (!first.logo && it.logo) first.logo = it.logo;
         continue;
+      } else {
+        seen.set(key, it);
       }
-      seen.set(key, it);
     }
     out.push(it);
   }
+  for (const list of twins.values()) list.forEach((c, i) => (c.name = `${c.name} ${i + 1}`));
   p.items = groupM3uSeries(out);
   return p;
 }

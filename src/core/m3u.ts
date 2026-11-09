@@ -1,3 +1,4 @@
+import { isBackupOf } from './names';
 import type { Channel, ItemKind } from './types';
 
 export interface ParsedM3U {
@@ -125,10 +126,11 @@ export function parseM3U(text: string, baseUrl?: string): ParsedM3U {
     const chno = parseInt(attrs['tvg-chno'] || attrs['channel-number'] || '', 10);
     if (kind === 'live') liveCount++;
 
-    // Canal repetido (mesmo nome e grupo) vira "fonte 2" do primeiro.
+    // Canal repetido (mesmo nome e grupo) em outro servidor vira "fonte 2" do primeiro;
+    // no mesmo servidor são canais diferentes com o mesmo nome (numerados depois, em tidyPlaylist).
     const dupKey = kind + '|' + group + '|' + name.toLowerCase();
     const prev = seen.get(dupKey);
-    if (prev !== undefined && kind === 'live') {
+    if (prev !== undefined && kind === 'live' && isBackupOf(items[prev].url, url)) {
       const first = items[prev];
       (first.altUrls ??= []).push(url);
     } else {

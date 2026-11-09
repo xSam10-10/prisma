@@ -35,6 +35,20 @@ export function sameChannelKey(full: string): string {
   return full.replace(ALT_MARK, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase();
 }
 
+/** Servidor (host:porta) de uma URL; "" se não der para ler. */
+export function serverOf(url: string | undefined): string {
+  const m = /^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i.exec(url ?? '');
+  return m ? m[1].replace(/^[^@]*@/, '').toLowerCase() : '';
+}
+
+/**
+ * Dois canais com o mesmo nome são "fonte reserva" um do outro só se vierem de servidores diferentes.
+ * No mesmo servidor (ex.: Xtream da Goldcard), nomes iguais são canais diferentes ("XXX 4K" ×10).
+ */
+export function isBackupOf(firstUrl: string | undefined, url: string | undefined): boolean {
+  return serverOf(firstUrl) !== serverOf(url);
+}
+
 /** Termos técnicos de codificação que não ajudam a escolher a categoria. */
 const CODEC = /\s*\b(H\.?\s?265|H\.?\s?264|HEVC|AVC|X265|X264)\b\s*/gi;
 
