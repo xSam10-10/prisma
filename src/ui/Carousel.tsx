@@ -117,7 +117,7 @@ export function Carousel<T>({ title, subtitle, items, keyOf, render, minWidth, e
         <div
           className="carousel-view"
           data-nav-row=""
-          style={{ margin: `${mobile ? 6 : 10}px ${L.px - pad}px 0`, padding: pad }}
+          style={{ margin: `${(mobile ? 6 : 10) - 8}px ${L.px - pad}px -8px`, padding: `${pad + 8}px ${pad}px` }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
           onScroll={(e) => {

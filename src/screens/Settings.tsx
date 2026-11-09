@@ -394,9 +394,10 @@ export function Settings({
 
   return (
     <div ref={root} style={{ position: 'absolute', left: L.px, right: L.px, top: L.top + 10, bottom: L.bottom, display: 'flex' }}>
-      <div className="gy-10" style={{ width: 320, flexShrink: 0, display: 'flex', flexDirection: 'column', marginRight: 24 }}>
-        <span className="title" style={{ fontSize: 26, marginBottom: 6 }}>Ajustes</span>
-        {tabs}
+      <div style={{ width: 320, flexShrink: 0, display: 'flex', flexDirection: 'column', marginRight: 24, minHeight: 0 }}>
+        <span className="title" style={{ fontSize: 26, marginBottom: 12, flexShrink: 0 }}>Ajustes</span>
+        {/* As seções rolam quando não cabem (TV de 720p, interface aumentada). */}
+        <div className="scroll-y gy-10 sec-col" style={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: 6, margin: -6 }}>{tabs}</div>
       </div>
       <div className="glass" style={{ flexGrow: 1, minWidth: 0, borderRadius: T.radiusPanel, padding: '20px 28px', display: 'flex', flexDirection: 'column' }}>
         <div className="scroll-y opts" style={{ flexGrow: 1, minHeight: 0, padding: 6, margin: -6 }}>{panel}</div>

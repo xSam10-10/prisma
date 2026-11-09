@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.24.5
+- Ajustes: a coluna de seções rola quando não cabe na tela (antes "Dados e limpeza" e "Sobre" ficavam cortados)
+- Fileiras de capas: a capa em foco não tem mais a borda de cima cortada
+- Revisão de todas as telas com o controle em janela larga/baixa e no tamanho da TV: nada mais fica escondido ao navegar
+
 ## 0.24.4
 - Correção: canais numerados ou de nome parecido ("XXX HD 01", "XXX HD 02", "Canal (1)", "Canal (2)") eram juntados num só; agora cada um aparece — só fontes reservas do mesmo canal ([ALT], BACKUP, H265) continuam juntas
 - Canais que o servidor coloca em mais de uma categoria aparecem em todas elas (sem repetir em "Todos")

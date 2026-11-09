@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.24.4)
+## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.24.5)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -489,6 +489,10 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 ## 10ak. Versão 0.24.4 — canais sumidos (categoria adulta da Goldcard com < 100 de 100+)
 - Causa: `tidyPlaylist` juntava canais ao vivo pelo nome curto (`simplifyName` corta na qualidade e tirava "(1)"), fundindo canais numerados. Agora a chave é `sameChannelKey(nome completo)` (names.ts), que só ignora marcas de fonte reserva/codec; `simplifyName` mantém a numeração.
 - `category_ids` (XUI): o canal entra em cada categoria; cópias com id `l<stream>@<cat>` (catchup/EPG tiram o sufixo); "Todos" e buscas ignoram as cópias.
+
+## 10al. Versão 0.24.5 — nada cortado ao navegar
+- Ajustes: seções numa coluna `scroll-y` (`.sec-col`). Carousel: 8 px a mais de folga vertical (padding + margem negativa) para a capa em foco não ser cortada.
+- **`test/scan-foco.mjs`**: varredura que anda com as setas em todas as telas e acusa item em foco fora da tela ou cortado por um contêiner. Rodar em 2000x800 e 1280x720 antes de publicar mudanças de layout (0 problemas na 0.24.5).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
