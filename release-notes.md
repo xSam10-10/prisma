@@ -1,6 +1,14 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.25.0 — centro de esportes
+- Jogos tem uma tela inicial nova: "Ao vivo e a seguir" com escudos, placar e minuto, os Campeonatos, Meus times e todos os jogos de hoje
+- Página própria para Brasileirão, Libertadores, Copa do Brasil, Sul-Americana, Champions, Inglês, Espanhol, Italiano, Alemão e Francês, cada uma com as cores do campeonato
+- Em cada campeonato: visão geral (líder, melhor ataque e defesa, maior goleada), calendário rodada a rodada (ou fase a fase nas copas), tabela, chaves do mata-mata e times
+- Siga um time direto da página dele: ele entra em Meus times, com lembrete automático dos jogos
+- A lista antiga de jogos do guia continua em "Guia de jogos"
+- Correção: no detalhe do jogo, a lista "Onde assistir" ficava espremida na TV quando aparecia o placar com escudos; agora o painel rola inteiro
+
 ## 0.24.8
 - Correção: filmes e séries com número ou parte entre colchetes ("Holed [01]", "Duna [Parte 2]", "Kill Bill [Vol. 2]") eram juntados numa capa só como se fossem versões; agora cada um tem sua capa. Dublado, Legendado e 4K do mesmo título continuam juntos
 

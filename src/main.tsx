@@ -3,6 +3,7 @@ import { App } from './App';
 import { installNavigation } from './ui/nav';
 import { LITE } from './core/platform';
 import './styles.css';
+import './sports.css';
 
 // TV LG (Chrome 38) não tem Element.closest.
 if (!Element.prototype.closest) {

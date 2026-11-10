@@ -4,13 +4,14 @@
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(process.env.NPMROOT + '/')('playwright');
 const [W, H] = (process.argv[2] || '2000x800').split('x').map(Number);
-const b = await chromium.launch();
+const b = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {}); // CHROME=caminho de outro Chromium (ex.: Edge), opcional
 const p = await (await b.newContext({ viewport: { width: W, height: H } })).newPage();
 p.on('pageerror', (e) => console.log('PAGEERR', e.message));
 await p.route(/\/live\//, () => {});
 await p.addInitScript(() => {
   const set = (k, v) => localStorage.setItem('prisma.' + k, JSON.stringify(v));
   set('topsFeed', 'http://127.0.0.1:8090/tops/prisma-tops.json');
+  set('sportsFeed', 'http://127.0.0.1:8090/tops/prisma-sports.json'); set('scoresBase', 'http://127.0.0.1:8090/espn');
   set('tmdbKey', 'chave-teste'); set('tmdbBase', 'http://127.0.0.1:8090/tmdb/3'); set('tmdbImg', 'http://127.0.0.1:8090/tmdb/img');
 });
 await p.goto('http://localhost:5173/'); await p.waitForTimeout(2500);
@@ -60,7 +61,16 @@ const focusFirst = (sel) => p.evaluate((s) => document.querySelector(s)?.focus()
 await tab('Início'); await focusFirst('[data-home-top] button, .scroll-y button'); await walk('Início', [...downs(22), ...ups(22)]);
 await tab('Ao vivo'); await focusFirst('.cats .cat'); await walk('Ao vivo · categorias', downs(30));
 await p.keyboard.press('ArrowRight'); await walk('Ao vivo · canais', downs(25));
-await tab('Jogos'); await focusFirst('.chip, button.chip'); await walk('Jogos', [...downs(15), 'ArrowRight', ...downs(15)]);
+await tab('Jogos'); await focusFirst('.sports-hub [data-nav]'); await walk('Jogos · início', [...downs(12), 'ArrowRight', 'ArrowRight', ...ups(12)]);
+// Página de cada tipo de campeonato (liga e copa): menu e cada seção
+for (const nth of [0, 1]) {
+  await p.locator('.lcard').nth(nth).click(); await p.waitForTimeout(1500); await p.evaluate(() => document.documentElement.classList.add('kbd'));
+  const n = await p.locator('.lg-menu .lg-mi').count();
+  for (let i = 0; i < n - 1; i++) { await p.locator('.lg-menu .lg-mi').nth(i).focus(); await p.waitForTimeout(400); await walk(`Jogos · campeonato ${nth + 1} · seção ${i + 1}`, ['ArrowRight', ...downs(25), ...ups(25)]); }
+  await p.keyboard.press('Escape'); await p.waitForTimeout(1000);
+}
+await p.click('button.chip:has-text("Guia de jogos")'); await p.waitForTimeout(2500); await p.evaluate(() => document.documentElement.classList.add('kbd'));
+await focusFirst('.chip, button.chip'); await walk('Jogos · guia', [...downs(15), 'ArrowRight', ...downs(15)]);
 for (const t of ['Filmes', 'Séries']) {
   await tab(t); await focusFirst('.stream-chip, .chip'); await walk(t, [...downs(18), ...ups(18)]);
 }

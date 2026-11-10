@@ -83,7 +83,7 @@ const LIKELY: [RegExp, RegExp][] = [
   [/ufc/i, /combate|band/i],
 ];
 
-function likelyChannels(league: string, sports: Channel[]): Channel[] {
+export function likelyChannels(league: string, sports: Channel[]): Channel[] {
   const rule = LIKELY.find(([l]) => l.test(league));
   if (!rule) return [];
   const seen = new Set<string>();

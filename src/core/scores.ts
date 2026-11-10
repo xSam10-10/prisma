@@ -37,13 +37,11 @@ const LEAGUES: [string, string][] = [
   ['soccer/esp.1', 'La Liga'],
   ['soccer/ita.1', 'Serie A'],
   ['soccer/ger.1', 'Bundesliga'],
+  ['soccer/fra.1', 'Ligue 1'],
   ['basketball/nba', 'NBA'],
   ['football/nfl', 'NFL'],
   ['mma/ufc', 'UFC'],
 ];
-
-/** Ligas com tabela de classificação (futebol). */
-export const TABLE_LEAGUES: [string, string][] = LEAGUES.filter(([p]) => p.startsWith('soccer/'));
 
 function base(): string {
   // Permite apontar para outro servidor (testes).
@@ -199,39 +197,6 @@ export async function loadStandings(path: string): Promise<Table[]> {
       return { name: String(g.name ?? g.abbreviation ?? ''), rows };
     })
     .filter((t) => t.rows.length);
-}
-
-/** Próximos jogos da liga (hoje e os próximos dias). */
-export async function loadFixtures(path: string, days = 7): Promise<Score[]> {
-  const d = (t: number) => {
-    const x = new Date(t);
-    return `${x.getFullYear()}${String(x.getMonth() + 1).padStart(2, '0')}${String(x.getDate()).padStart(2, '0')}`;
-  };
-  const now = Date.now();
-  const league = LEAGUES.find(([p]) => p === path)?.[1] ?? '';
-  const r = JSON.parse(await fetchText(`${base()}/${path}/scoreboard?dates=${d(now)}-${d(now + days * 86400000)}`, 15000)) as Obj;
-  const out: Score[] = [];
-  for (const ev of (r.events as Obj[]) ?? []) {
-    const comp = ((ev.competitions as Obj[]) ?? [])[0] ?? {};
-    const cs = (comp.competitors as Obj[]) ?? [];
-    const home = cs.find((c) => c.homeAway === 'home') ?? cs[0];
-    const away = cs.find((c) => c.homeAway === 'away') ?? cs[1];
-    if (!home || !away) continue;
-    const state = String(get(ev, 'status.type.state') ?? 'pre') as Score['state'];
-    out.push({
-      home: String(get(home, 'team.displayName') ?? ''),
-      away: String(get(away, 'team.displayName') ?? ''),
-      homeScore: String(home.score ?? ''),
-      awayScore: String(away.score ?? ''),
-      state,
-      detail: detailPt(state, String(get(ev, 'status.type.shortDetail') ?? '')),
-      start: Date.parse(String(ev.date ?? '')),
-      league,
-      id: ev.id != null ? String(ev.id) : undefined,
-      path,
-    });
-  }
-  return out.sort((a, b) => a.start - b.start);
 }
 
 // ---------------------------------------------------------------- Estatísticas do jogo

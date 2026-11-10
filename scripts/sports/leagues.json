@@ -1,0 +1,12 @@
+[
+  { "id": "bra.1", "name": "Brasileirão", "full": "Campeonato Brasileiro Série A", "kind": "liga", "span": "year", "c": ["#0E8F48", "#F3C318"], "flag": "🇧🇷" },
+  { "id": "conmebol.libertadores", "name": "Libertadores", "full": "Copa Libertadores da América", "kind": "copa", "span": "year", "c": ["#0D1B3D", "#C9A240"], "flag": "🌎" },
+  { "id": "bra.copa_do_brazil", "name": "Copa do Brasil", "full": "Copa do Brasil", "kind": "copa", "span": "year", "c": ["#123E8C", "#2FB463"], "flag": "🇧🇷" },
+  { "id": "conmebol.sudamericana", "name": "Sul-Americana", "full": "Copa Sul-Americana", "kind": "copa", "span": "year", "c": ["#0B2A66", "#E58A2B"], "flag": "🌎" },
+  { "id": "uefa.champions", "name": "Champions League", "full": "Liga dos Campeões da UEFA", "kind": "copa", "span": "eur", "c": ["#08103A", "#3E63DD"], "flag": "🇪🇺" },
+  { "id": "eng.1", "name": "Inglês", "full": "Premier League", "kind": "liga", "span": "eur", "c": ["#38003C", "#E90052"], "flag": "🏴" },
+  { "id": "esp.1", "name": "Espanhol", "full": "La Liga", "kind": "liga", "span": "eur", "c": ["#C8102E", "#FF8A1F"], "flag": "🇪🇸" },
+  { "id": "ita.1", "name": "Italiano", "full": "Serie A", "kind": "liga", "span": "eur", "c": ["#0B2D5C", "#1FA8E0"], "flag": "🇮🇹" },
+  { "id": "ger.1", "name": "Alemão", "full": "Bundesliga", "kind": "liga", "span": "eur", "c": ["#B0050F", "#2A2A2A"], "flag": "🇩🇪" },
+  { "id": "fra.1", "name": "Francês", "full": "Ligue 1", "kind": "liga", "span": "eur", "c": ["#0E1E3D", "#B7D300"], "flag": "🇫🇷" }
+]

@@ -1,0 +1,47 @@
+# Centro de esportes: gera prisma-sports.json (calendário da temporada, com
+# rodadas/fases e placares, e a tabela de cada campeonato, a partir da ESPN) e
+# publica na Release "tops". Os apps baixam de
+# https://github.com/<repo>/releases/download/tops/prisma-sports.json.
+# O placar ao vivo continua vindo direto da ESPN em cada aparelho.
+name: Sports
+
+on:
+  schedule:
+    - cron: '41 */2 * * *' # a cada 2 horas (UTC)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['scripts/sports/**', '.github/workflows/sports.yml']
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sports
+  cancel-in-progress: false
+
+jobs:
+  sports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Gera o calendário
+        run: node scripts/sports/build-sports.mjs out/prisma-sports.json
+      - name: Confere
+        run: |
+          node -e "const d=require('./out/prisma-sports.json'); const n=d.leagues.reduce((a,l)=>a+l.ev.length,0); console.log(d.leagues.length+' campeonatos, '+n+' jogos'); for (const w of d.warn||[]) console.log('::warning title=Sports::'+w); if (n < 100) { console.log('::error::poucos jogos — não publica'); process.exit(1); }"
+      - name: Publica na Release "tops"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view tops >/dev/null 2>&1 || gh release create tops --prerelease --latest=false --title "Dados · Tops e recomendações" --notes "Arquivo de dados atualizado automaticamente várias vezes por dia (workflows Tops e Sports). Não é uma versão do app." --target "$GITHUB_SHA"
+          gh release upload tops out/prisma-sports.json --clobber
+      - name: Mantém o agendamento ligado
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/sports.yml/enable" || true

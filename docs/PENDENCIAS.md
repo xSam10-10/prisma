@@ -1,4 +1,4 @@
-# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 09/11/2026, versão 0.24.5)
+# PRISMA — Melhorias sugeridas ainda pendentes (atualizado em 10/11/2026, versão 0.25.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -47,7 +47,7 @@ pendências [1º] 0.24.0: 7 controle parental (senha para categorias +18 e qualq
 - **34 · Avatar com foto e PIN por perfil** · **35 · Tempo de tela infantil** · **37 · Apagar histórico item a item** · **43 · Atalhos para apps oficiais (Claro TV+, SKY+, DirecTV GO)** [Sem prior.]
 - **9 · Sincronização automática pela nuvem** (hoje por arquivo) · **14 · App para Roku** · **13 · Assinatura digital do instalador Windows (paga)** [Grande]
 
-## 5. Jogos — novo "centro de esportes" (proposta aprovada em 09/11; **esperar o Samuel dizer "pode fazer"**)
+## 5. Jogos — novo "centro de esportes" (aprovado; **etapa 1 feita na 0.25.0**)
 Pedido do Samuel: temas próprios para as principais ligas, cada uma com banner moderno, calendário, destaques e menu lateral; destaque à parte para a Fórmula 1 (banner, calendário de corridas, lembrete e destaques). Organizado, intuitivo e premium.
 
 **Estrutura proposta (a que ele aprovou):**
@@ -64,7 +64,9 @@ Pedido do Samuel: temas próprios para as principais ligas, cada uma com banner 
 
 **Ordem sugerida:** (1) hub + páginas das ligas com banner, calendário e tabela; (2) Fórmula 1 completa; (3) destaques/estatísticas e acabamento.
 
-**Perguntas em aberto para o Samuel:** ordem das ligas (sugestão: Brasileirão, Libertadores, Copa do Brasil, Sul-Americana, Champions, Inglês, Espanhol, Italiano, Alemão, Francês) · incluir o Brasileirão? · F1 também com "semana do GP" no Início (como o Dia de jogo)? · incluir manchetes (notícias da ESPN) ou só dados?
+**Respostas do Samuel (10/11):** ordem sugerida das ligas mantida; Brasileirão incluído; F1 com "semana do GP" no Início; por enquanto só dados (sem manchetes).
+
+**Andamento:** ✅ etapa 1 (0.25.0): hub (ao vivo e a seguir, campeonatos, meus times, hoje) + página de cada campeonato (banner, visão geral com destaques simples, calendário por rodada/fase, tabela/grupos, chaves, times com Seguir). Falta: **etapa 2** Fórmula 1 completa (+ semana do GP no Início) · **etapa 3** artilheiros, sequências e acabamento. Pequeno pendente: logotipos das ligas vêm da ESPN (no servidor falso aparecem siglas).
 
 ## Depende do Samuel
 - ✅ Repositório público (08/11) e atualização dentro do app conferida no Windows pelo Samuel (09/11, 0.18.1 → 0.19.x).

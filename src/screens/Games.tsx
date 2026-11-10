@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ensureReminder, gamesStats, hasReminder, isSportsChannel, loadGames, matchOf, myTeams, setMyTeams, teamsOf, toggleReminder, type Game } from '../core/games';
-import { TABLE_LEAGUES, isMyTeam, loadFixtures, loadMatchStats, loadStandings, sameTeam, teamKey, type MatchStats, type Table } from '../core/scores';
+import { ensureReminder, gamesStats, hasReminder, isSportsChannel, likelyChannels, loadGames, matchOf, myTeams, setMyTeams, teamsOf, toggleReminder, type Game } from '../core/games';
+import { isMyTeam, loadMatchStats, sameTeam, teamKey, type MatchStats } from '../core/scores';
+import type { Match } from '../core/sports';
+import { LeaguePage, SportsHub, useLeagues, type SportsCtx } from './Sports';
+import { pushBack } from '../ui/nav';
 import type { Channel, Playlist } from '../core/types';
 import { loadScores, orderedScore, scoreFor, type Score } from '../core/scores';
 import { ChannelLogo, fmtTime, rgba } from '../ui/bits';
@@ -26,9 +29,31 @@ function status(g: Game, now: number): 'live' | 'soon' | 'later' {
   return 'later';
 }
 
+/** Placar no formato da ESPN a partir de uma partida do calendário (para o detalhe do jogo). */
+function scoreOfMatch(m: Match): Score {
+  return {
+    home: m.home.name,
+    away: m.away.name,
+    homeScore: m.homeScore,
+    awayScore: m.awayScore,
+    state: m.state,
+    detail: m.state === 'in' ? m.detail || 'Ao vivo' : m.state === 'post' ? 'Encerrado' : '',
+    start: m.start,
+    league: m.league.name,
+    id: m.id,
+    path: 'soccer/' + m.league.id,
+    homeLogo: m.home.logo,
+    awayLogo: m.away.logo,
+    homeColor: m.home.color,
+    awayColor: m.away.color,
+  };
+}
+
 export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: Channel, list: Channel[]) => void }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
+  // Centro de esportes: 'hub' (tela inicial), 'guia' (jogos do guia dos canais) ou o id de um campeonato.
+  const [view, setView] = useState<string>('hub');
   const [games, setGames] = useState<Game[] | null>(null);
   const [prog, setProg] = useState({ done: 0, total: 0 });
   const [filter, setFilter] = useState<Filter>('agora');
@@ -36,7 +61,7 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
   const [index, setIndex] = useState(0);
   const [, force] = useState(0);
   const [open, setOpen] = useState<Game | null>(null);
-  const [mode, setMode] = useState<'jogos' | 'tabela'>('jogos');
+  const [openMatch, setOpenMatch] = useState<Match | null>(null);
   const [teamsDlg, setTeamsDlg] = useState(false);
   const [mine, setMine] = useState<string[]>(myTeams());
   const isMine = (g: Game) => mine.length > 0 && teamsOf(g).some((t) => isMyTeam(t, mine));
@@ -66,12 +91,107 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
       if (mt.length) for (const x of g) if (x.start > Date.now() && teamsOf(x).some((t) => isMyTeam(t, mt))) ensureReminder(x);
       // Sem jogo ao vivo agora: começa em "Hoje".
       if (!g.some((x) => status(x, Date.now()) === 'live')) setFilter('hoje');
-      requestAnimationFrame(() => listRef.current?.focus());
     });
     return () => {
       alive = false;
     };
   }, [playlist]);
+  useEffect(() => {
+    if (view === 'guia' && games) requestAnimationFrame(() => listRef.current?.focus());
+  }, [view, !!games]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Guia de jogos: Voltar retorna à tela inicial de Jogos.
+  useEffect(() => {
+    if (view !== 'guia') return;
+    return pushBack(() => {
+      setView('hub');
+      return true;
+    });
+  }, [view]);
+
+  const { leagues, ready } = useLeagues(scores);
+  // Jogo do guia de cada partida do calendário (canal e lembrete); calculado uma vez por partida.
+  const guideCache = useRef(new Map<string, Game | null>());
+  useEffect(() => guideCache.current.clear(), [games]);
+  const guideOf = (m: Match): Game | undefined => {
+    const c = guideCache.current;
+    const ck = m.league.id + '|' + m.id;
+    if (c.has(ck)) return c.get(ck) ?? undefined;
+    const s = scoreOfMatch(m);
+    const g = (games ?? []).find((x) => x.key === 'espn|' + m.id) ?? (games ?? []).find((x) => !x.likely && scoreFor(x, [s]));
+    c.set(ck, g ?? null);
+    return g;
+  };
+  const gameOf = (m: Match): Game =>
+    guideOf(m) ?? {
+      key: 'espn|' + m.id,
+      title: `${m.league.name}: ${m.home.name} x ${m.away.name}`,
+      league: m.league.name,
+      start: m.start,
+      end: m.start + 2 * 3600000,
+      channels: likelyChannels(`${m.league.name} ${m.league.full}`, sports),
+      likely: true,
+    };
+  const ctx: SportsCtx = {
+    mine,
+    scores,
+    channelOf: (m) => {
+      const g = guideOf(m);
+      return g && !g.likely ? g.channels[0]?.name : undefined;
+    },
+    reminderOf: (m) => hasReminder(gameOf(m).key),
+    onMatch: (m) => {
+      const g = guideOf(m);
+      // Ao vivo e com canal no guia: vai direto para o jogo.
+      if (m.state === 'in' && g && !g.likely && g.channels[0]) onWatch(g.channels[0], g.channels);
+      else setOpenMatch(m);
+    },
+  };
+  const toggleTeam = (name: string) => {
+    const has = mine.some((t) => sameTeam(t, name));
+    const list = has ? mine.filter((t) => !sameTeam(t, name)) : [...mine, name];
+    setMyTeams(list);
+    setMine(list);
+    if (!has) for (const x of games ?? []) if (x.start > Date.now() && teamsOf(x).some((t) => isMyTeam(t, list))) ensureReminder(x);
+    // Jogos do calendário do time (sem canal no guia) também ganham lembrete.
+    if (!has) for (const l of leagues) for (const m of l.matches) if (m.state === 'pre' && m.start > Date.now() && m.start < Date.now() + 14 * 86400000 && (sameTeam(m.home.name, name) || sameTeam(m.away.name, name))) ensureReminder(gameOf(m));
+    force((n) => n + 1);
+  };
+
+  const matchModal = openMatch && (
+    <Modal title={openMatch.league.full} onClose={() => setOpenMatch(null)} width={mobile ? L.W - 24 : Math.min(900, L.W - 120)}>
+      <div style={{ height: mobile ? Math.round(L.H * 0.7) : Math.min(560, Math.round(L.H * 0.72)), display: 'flex', flexDirection: 'column' }}>
+        <GameDetail
+          g={gameOf(openMatch)}
+          score={scoreOfMatch(openMatch)}
+          now={Date.now()}
+          onWatch={(c) => {
+            const g = gameOf(openMatch);
+            setOpenMatch(null);
+            onWatch(c, g.channels);
+          }}
+          onReminder={() => {
+            toggleReminder(gameOf(openMatch));
+            force((x) => x + 1);
+          }}
+        />
+      </div>
+    </Modal>
+  );
+  const teamsDialog = teamsDlg && (
+    <MyTeamsDialog
+      games={games ?? []}
+      initial={mine}
+      onClose={() => setTeamsDlg(false)}
+      onSave={(list) => {
+        setMyTeams(list);
+        setMine(list);
+        setTeamsDlg(false);
+        for (const x of games ?? []) if (x.start > Date.now() && teamsOf(x).some((t) => isMyTeam(t, list))) ensureReminder(x);
+        force((n) => n + 1);
+      }}
+    />
+  );
+
 
   const today = dayKey(now);
   const list = useMemo(() => {
@@ -83,12 +203,52 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
     if (league) l = l.filter((g) => g.league === league);
     return l;
   }, [games, filter, league, now, today, mine]); // eslint-disable-line react-hooks/exhaustive-deps
-  const leagues = useMemo(() => [...new Set((games ?? []).map((g) => g.league))].slice(0, 12), [games]);
+  const guideLeagues = useMemo(() => [...new Set((games ?? []).map((g) => g.league))].slice(0, 12), [games]);
   useEffect(() => setIndex(0), [filter, league]);
   const sel = list[index];
 
+  const lg = leagues.find((l) => l.def.id === view);
+  if (lg) {
+    return (
+      <>
+        <LeaguePage key={lg.def.id} league={lg} ctx={ctx} onBack={() => setView('hub')} onToggleTeam={toggleTeam} />
+        {matchModal}
+      </>
+    );
+  }
+  if (view === 'hub') {
+    const liveGuide = (games ?? []).filter((g) => !g.likely && status(g, Date.now()) === 'live' && !/futebol|brasileir|libertadores|sul-?americana|champions|premier|la liga|serie a|bundesliga|ligue 1|copa do brasil/i.test(g.league + ' ' + g.title));
+    return (
+      <>
+        <div className="scroll-x" style={{ position: 'absolute', left: L.px, right: L.px, top: L.top, height: 48, alignItems: 'center' }}>
+          <button className="chip on" data-nav="" style={{ height: 40 }} onClick={() => undefined}>⚽ Início</button>
+          <button className="chip" data-nav="" style={{ height: 40 }} onClick={() => setView('guia')}>
+            ▤ Guia de jogos{games ? ` · ${games.length}` : ''}
+          </button>
+          <button className="chip" data-nav="" onClick={() => setTeamsDlg(true)} style={{ height: 40 }}>☆ Meus times{mine.length ? ` (${mine.length})` : ''}</button>
+        </div>
+        <SportsHub leagues={leagues} ready={ready} ctx={ctx} liveGuide={liveGuide} onLeague={setView} onGuideGame={(g) => (g.channels[0] ? onWatch(g.channels[0], g.channels) : setOpen(g))} onTeams={() => setTeamsDlg(true)} onGuide={() => setView('guia')} />
+        {teamsDialog}
+        {matchModal}
+        {open && (
+          <Modal title={open.league} onClose={() => setOpen(null)} width={L.W - 24}>
+            <GameDetail g={open} score={scoreFor(open, scores)} now={Date.now()} onWatch={(c) => onWatch(c, open.channels)} onReminder={() => { toggleReminder(open); force((x) => x + 1); }} />
+          </Modal>
+        )}
+      </>
+    );
+  }
+
+  const backChip = (
+    <button className="chip" data-nav="" onClick={() => setView('hub')} style={{ height: 40, marginRight: 14 }}>‹ Início</button>
+  );
   if (!sports.length) {
-    return <Info L={L} title="Jogos" text="Não encontrei canais de esporte na sua lista (procuro por categorias e nomes como Esportes, SporTV, ESPN, Premiere, PPV, UFC)." />;
+    return (
+      <>
+        <div className="scroll-x" style={{ position: 'absolute', left: L.px, right: L.px, top: L.top, height: 48, alignItems: 'center' }}>{backChip}</div>
+        <Info L={L} title="Guia de jogos" text="Não encontrei canais de esporte na sua lista (procuro por categorias e nomes como Esportes, SporTV, ESPN, Premiere, PPV, UFC)." />
+      </>
+    );
   }
   if (!games) {
     return (
@@ -113,37 +273,21 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
   return (
     <>
       <div className="scroll-x" style={{ position: 'absolute', left: L.px, right: L.px, top: L.top, height: 48, alignItems: 'center' }}>
+        {backChip}
         {chips.map(([id, label, n]) => (
           <button key={id} className={'chip' + (filter === id ? ' on' : '')} data-nav="" onClick={() => setFilter(id)} style={{ height: 40 }}>
             {id === 'agora' && <span style={{ color: filter === id ? T.live : T.live, marginRight: 6 }}>●</span>}
             {label} · {n}
           </button>
         ))}
-        <button className={'chip' + (mode === 'tabela' ? ' on' : '')} data-nav="" onClick={() => setMode(mode === 'tabela' ? 'jogos' : 'tabela')} style={{ height: 40, marginLeft: 14 }}>▦ Tabela e próximos jogos</button>
-        <button className="chip" data-nav="" onClick={() => setTeamsDlg(true)} style={{ height: 40 }}>☆ Escolher meus times{mine.length ? ` (${mine.length})` : ''}</button>
-        {mode === 'jogos' && leagues.length > 1 && <span className="muted" style={{ margin: '0 4px 0 14px', fontSize: 14, flexShrink: 0 }}>Ligas</span>}
-        {mode === 'jogos' && leagues.length > 1 && leagues.map((l) => (
+        <button className="chip" data-nav="" onClick={() => setTeamsDlg(true)} style={{ height: 40, marginLeft: 14 }}>☆ Escolher meus times{mine.length ? ` (${mine.length})` : ''}</button>
+        {guideLeagues.length > 1 && <span className="muted" style={{ margin: '0 4px 0 14px', fontSize: 14, flexShrink: 0 }}>Ligas</span>}
+        {guideLeagues.length > 1 && guideLeagues.map((l) => (
           <button key={l} className={'chip' + (league === l ? ' on' : '')} data-nav="" onClick={() => setLeague(league === l ? '' : l)} style={{ height: 40 }}>{l}</button>
         ))}
       </div>
 
-      {teamsDlg && (
-        <MyTeamsDialog
-          games={games}
-          initial={mine}
-          onClose={() => setTeamsDlg(false)}
-          onSave={(list) => {
-            setMyTeams(list);
-            setMine(list);
-            setTeamsDlg(false);
-            for (const x of games) if (x.start > Date.now() && teamsOf(x).some((t) => isMyTeam(t, list))) ensureReminder(x);
-            force((n) => n + 1);
-          }}
-        />
-      )}
-      {mode === 'tabela' ? (
-        <StandingsView games={games} mine={mine} onWatch={(c, list) => onWatch(c, list)} />
-      ) : (
+      {teamsDialog}
       <>
       <div className={mobile ? '' : 'glass'} style={{ position: 'absolute', left: L.px, top: L.top + 60, bottom: L.bottom, width: listW, borderRadius: T.radiusPanel, padding: mobile ? 0 : 14, display: 'flex' }}>
         <VirtualList
@@ -209,7 +353,6 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
         </Modal>
       )}
       </>
-      )}
     </>
   );
 }
@@ -223,7 +366,7 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
   const [tab, setTab] = useState<'onde' | 'stats' | 'escal'>('onde');
   useEffect(() => setTab('onde'), [g.key]);
   return (
-    <div className="gy-16" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="gy-16 scroll-y game-detail" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% + 8px)', padding: 4, margin: -4 }}>
       <span className="muted caps" style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>{g.league}</span>
       {teams.length === 2 && score && (score.homeLogo || score.awayLogo) ? (
         <MatchHero g={g} score={score} teams={teams as [string, string]} />
@@ -263,7 +406,7 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
       {tab !== 'onde' ? (
         <MatchInfo score={score} tab={tab} />
       ) : (
-      <div className="gy-8 scroll-y" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flexGrow: 1, flexShrink: 1 }}>
+      <div className="gy-8" style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         {g.likely && (
           <span className="muted" style={{ fontSize: 14, lineHeight: 1.4 }}>
             {g.channels.length
@@ -361,98 +504,6 @@ function MatchInfo({ score, tab }: { score?: Score; tab: 'stats' | 'escal' }) {
       })}
       {!data.stats.length && !data.events.length && <span className="muted" style={{ fontSize: 15 }}>As estatísticas aparecem quando o jogo começa.</span>}
     </div>
-  );
-}
-
-/** Tabela de classificação e próximos jogos da liga. */
-function StandingsView({ games, mine, onWatch }: { games: Game[]; mine: string[]; onWatch: (c: Channel, list: Channel[]) => void }) {
-  const L = useLayout();
-  const mobile = L.form === 'mobile';
-  const [path, setPath] = useState(TABLE_LEAGUES[0][0]);
-  const [tables, setTables] = useState<Table[] | null | undefined>(undefined);
-  const [fixtures, setFixtures] = useState<Score[] | null>(null);
-  const [, force] = useState(0);
-  useEffect(() => {
-    let alive = true;
-    setTables(undefined);
-    setFixtures(null);
-    loadStandings(path).then((t) => alive && setTables(t), () => alive && setTables(null));
-    loadFixtures(path).then((f) => alive && setFixtures(f.filter((x) => x.state !== 'post')), () => alive && setFixtures([]));
-    return () => {
-      alive = false;
-    };
-  }, [path]);
-  // Jogo do guia correspondente (para "onde assistir" e lembrete).
-  const guideGame = (f: Score) =>
-    games.find((g) => {
-      const t = teamsOf(g);
-      if (t.length !== 2 || Math.abs(g.start - f.start) > 4 * 3600000) return false;
-      const k = [teamKey(f.home), teamKey(f.away)];
-      return t.some((x) => k.some((y) => teamKey(x).split(' ')[0] === y.split(' ')[0]));
-    });
-  const top = L.top + 60;
-  const leftW = mobile ? L.W - L.px * 2 : Math.round((L.W - L.px * 2) * 0.56);
-  return (
-    <>
-      <div className="scroll-x" style={{ position: 'absolute', left: L.px, right: L.px, top, height: 44, alignItems: 'center' }}>
-        {TABLE_LEAGUES.map(([p, name]) => (
-          <button key={p} className={'chip' + (p === path ? ' on' : '')} data-nav="" style={{ height: 38 }} onClick={() => setPath(p)}>{name}</button>
-        ))}
-      </div>
-      <div className="glass table-box scroll-y" style={{ position: 'absolute', left: L.px, top: top + 56, bottom: mobile ? '45%' : L.bottom, width: leftW, borderRadius: T.radiusPanel }}>
-        {tables === undefined ? (
-          <span className="muted" style={{ padding: 20, display: 'block' }}>Carregando a tabela…</span>
-        ) : !tables || !tables.length ? (
-          <span className="muted" style={{ padding: 20, display: 'block' }}>Tabela indisponível agora (fonte: ESPN).</span>
-        ) : (
-          tables.map((t) => (
-            <table key={t.name} className="stand">
-              <thead>
-                <tr><th className="l" colSpan={2}>{tables.length > 1 ? t.name : 'Classificação'}</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th></tr>
-              </thead>
-              <tbody>
-                {t.rows.map((r) => (
-                  <tr key={r.team} className={isMyTeam(r.team, mine) ? 'mine' : ''}>
-                    <td className="pos">{r.rank}</td>
-                    <td className="l team">{r.team}{isMyTeam(r.team, mine) ? ' ★' : ''}</td>
-                    <td className="pts">{r.points}</td><td>{r.played}</td><td>{r.wins}</td><td>{r.draws}</td><td>{r.losses}</td><td>{r.gd > 0 ? '+' + r.gd : r.gd}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ))
-        )}
-      </div>
-      <div className="glass fixtures scroll-y" style={mobile ? { position: 'absolute', left: L.px, right: L.px, top: '57%', bottom: L.bottom, borderRadius: T.radiusPanel } : { position: 'absolute', left: L.px + leftW + 20, right: L.px, top: top + 56, bottom: L.bottom, borderRadius: T.radiusPanel }}>
-        <span className="fix-title">Próximos jogos</span>
-        {fixtures === null ? (
-          <span className="muted">Carregando…</span>
-        ) : !fixtures.length ? (
-          <span className="muted">Sem jogos nos próximos 7 dias.</span>
-        ) : (
-          fixtures.map((f) => {
-            const g = guideGame(f);
-            const live = f.state === 'in';
-            return (
-              <div key={(f.id ?? '') + f.home} className={'fix' + (isMyTeam(f.home, mine) || isMyTeam(f.away, mine) ? ' mine' : '')}>
-                <span className="fix-when">{live ? <span className="badge-live" style={{ fontSize: 11, padding: '3px 7px' }}>{f.detail}</span> : `${new Date(f.start).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} ${fmtTime(f.start)}`}</span>
-                <span className="fix-teams">{f.home} {live ? `${f.homeScore} × ${f.awayScore}` : '×'} {f.away}</span>
-                {g ? (
-                  <span className="fix-acts">
-                    <button className="btn" data-nav="" style={{ height: 34, fontSize: 14 }} onClick={() => g.channels[0] && onWatch(g.channels[0], g.channels)}>▶ {g.channels[0]?.name}</button>
-                    {!live && (
-                      <button className="btn" data-nav="" style={{ height: 34, fontSize: 14, color: hasReminder(g.key) ? T.warn : undefined }} onClick={() => { toggleReminder(g); force((x) => x + 1); }}>⏰</button>
-                    )}
-                  </span>
-                ) : (
-                  <span className="muted fix-none">sem canal no guia</span>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-    </>
   );
 }
 

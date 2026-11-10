@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (09/11/2026 · versão 0.24.5)
+## 0. ESTADO ATUAL — leia primeiro (10/11/2026 · versão 0.25.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -28,7 +28,9 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
-**Próximo trabalho combinado (09/11):** novo "centro de esportes" na aba Jogos (ligas com tema próprio + Fórmula 1) — proposta completa em `docs/PENDENCIAS.md` seção 5. O Samuel aprovou a ideia mas ainda vai responder as perguntas em aberto; só implementar depois do "pode fazer".
+**Centro de esportes (0.25.0, 10/11):** etapa 1 feita (hub de Jogos + página de cada campeonato). Dados da temporada em `prisma-sports.json`, gerado pelo workflow `sports.yml` (a cada 2 h, `scripts/sports/build-sports.mjs`, ligas em `scripts/sports/leagues.json`) e publicado na Release `tops`; o app baixa de `releases/download/tops/` (pref `sportsFeed` para testes) e aplica o placar ao vivo da ESPN por cima. Ver 10am. **Próximo:** etapa 2 = Fórmula 1 (com "semana do GP" no Início), etapa 3 = destaques/estatísticas e acabamento — `docs/PENDENCIAS.md` seção 5.
+
+**Sessão local (10/11):** a conversa nova roda no PC do Samuel (cópia em `Downloads\prisma`), que alcança ESPN e GitHub — dá para testar com dados reais da ESPN além do servidor falso. Playwright instalado globalmente (`NPMROOT=$(npm root -g)`).
 
 **Como o Samuel gosta de trabalhar:** tudo em português; visual "mega premium" com cara de app oficial; quando ele pede "só sugira / não crie nada", responder só com a opinião; depois de cada lote, testar navegação pelo controle (setas/OK/Voltar) e publicar uma versão; avisar com honestidade o que depende da TV real, do TMDB ou da Goldcard. Sugestões de design descartadas estão listadas no topo de `docs/PENDENCIAS.md` (não oferecer de novo). Chave do TMDB fica só no secret `TMDB_KEY` e nos Ajustes de cada aparelho.
 
@@ -495,6 +497,13 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 ## 10al. Versão 0.24.5 — nada cortado ao navegar
 - Ajustes: seções numa coluna `scroll-y` (`.sec-col`). Carousel: 8 px a mais de folga vertical (padding + margem negativa) para a capa em foco não ser cortada.
 - **`test/scan-foco.mjs`**: varredura que anda com as setas em todas as telas e acusa item em foco fora da tela ou cortado por um contêiner. Rodar em 2000x800 e 1280x720 antes de publicar mudanças de layout (0 problemas na 0.24.5).
+
+## 10am. Versão 0.25.0 — centro de esportes (etapa 1)
+- Respostas do Samuel ("pode fazer", 10/11, aceitando as sugestões): ordem Brasileirão, Libertadores, Copa do Brasil, Sul-Americana, Champions, Inglês, Espanhol, Italiano, Alemão, Francês; Brasileirão incluído; F1 terá "semana do GP" no Início (etapa 2); por enquanto só dados, sem manchetes.
+- **Dados:** a ESPN recusa intervalo de datas no scoreboard (`?dates=A-B` → 400; a antiga "Tabela e próximos jogos" quebrou por isso e foi removida). Só `?dates=AAAA&limit=1000` traz a temporada — 1 a 5 MB por liga, por isso o gerador no GitHub. Temporada: ano civil (Brasil/Conmebol) ou julho→junho (Europa). Copas guardam a fase (`season.slug`), ligas a rodada.
+- **Rodadas:** a ESPN não informa. `assignRounds` agrupa por período (> 30 h sem jogo separa), junta meia rodada antes de pausa, devolve jogo adiado à primeira rodada em que os dois times faltaram e limita a 2 × (times − 1). Conferido com dados reais: Inglês/Italiano/Alemão/Francês exatos, Brasileirão 38 rodadas com a próxima = 35 (algumas rodadas antigas com 9/11 jogos por causa da pausa da Copa).
+- **Tela:** `src/screens/Sports.tsx` (hub, página do campeonato, linhas/cartões) + `src/sports.css`; `src/core/sports.ts` (formato compacto, rodadas/fases, chaves, destaques). `Games.tsx`: visão `hub` (padrão), `guia` (lista antiga) ou id do campeonato; o jogo do calendário acha canal/lembrete no guia (`scoreFor`) e, sem guia, usa canais prováveis (`likelyChannels`).
+- Servidor falso: `/tops/prisma-sports.json` (calendário inventado; `SPORTS_FILE=` serve um arquivo real). `scan-foco` cobre hub, uma liga e uma copa (todas as seções) e o guia; 0 problemas em 1280x720 e 2000x800. `CHROME=` aponta outro Chromium (no PC do Samuel: Edge). Correção junto: o detalhe do jogo agora rola inteiro (na TV a lista "Onde assistir" ficava com 27 px quando havia placar com escudos).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

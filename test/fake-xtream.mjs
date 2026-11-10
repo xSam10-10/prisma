@@ -111,6 +111,50 @@ const EN_PT = {
   'The Heirs': { id: 802, name: 'Os Herdeiros', original_name: 'The Heirs', first_air_date: '2015-03-01', vote_average: 8.0 },
 };
 
+function fakeSports() {
+  const now = Date.now();
+  const esc = (t) => `http://127.0.0.1:${PORT}/escudo/${encodeURIComponent(t)}.svg`;
+  const names = ['Flamengo', 'Palmeiras', 'Botafogo', 'São Paulo', 'Corinthians', 'Fluminense', 'Grêmio', 'Internacional', 'Atlético Mineiro', 'Cruzeiro'];
+  const teams = names.map((t) => [t, t.slice(0, 3).toUpperCase(), esc(t), teamColor(t), '']);
+  // Rodízio: 18 rodadas semanais; a rodada 12 é a desta semana (com o jogo ao vivo e1 da ESPN falsa).
+  const ev = [];
+  const live = Math.floor((now - (now % 1800000) - 900000) / 1000);
+  const ids = names.map((_, i) => i);
+  for (let r = 1; r <= 18; r++) {
+    const rot = [ids[0], ...ids.slice(1).map((_, k) => ids[1 + ((k + r - 1) % (ids.length - 1))])];
+    for (let k = 0; k < 5; k++) {
+      let h = rot[k];
+      let a = rot[9 - k];
+      if (r > 9) [h, a] = [a, h];
+      const t = Math.floor(now / 1000) + (r - 12) * 7 * 86400 + k * 3 * 3600 + 3600;
+      const past = r < 12;
+      ev.push([`b${r}-${k}`, t, h, a, past ? String((h + r) % 4) : '', past ? String((a + k) % 3) : '', past ? 2 : 0, r, '', 0]);
+    }
+  }
+  // Jogos de hoje da ESPN falsa (ids iguais aos do placar ao vivo)
+  ev.push(['e1', live, 0, 1, '2', '1', 1, 12, '', 0]);
+  ev.push(['e2', Math.floor(new Date(Math.floor(now / 86400000) * 86400000 + 23 * 3600000).getTime() / 1000), 4, 3, '', '', 0, 12, '', 0]);
+  const rows = names.map((t, i) => [i + 1, t, t.slice(0, 3).toUpperCase(), esc(t), 30 - i * 2, 11, 9 - Math.floor(i / 2), 3, i, 25 - i, 10 + i, 15 - i * 2, i < 4 ? '81D6AC' : i > 7 ? 'FF7F84' : '']);
+  // Libertadores: semifinais (ida e volta) e final
+  const lt = [['River Plate', 'RIV'], ['Grêmio', 'GRE'], ['Flamengo', 'FLA'], ['Palmeiras', 'PAL']].map(([n, s]) => [n, s, esc(n), teamColor(n), '']);
+  const d = (days) => Math.floor(now / 1000) + days * 86400;
+  const lev = [
+    ['l1', d(-20), 0, 1, '1', '0', 2, 'semifinals', 'Ida', 0],
+    ['l2', d(-13), 1, 0, '2', '1', 2, 'semifinals', 'Volta · empate no agregado · GRE vence por 4-3 nos pênaltis', 0],
+    ['l3', d(-20), 2, 3, '2', '2', 2, 'semifinals', 'Ida', 0],
+    ['l4', d(-13), 3, 2, '0', '1', 2, 'semifinals', 'Volta · FLA vence por 3-2 no agregado', 0],
+    ['l5', d(9), 1, 2, '', '', 0, 'final', '', 0],
+  ];
+  return {
+    v: 1,
+    updated: new Date().toISOString(),
+    leagues: [
+      { id: 'bra.1', season: '2026 Futebol Brasileiro', logo: '', teams, ev, tables: [{ n: 'Brasileirão Série A', rows }] },
+      { id: 'conmebol.libertadores', season: '2026 CONMEBOL Libertadores', logo: '', teams: lt, ev: lev, tables: [] },
+    ],
+  };
+}
+
 const teamColor = (t) => ({ Flamengo: 'C8102E', Palmeiras: '006437', Corinthians: '111111', 'São Paulo': 'E30613', Grêmio: '0D80BF', 'River Plate': 'E4002B' })[t] || '3D7BFF';
 
 createServer((req, res) => {
@@ -177,6 +221,12 @@ createServer((req, res) => {
     }
     rows.push('Argentina\tAR\t2026-11-01\tFilms\t1\tSomething Else\tN/A\t1');
     return res.writeHead(200, { 'content-type': 'text/tab-separated-values' }).end(rows.join('\n'));
+  }
+  // Centro de esportes: SPORTS_FILE = um prisma-sports.json real; sem ele, um calendário inventado
+  // (Brasileirão de 10 times com o jogo ao vivo "e1" Flamengo x Palmeiras, Libertadores com mata-mata).
+  if (u.pathname === '/tops/prisma-sports.json') {
+    if (process.env.SPORTS_FILE && existsSync(process.env.SPORTS_FILE)) return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }) && createReadStream(process.env.SPORTS_FILE).pipe(res);
+    return res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }).end(JSON.stringify(fakeSports()));
   }
   if (u.pathname === '/tops/prisma-tops.json') {
     if (!process.env.TOPS_FILE || !existsSync(process.env.TOPS_FILE)) return res.writeHead(404, { 'access-control-allow-origin': '*' }).end();
