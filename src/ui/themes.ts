@@ -1,4 +1,5 @@
 import { T } from './tokens';
+import type { Streaming } from '../core/vod';
 
 // Temas do PRISMA: só aparência (cores, botões, cantos, fonte). A estrutura
 // (A, B, C) é escolhida à parte. Funciona sem variáveis CSS (TV de 2017):
@@ -131,4 +132,73 @@ export function applyTheme(t: Theme): void {
   if (t.titleFont) extra.push(`.title, .brand span, .tile-ini, .poster-fallback, .game-teams { font-family: ${t.titleFont} !important; font-weight: 800 !important; letter-spacing: -0.5px; }`);
   el.textContent = extra.join('\n');
   document.documentElement.setAttribute('data-theme', t.id);
+}
+
+// ---------------------------------------------------------------- Identidade por streaming (0.27.0)
+// Dentro de um streaming (Filmes/Séries › Netflix…), o app veste o visual dele:
+// os 6 que já têm tema completo usam o tema; os outros ganham um tema montado
+// com as cores do streaming (inspiradas, sem copiar a marca). Ao sair, volta o
+// tema escolhido em Ajustes › Aparência.
+
+
+/** Ajustes de forma por streaming (cantos retos, fonte dos títulos). */
+const SKIN_SHAPE: Record<string, { square?: boolean; titleFont?: string }> = {
+  claro: { square: true },
+  amc: { square: true, titleFont: "'Inter', sans-serif" },
+  lionsgate: { square: true },
+  directv: { square: true },
+  sbt: {},
+};
+
+function mix(hex: string, to: [number, number, number], k: number): string {
+  const [r, g, b] = rgb(hex);
+  const c = (x: number, y: number) => Math.round(x + (y - x) * k).toString(16).padStart(2, '0');
+  return `#${c(r, to[0])}${c(g, to[1])}${c(b, to[2])}`;
+}
+function luminance(hex: string): number {
+  const [r, g, b] = rgb(hex).map((v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Tema do streaming: o tema próprio, se existir, ou um montado com as cores dele. */
+export function skinTheme(s: Streaming): Theme {
+  const own = THEMES.find((t) => t.id === s.id);
+  if (own) return own;
+  // Cor de destaque muito escura ou muito apagada no fundo escuro: clareia.
+  const primary = luminance(s.accent) < 0.12 ? mix(s.accent, [255, 255, 255], 0.35) : s.accent;
+  const onPrimary = luminance(primary) > 0.4 ? '#0B0B10' : '#FFFFFF';
+  return {
+    id: 's-' + s.id,
+    name: s.name,
+    bg: s.bg,
+    surface: mix(s.bg, [255, 255, 255], 0.09),
+    text: '#F5F5F7',
+    text2: mix(primary, [200, 200, 210], 0.65),
+    primary,
+    onPrimary,
+    live: '#FF5A4D',
+    warn: s.accent2 && luminance(s.accent2) > 0.2 ? s.accent2 : '#F5B83D',
+    ambient: [s.accent, s.accent2, s.bg],
+    ...SKIN_SHAPE[s.id],
+  };
+}
+
+let baseTheme: Theme = THEMES[0];
+let skin: string | null = null;
+
+/** Tema escolhido pelo usuário (App). Fora de um streaming, é ele que vale. */
+export function setBaseTheme(t: Theme): void {
+  baseTheme = t;
+  if (!skin) applyTheme(t);
+}
+
+/** Entra (streaming) ou sai (null) do visual de um streaming. */
+export function applyStreamSkin(s: Streaming | null | undefined): void {
+  const id = s ? s.id : null;
+  if (id === skin) return;
+  skin = id;
+  applyTheme(s ? skinTheme(s) : baseTheme);
 }

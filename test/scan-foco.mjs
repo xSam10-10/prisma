@@ -78,6 +78,9 @@ await focusFirst('.chip, button.chip'); await walk('Jogos · guia', [...downs(15
 for (const t of ['Filmes', 'Séries']) {
   await tab(t); await focusFirst('.stream-chip, .chip'); await walk(t, [...downs(18), ...ups(18)]);
 }
+// Dentro de um streaming (visual dele, 0.27.0)
+await tab('Filmes'); await p.locator('.stream-chip[data-sid]').first().click(); await p.waitForTimeout(1500); await p.evaluate(() => document.documentElement.classList.add('kbd'));
+await focusFirst('.stream-chip.on'); await walk('Filmes · streaming', [...downs(18), ...ups(18)]);
 await p.locator('button[aria-label="Buscar"]:visible').first().click(); await p.waitForTimeout(1200);
 await p.keyboard.type('do'); await p.waitForTimeout(1200);
 await focusFirst('.sk-key'); await walk('Busca · teclado', downs(8));

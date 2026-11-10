@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (10/11/2026 · versão 0.26.0)
+## 0. ESTADO ATUAL — leia primeiro (10/11/2026 · versão 0.27.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -512,6 +512,11 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - **Placar flutuante** (`src/ui/ScoreBug.tsx`): em tela cheia, canto superior direito; jogos fixados (`pinnedScores`, máx. 2, somem 4 h depois do início; botão "📌 Mostrar placar na tela" no detalhe do jogo) + Meus times ao vivo; pisca no gol.
 - Correção: o cache decodificado do calendário (`leaguesOf`) ficava vazio se a F1 do Início carregasse o arquivo antes da aba Jogos — agora é por arquivo.
 - Servidor falso: F1 inventada (GP de Las Vegas em 4 dias, semana do GP ativa), artilheiros e logotipos das ligas (`/liga/<id>.svg`).
+
+## 10ao. Versão 0.27.0 — visual de cada streaming (item 51)
+- Pedido do Samuel após o esboço (10/11): "faça todos". Em Filmes/Séries/Anime, `VodScreen` chama `applyStreamSkin(st)` ao escolher um streaming e `applyStreamSkin(null)` ao sair/desmontar (`src/ui/themes.ts`).
+- `skinTheme(s)`: Netflix, HBO Max, Disney+, Prime Video, Apple TV e Globoplay usam o tema próprio já existente; os demais ganham tema montado das cores de `STREAMINGS` (bg, accent, accent2; destaque escuro é clareado; texto do botão escuro/claro pela luminância; cantos retos em Claro, AMC+, Lionsgate, DirecTV). O tema do usuário fica em `setBaseTheme` (App) e volta ao sair.
+- Ajuste `streamSkin` (padrão ligado) em Ajustes › Aparência › "Visual de cada streaming". Testes em `test/skin.test.ts`; `scan-foco` passa por dentro de um streaming.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

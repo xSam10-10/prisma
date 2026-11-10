@@ -1,7 +1,7 @@
 import { rememberSource } from './core/sources';
 import { applyParental, onParental, parentalVersion } from './core/parental';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { applyTheme, themeById } from './ui/themes';
+import { setBaseTheme, themeById } from './ui/themes';
 import { askOnStart, chosenThisSession, currentProfile, switchProfile } from './core/profiles';
 import { WhoIsWatching } from './screens/Profiles';
 import { MyList, VodScreen, type VodTab } from './screens/Vod';
@@ -62,7 +62,7 @@ export function App() {
   const railW = structure === 'C' ? 96 : 0;
   // Layout das telas: na C o conteúdo fica à direita do menu lateral e começa mais em cima.
   const Ls = useMemo<Layout>(() => (railW ? { ...L, W: L.W - railW, top: 44 + L.safeY } : L), [L, railW]);
-  useLayoutEffect(() => applyTheme(themeById(settings.theme)), [settings.theme]);
+  useLayoutEffect(() => setBaseTheme(themeById(settings.theme)), [settings.theme]);
 
   // Classes globais: forma da interface e toque.
   useEffect(() => {

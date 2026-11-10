@@ -245,6 +245,13 @@ export function Settings({
           onChange={set('logoSource')}
         />
         <Choice
+          label="Visual de cada streaming"
+          help="Em Filmes e Séries, ao entrar na Netflix, no HBO Max, no Disney+… o app veste as cores, os cantos e a letra daquele streaming (inspirados, sem copiar a marca). Ao sair, volta o seu tema."
+          value={st.streamSkin ? 'on' : 'off'}
+          options={[{ v: 'on', label: 'Ligado' }, { v: 'off', label: 'Desligado' }]}
+          onChange={(v) => set('streamSkin')(v === 'on')}
+        />
+        <Choice
           label="Logotipos dos streamings"
           help="Nos botões de Netflix, HBO Max, Disney+… em Filmes e Séries. Coloridos: as cores de cada marca. Brancos: todos em branco, mais discreto e minimalista."
           value={st.streamLogos}

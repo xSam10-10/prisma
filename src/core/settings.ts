@@ -35,6 +35,8 @@ export interface Settings {
   theme: string;
   /** Logotipos dos streamings em Filmes/Séries: coloridos ou brancos. */
   streamLogos: 'color' | 'mono';
+  /** Dentro de cada streaming, o app veste o visual dele (0.27.0). */
+  streamSkin: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -52,6 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   structure: 'A',
   theme: 'apple',
   streamLogos: 'color',
+  streamSkin: true,
 };
 
 export function loadSettings(): Settings {

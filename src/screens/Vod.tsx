@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { useSettings } from '../core/settings';
+import { applyStreamSkin } from '../ui/themes';
 import type { Channel, ItemKind, Playlist } from '../core/types';
 import { ANIME, STREAMINGS, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
@@ -88,7 +89,9 @@ const toRow = (l: MatchedList, ranked = l.group !== 'geral'): Row => ({ id: l.id
 export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: VodTab; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
-  const logoMode = useSettings().settings.streamLogos ?? 'color';
+  const { settings } = useSettings();
+  const logoMode = settings.streamLogos ?? 'color';
+  const skinOn = settings.streamSkin !== false;
   const all = useMemo(() => {
     const kinds: ItemKind[] = tab === 'filmes' ? ['movie'] : tab === 'series' ? ['series'] : ['movie', 'series'];
     const list = playlist.items.filter((i) => kinds.includes(i.kind));
@@ -105,6 +108,11 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const gridRef = useRef<VirtualGridHandle>(null);
   const st: Streaming | undefined = STREAMINGS.find((s) => s.id === stream);
   const topMode = stream === TOPS;
+  // Visual de cada streaming (0.27.0): ao entrar na Netflix, o app veste o visual dela; ao sair, volta o tema do usuário.
+  useLayoutEffect(() => {
+    applyStreamSkin(st && skinOn ? st : null);
+  }, [st?.id, skinOn]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => applyStreamSkin(null), []);
 
   const byCats = useMemo(() => (st ? all.filter((i) => st.match.test(i.group)) : all), [all, st]);
   // Tops (Netflix oficial, mais populares de cada streaming, gêneros…), só com títulos da lista

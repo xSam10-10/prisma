@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.27.0 — o visual de cada streaming
+- Em Filmes e Séries, ao entrar num streaming o app veste o visual dele: cores, botões, cantos e letra inspirados em Netflix, HBO Max, Disney+, Prime Video, Apple TV, Globoplay, Paramount+, Crunchyroll, Star+ e todos os outros
+- Ao sair do streaming (Todos, Top ou outra aba), volta o seu tema
+- Dá para desligar em Ajustes › Aparência › "Visual de cada streaming"
+
 ## 0.26.0 — Fórmula 1, destaques e placar na tela
 - Fórmula 1 em Jogos: próximo GP com todo o fim de semana (treinos, sprint, classificação e corrida) no horário de Brasília, lembrete por sessão ou de todas de uma vez, pilotos, equipes com as cores de cada uma, pódio do último GP e calendário com os vencedores
 - Semana do GP no Início: faltando uma semana, uma faixa mostra o GP, a próxima sessão e o canal
