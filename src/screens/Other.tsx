@@ -27,6 +27,7 @@ import { SEARCH_GENRES, findInList, genreMatches } from '../core/tops';
 import { prefGet } from '../core/storage';
 import { VoiceButton } from '../ui/Voice';
 import { GameDay } from './GameDay';
+import { RaceWeek } from './F1';
 import { expiryWarning } from './Subscription';
 import { setNewEpisodes, takeDueAlerts } from '../core/newEpisodes';
 
@@ -38,7 +39,7 @@ function normalize(s: string) {
 
 // ---------------------------------------------------------------- Início
 export function Home({
-  playlist, live, favs, recents, onWatch, onGoLive, onPlayVod,
+  playlist, live, favs, recents, onWatch, onGoLive, onPlayVod, onGoGames,
 }: {
   playlist: Playlist;
   live: Channel[];
@@ -46,6 +47,8 @@ export function Home({
   recents: Channel[];
   onWatch: (c: Channel, list: Channel[]) => void;
   onGoLive: () => void;
+  /** Abre a aba Jogos numa parte (ex.: 'f1'). */
+  onGoGames?: (view: string) => void;
   onPlayVod: (item: Channel, startAt?: number) => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
@@ -169,6 +172,9 @@ export function Home({
       </div>
       <div data-home-top="" style={{ order: -2 }}>
         <GameDay playlist={playlist} onWatch={onWatch} />
+      </div>
+      <div data-home-top="" style={{ order: -2 }}>
+        <RaceWeek playlist={playlist} onWatch={onWatch} onOpen={() => onGoGames?.('f1')} />
       </div>
       <div data-home-top="" style={{ order: -2 }}>
       <Hero

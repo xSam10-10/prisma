@@ -262,6 +262,25 @@ async function buildLeague(def, warn) {
     warn.push(`${def.id} tabela: ${e.message}`);
   }
 
+  // Artilheiros e assistências (ESPN): [nome, time, escudo, gols ou assistências, jogos]
+  const leaders = { sc: [], as: [] };
+  try {
+    const r = await json(`${SITE}/soccer/${def.id}/statistics`);
+    for (const s of r?.stats ?? []) {
+      const key = s.name === 'goalsLeaders' ? 'sc' : s.name === 'assistsLeaders' ? 'as' : '';
+      if (!key) continue;
+      leaders[key] = (s.leaders ?? []).slice(0, key === 'sc' ? 10 : 5).map((l) => {
+        const t = l.athlete?.team ?? {};
+        const href = String(t.logos?.[0]?.href ?? '');
+        const m = href.match(/teamlogos\/soccer\/500\/(\d+)\.png/);
+        const games = Number((l.athlete?.statistics ?? []).find((x) => x.name === 'appearances')?.value ?? 0) || Number(String(l.displayValue ?? '').match(/Matches: (\d+)/)?.[1] ?? 0);
+        return [String(l.athlete?.displayName ?? ''), String(t.displayName ?? t.name ?? ''), m ? Number(m[1]) : href, Number(l.value ?? 0), games];
+      });
+    }
+  } catch (e) {
+    warn.push(`${def.id} artilheiros: ${e.message}`);
+  }
+
   evs.sort((x, y) => x.t - y.t);
   if (!evs.length) warn.push(`${def.id}: nenhum jogo na temporada`);
   return {
@@ -272,7 +291,64 @@ async function buildLeague(def, warn) {
     // [id, horário (s), casa, fora, gols casa, gols fora, estado 0/1/2, rodada ou fase, nota, adiado]
     ev: evs.map((e) => [e.id, e.t, e.h, e.a, e.hs, e.as, e.st, def.kind === 'liga' ? e.r ?? 0 : e.ph, e.n, e.x]),
     tables,
+    sc: leaders.sc,
+    as: leaders.as,
   };
+}
+
+// ---------------------------------------------------------------- Fórmula 1 (Jolpica, sucessora do Ergast)
+const F1 = process.env.F1_BASE || 'https://api.jolpi.ca/ergast/f1';
+const SESSIONS = [
+  ['FirstPractice', 'TL1'],
+  ['SprintQualifying', 'QS'],
+  ['SecondPractice', 'TL2'],
+  ['ThirdPractice', 'TL3'],
+  ['Sprint', 'SPR'],
+  ['Qualifying', 'CLA'],
+];
+const sec = (d, t) => (d ? Math.round(Date.parse(`${d}T${t || '12:00:00Z'}`) / 1000) : 0);
+
+export function f1Compact(cal, drivers, teams, winners, last) {
+  const races = (cal?.MRData?.RaceTable?.Races ?? []).map((r) => {
+    const s = SESSIONS.filter(([k]) => r[k]).map(([k, code]) => [code, sec(r[k].date, r[k].time)]);
+    s.push(['GP', sec(r.date, r.time)]);
+    s.sort((a, b) => a[1] - b[1]);
+    const w = (winners?.MRData?.RaceTable?.Races ?? []).find((x) => x.round === r.round)?.Results?.[0];
+    // [rodada, nome, circuito, cidade, país, sessões, vencedor (sigla, nome, equipe)]
+    return [Number(r.round), String(r.raceName ?? ''), String(r.Circuit?.circuitName ?? ''), String(r.Circuit?.Location?.locality ?? ''), String(r.Circuit?.Location?.country ?? ''), s, w ? [w.Driver?.code ?? '', `${w.Driver?.givenName ?? ''} ${w.Driver?.familyName ?? ''}`.trim(), w.Constructor?.constructorId ?? ''] : null];
+  });
+  const dl = drivers?.MRData?.StandingsTable?.StandingsLists?.[0];
+  const tl = teams?.MRData?.StandingsTable?.StandingsLists?.[0];
+  const lr = last?.MRData?.RaceTable?.Races?.[0];
+  return {
+    season: String(cal?.MRData?.RaceTable?.season ?? ''),
+    races,
+    round: Number(dl?.round ?? 0),
+    // [pos, sigla, nome, sobrenome, número, equipe (nome), id da equipe, pontos, vitórias]
+    drivers: (dl?.DriverStandings ?? []).map((d) => [Number(d.position ?? d.positionText ?? 0) || 0, d.Driver?.code ?? '', d.Driver?.givenName ?? '', d.Driver?.familyName ?? '', d.Driver?.permanentNumber ?? '', d.Constructors?.[0]?.name ?? '', d.Constructors?.[0]?.constructorId ?? '', Number(d.points ?? 0), Number(d.wins ?? 0)]),
+    // [pos, equipe, id, pontos, vitórias]
+    teams: (tl?.ConstructorStandings ?? []).map((c) => [Number(c.position ?? 0) || 0, c.Constructor?.name ?? '', c.Constructor?.constructorId ?? '', Number(c.points ?? 0), Number(c.wins ?? 0)]),
+    // Último GP: [rodada, nome, [[pos, sigla, nome, equipe, id, tempo/status, pontos]…10]]
+    last: lr ? [Number(lr.round), lr.raceName ?? '', (lr.Results ?? []).slice(0, 10).map((x) => [Number(x.position), x.Driver?.code ?? '', `${x.Driver?.givenName ?? ''} ${x.Driver?.familyName ?? ''}`.trim(), x.Constructor?.name ?? '', x.Constructor?.constructorId ?? '', x.Time?.time ?? x.status ?? '', Number(x.points ?? 0)])] : null,
+  };
+}
+
+async function buildF1(warn) {
+  try {
+    const [cal, drivers, teams, winners, last] = await Promise.all([
+      json(`${F1}/current.json`),
+      json(`${F1}/current/driverStandings.json`),
+      json(`${F1}/current/constructorStandings.json`),
+      json(`${F1}/current/results/1.json?limit=100`),
+      json(`${F1}/current/last/results.json`),
+    ]);
+    const f = f1Compact(cal, drivers, teams, winners, last);
+    if (!f.races.length) warn.push('F1: calendário vazio');
+    return f;
+  } catch (e) {
+    warn.push(`F1: ${e.message}`);
+    return null;
+  }
 }
 
 async function main() {
@@ -286,10 +362,12 @@ async function main() {
       warn.push(`${def.id}: ${e.message}`);
     }
   }
-  const data = { v: 1, updated: new Date().toISOString(), leagues, warn };
+  const f1 = await buildF1(warn);
+  const data = { v: 1, updated: new Date().toISOString(), leagues, f1, warn };
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify(data));
-  for (const l of leagues) console.log(`${l.id}: ${l.ev.length} jogos, ${l.teams.length} times, ${l.tables.length} tabela(s)`);
+  for (const l of leagues) console.log(`${l.id}: ${l.ev.length} jogos, ${l.teams.length} times, ${l.tables.length} tabela(s), ${l.sc.length} artilheiros`);
+  if (f1) console.log(`F1 ${f1.season}: ${f1.races.length} GPs, ${f1.drivers.length} pilotos, último GP ${f1.last?.[1] ?? '—'}`);
   for (const w of warn) console.log('aviso: ' + w);
 }
 

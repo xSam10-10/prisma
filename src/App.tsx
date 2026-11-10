@@ -6,6 +6,8 @@ import { askOnStart, chosenThisSession, currentProfile, switchProfile } from './
 import { WhoIsWatching } from './screens/Profiles';
 import { MyList, VodScreen, type VodTab } from './screens/Vod';
 import { Games } from './screens/Games';
+import { openSportsView } from './screens/F1';
+import { ScoreBug } from './ui/ScoreBug';
 import { cachedGames, dueReminders, ensureReminder, loadGames, myTeams, reminders, teamsOf, type Reminder } from './core/games';
 import { isMyTeam, loadScores, scoreFor } from './core/scores';
 import { installNative, notifyNow, syncNativeReminders } from './core/native';
@@ -400,7 +402,7 @@ export function App() {
         screen = <LiveTV playlist={playlist} live={live} favIds={favIds} playing={playing} isFav={isFav} toggleFav={toggleFav} onPlay={play} onFull={() => setFull(true)} onPlayVod={(it) => playVod(it, 0)} lastChannel={lastChannel} onLast={() => lastChannel && play(lastChannel, [])} />;
         break;
       case 'inicio':
-        screen = <Home playlist={playlist} live={live} favs={favs} recents={recents} onWatch={watchFull} onGoLive={() => setTab('aovivo')} onPlayVod={playVod} />;
+        screen = <Home playlist={playlist} live={live} favs={favs} recents={recents} onWatch={watchFull} onGoLive={() => setTab('aovivo')} onGoGames={(v) => { openSportsView(v); setTab('jogos'); }} onPlayVod={playVod} />;
         break;
       case 'busca':
         screen = <Search playlist={playlist} onWatch={watchFull} onPlayVod={playVod} />;
@@ -515,6 +517,7 @@ export function App() {
             }}
           />
         )}
+        {phase === 'app' && mode === 'full' && <ScoreBug />}
         {goal && (
           <div className="toast gy-10" style={{ right: L.px, top: 24 + L.safeY, display: 'flex', flexDirection: 'column' }} role="alert">
             <span className="badge-live" style={{ alignSelf: 'flex-start' }}>Meu time</span>

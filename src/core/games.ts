@@ -81,6 +81,7 @@ const LIKELY: [RegExp, RegExp][] = [
   [/nba/i, /espn|sportv|band ?sports|prime/i],
   [/nfl/i, /espn|disney|prime/i],
   [/ufc/i, /combate|band/i],
+  [/f[oó]rmula ?1|f1/i, /^globo|sportv|^band(?! ?news)/i],
 ];
 
 export function likelyChannels(league: string, sports: Channel[]): Channel[] {

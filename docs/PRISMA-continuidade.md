@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (10/11/2026 · versão 0.25.0)
+## 0. ESTADO ATUAL — leia primeiro (10/11/2026 · versão 0.26.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -28,7 +28,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
-**Centro de esportes (0.25.0, 10/11):** etapa 1 feita (hub de Jogos + página de cada campeonato). Dados da temporada em `prisma-sports.json`, gerado pelo workflow `sports.yml` (a cada 2 h, `scripts/sports/build-sports.mjs`, ligas em `scripts/sports/leagues.json`) e publicado na Release `tops`; o app baixa de `releases/download/tops/` (pref `sportsFeed` para testes) e aplica o placar ao vivo da ESPN por cima. Ver 10am. **Próximo:** etapa 2 = Fórmula 1 (com "semana do GP" no Início), etapa 3 = destaques/estatísticas e acabamento — `docs/PENDENCIAS.md` seção 5.
+**Centro de esportes (0.25.0–0.26.0, 10/11):** concluído (etapas 1–3 + placar flutuante). Dados da temporada, artilheiros e Fórmula 1 em `prisma-sports.json`, gerado pelo workflow `sports.yml` (a cada 2 h, `scripts/sports/build-sports.mjs`, ligas em `scripts/sports/leagues.json`, F1 pela Jolpica `api.jolpi.ca/ergast/f1`) e publicado na Release `tops`; o app baixa de `releases/download/tops/` (pref `sportsFeed` para testes) e aplica o placar ao vivo da ESPN por cima. Ver 10am e 10an. Pendências atuais: `docs/PENDENCIAS.md`.
 
 **Sessão local (10/11):** a conversa nova roda no PC do Samuel (cópia em `Downloads\prisma`), que alcança ESPN e GitHub — dá para testar com dados reais da ESPN além do servidor falso. Playwright instalado globalmente (`NPMROOT=$(npm root -g)`).
 
@@ -504,6 +504,14 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - **Rodadas:** a ESPN não informa. `assignRounds` agrupa por período (> 30 h sem jogo separa), junta meia rodada antes de pausa, devolve jogo adiado à primeira rodada em que os dois times faltaram e limita a 2 × (times − 1). Conferido com dados reais: Inglês/Italiano/Alemão/Francês exatos, Brasileirão 38 rodadas com a próxima = 35 (algumas rodadas antigas com 9/11 jogos por causa da pausa da Copa).
 - **Tela:** `src/screens/Sports.tsx` (hub, página do campeonato, linhas/cartões) + `src/sports.css`; `src/core/sports.ts` (formato compacto, rodadas/fases, chaves, destaques). `Games.tsx`: visão `hub` (padrão), `guia` (lista antiga) ou id do campeonato; o jogo do calendário acha canal/lembrete no guia (`scoreFor`) e, sem guia, usa canais prováveis (`likelyChannels`).
 - Servidor falso: `/tops/prisma-sports.json` (calendário inventado; `SPORTS_FILE=` serve um arquivo real). `scan-foco` cobre hub, uma liga e uma copa (todas as seções) e o guia; 0 problemas em 1280x720 e 2000x800. `CHROME=` aponta outro Chromium (no PC do Samuel: Edge). Correção junto: o detalhe do jogo agora rola inteiro (na TV a lista "Onde assistir" ficava com 27 px quando havia placar com escudos).
+
+## 10an. Versão 0.26.0 — Fórmula 1, destaques e placar na tela (etapas 2 e 3)
+- **F1** (`src/screens/F1.tsx`): Jolpica no gerador (`f1Compact`: calendário com sessões TL1/TL2/TL3/QS/SPR/CLA/GP, vencedores por rodada, pilotos, equipes, último GP top 10). App: `f1Of`, `nextRace`, `raceWeek` (7 dias antes do TL1 até 3 h depois da corrida), `gpName` (nomes em português), cores das equipes inspiradas (`teamColor`). Página com Próximo GP (OK na sessão liga/desliga lembrete; ao vivo abre o canal), Pilotos, Equipes, Último GP (pódio), Calendário. Canal: guia (título com Fórmula 1/F1/GP, ±75 min) ou provável (`LIKELY`: Globo/SporTV/Band). Lembretes com chave `f1|temporada|rodada|sessão`.
+- **Semana do GP** no Início (`RaceWeek`, abaixo do Dia de jogo); "Ver o fim de semana" abre Jogos › F1 (`openSportsView`/`takeSportsView`).
+- **Etapa 3**: ESPN `/soccer/<liga>/statistics` (goalsLeaders/assistsLeaders) → `sc`/`as` no arquivo; seção Destaques (sequências atuais por `streaksOf`, artilheiros, assistências); forma dos últimos 5 na tabela (`formOf`); tile Artilheiro na visão geral.
+- **Placar flutuante** (`src/ui/ScoreBug.tsx`): em tela cheia, canto superior direito; jogos fixados (`pinnedScores`, máx. 2, somem 4 h depois do início; botão "📌 Mostrar placar na tela" no detalhe do jogo) + Meus times ao vivo; pisca no gol.
+- Correção: o cache decodificado do calendário (`leaguesOf`) ficava vazio se a F1 do Início carregasse o arquivo antes da aba Jogos — agora é por arquivo.
+- Servidor falso: F1 inventada (GP de Las Vegas em 4 dias, semana do GP ativa), artilheiros e logotipos das ligas (`/liga/<id>.svg`).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

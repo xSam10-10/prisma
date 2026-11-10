@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Game } from '../core/games';
 import { isMyTeam } from '../core/scores';
-import { currentStage, factsOf, leaguesOf, liveExtras, loadSports, matchesOfTeam, nextMatch, partialLeague, stagesOf, tiesOf, withLive, type League, type LeagueDef, type Match, type SportsFeed, type StandRow, type Team } from '../core/sports';
+import { currentStage, factsOf, formOf, streaksOf, type FormLetter, type Leader, leaguesOf, liveExtras, loadSports, matchesOfTeam, nextMatch, partialLeague, stagesOf, tiesOf, withLive, type League, type LeagueDef, type Match, type SportsFeed, type StandRow, type Team } from '../core/sports';
 import type { Score } from '../core/scores';
 import { Carousel } from '../ui/Carousel';
+import { F1Card } from './F1';
+import type { F1Data } from '../core/sports';
 import { Modal } from '../ui/Dialog';
 import { focusFirst, pushBack } from '../ui/nav';
 import { useLayout } from '../ui/layout';
@@ -254,7 +256,7 @@ export interface SportsCtx {
   onMatch: (m: Match) => void;
 }
 
-export function SportsHub({ leagues, ready, ctx, liveGuide, onLeague, onGuideGame, onTeams, onGuide }: { leagues: League[]; ready: boolean; ctx: SportsCtx; liveGuide: Game[]; onLeague: (id: string) => void; onGuideGame: (g: Game) => void; onTeams: () => void; onGuide: () => void }) {
+export function SportsHub({ leagues, ready, ctx, liveGuide, f1, onLeague, onGuideGame, onTeams, onGuide }: { leagues: League[]; ready: boolean; ctx: SportsCtx; liveGuide: Game[]; f1: F1Data | null; onLeague: (id: string) => void; onGuideGame: (g: Game) => void; onTeams: () => void; onGuide: () => void }) {
   const L = useLayout();
   const mobile = L.form === 'mobile';
   const root = useRef<HTMLDivElement>(null);
@@ -304,6 +306,16 @@ export function SportsHub({ leagues, ready, ctx, liveGuide, onLeague, onGuideGam
         empty={ready ? 'Nenhum jogo nas próximas horas.' : 'Carregando…'}
         render={(it, _i, w) => (it.m ? <MatchCard m={it.m} w={w} channel={ctx.channelOf(it.m)} reminder={ctx.reminderOf(it.m)} onPick={() => ctx.onMatch(it.m!)} /> : <GuideCard g={it.g!} w={w} onPick={() => onGuideGame(it.g!)} />)}
       />
+      {f1 && (
+        <Carousel
+          title="Fórmula 1"
+          subtitle="próximo GP, pilotos, equipes e calendário"
+          items={[f1]}
+          keyOf={() => 'f1'}
+          minWidth={L.W}
+          render={(x, _i, w) => <F1Card f={x} w={w} onPick={() => onLeague('f1')} />}
+        />
+      )}
       <Carousel
         title="Campeonatos"
         subtitle="calendário, tabela e times"
@@ -354,7 +366,7 @@ export function SportsHub({ leagues, ready, ctx, liveGuide, onLeague, onGuideGam
 
 // ---------------------------------------------------------------- Página do campeonato
 
-type Section = 'geral' | 'calendario' | 'tabela' | 'chaves' | 'times';
+type Section = 'geral' | 'calendario' | 'tabela' | 'chaves' | 'destaques' | 'times';
 
 export function LeaguePage({ league: base, ctx, onBack, onToggleTeam }: { league: League; ctx: SportsCtx; onBack: () => void; onToggleTeam: (name: string) => void }) {
   const L = useLayout();
@@ -369,6 +381,7 @@ export function LeaguePage({ league: base, ctx, onBack, onToggleTeam }: { league
   const sections: [Section, string][] = [['geral', 'Visão geral'], ['calendario', 'Calendário']];
   if (isCup && knockout.length) sections.push(['chaves', 'Chaves']);
   if (league.tables.length) sections.push(['tabela', isCup ? (league.tables.length > 1 ? 'Grupos' : 'Tabela') : 'Tabela']);
+  if (league.scorers.length || league.matches.some((m) => m.state === 'post')) sections.push(['destaques', 'Destaques']);
   sections.push(['times', 'Times']);
   const [sec, setSec] = useState<Section>('geral');
   const [teamOpen, setTeamOpen] = useState<Team | null>(null);
@@ -407,6 +420,7 @@ export function LeaguePage({ league: base, ctx, onBack, onToggleTeam }: { league
   if (sec === 'geral') body = <Overview league={league} stages={stages} rp={rp} onSection={setSec} onTeam={setTeamOpen} />;
   else if (sec === 'calendario') body = <Calendar league={league} stages={stages} rp={rp} />;
   else if (sec === 'tabela') body = <Standings league={league} mine={ctx.mine} onTeam={setTeamOpen} />;
+  else if (sec === 'destaques') body = <Highlights league={league} mine={ctx.mine} onTeam={setTeamOpen} />;
   else if (sec === 'chaves') body = <Brackets stages={knockout} mine={ctx.mine} />;
   else body = <TeamsGrid league={league} mine={ctx.mine} onTeam={setTeamOpen} />;
 
@@ -476,6 +490,8 @@ function Overview({ league, stages, rp, onSection, onTeam }: { league: League; s
   if (f.bestAttack && !isCup) tiles.push(['Melhor ataque', <><Crest team={f.bestAttack.team} size={30} /> <b>{f.bestAttack.team.short || f.bestAttack.team.name}</b></>, `${f.bestAttack.gf} gols marcados`]);
   if (f.bestDefense && !isCup) tiles.push(['Melhor defesa', <><Crest team={f.bestDefense.team} size={30} /> <b>{f.bestDefense.team.short || f.bestDefense.team.name}</b></>, `${f.bestDefense.ga} gols sofridos`]);
   if (f.biggestWin) tiles.push(['Maior goleada', <><Crest team={f.biggestWin.home} size={26} /> <b>{f.biggestWin.homeScore} × {f.biggestWin.awayScore}</b> <Crest team={f.biggestWin.away} size={26} /></>, `${f.biggestWin.home.short} × ${f.biggestWin.away.short} · ${f.biggestWin.phase}`]);
+  const top = league.scorers[0];
+  if (top) tiles.push(['Artilheiro', <><Crest team={top.team} size={30} /> <b>{top.name}</b></>, `${top.total} gols em ${top.games || '?'} jogos`]);
   if (f.played) tiles.push(['Gols na temporada', <b>{f.goals}</b>, `média de ${(f.goals / f.played).toFixed(1).replace('.', ',')} por jogo`]);
   const table = league.tables.length === 1 ? league.tables[0].rows.slice(0, 6) : [];
   const ties = isCup && cur && cur.order >= 9 ? tiesOf(cur) : [];
@@ -550,7 +566,7 @@ function Calendar({ league, stages, rp }: { league: League; stages: ReturnType<t
   );
 }
 
-function StandRows({ rows, mine, onTeam }: { rows: StandRow[]; mine: string[]; onTeam: (t: Team) => void }) {
+function StandRows({ rows, mine, onTeam, form }: { rows: StandRow[]; mine: string[]; onTeam: (t: Team) => void; form?: Map<string, FormLetter[]> }) {
   return (
     <div className="srows">
       <div className="srow head">
@@ -562,6 +578,7 @@ function StandRows({ rows, mine, onTeam }: { rows: StandRow[]; mine: string[]; o
         <span className="srow-n">E</span>
         <span className="srow-n">D</span>
         <span className="srow-n wide">SG</span>
+        {form && <span className="srow-form">Últimos 5</span>}
       </div>
       {rows.map((r) => (
         <button key={r.team.name + r.rank} className={'srow' + (isMyTeam(r.team.name, mine) ? ' mine' : '')} data-nav="" onClick={() => onTeam(r.team)}>
@@ -576,6 +593,7 @@ function StandRows({ rows, mine, onTeam }: { rows: StandRow[]; mine: string[]; o
           <span className="srow-n">{r.draws}</span>
           <span className="srow-n">{r.losses}</span>
           <span className="srow-n wide">{r.gd > 0 ? '+' + r.gd : r.gd}</span>
+          {form && <FormDots list={(form.get(r.team.name) ?? []).slice(-5)} />}
         </button>
       ))}
     </div>
@@ -583,12 +601,13 @@ function StandRows({ rows, mine, onTeam }: { rows: StandRow[]; mine: string[]; o
 }
 
 function Standings({ league, mine, onTeam }: { league: League; mine: string[]; onTeam: (t: Team) => void }) {
+  const form = useMemo(() => formOf(league), [league]);
   return (
     <div className="gy-22" style={{ display: 'flex', flexDirection: 'column' }}>
       {league.tables.map((t) => (
         <div key={t.name} className="ov-block">
           {league.tables.length > 1 && <span className="ov-t">{t.name}</span>}
-          <StandRows rows={t.rows} mine={mine} onTeam={onTeam} />
+          <StandRows rows={t.rows} mine={mine} onTeam={onTeam} form={league.def.kind === 'liga' && form.size ? form : undefined} />
         </div>
       ))}
       {league.tables.some((t) => t.rows.some((r) => r.zone)) && <span className="muted" style={{ fontSize: 13 }}>A cor ao lado da posição marca as zonas (classificação, rebaixamento).</span>}
@@ -699,5 +718,70 @@ function TeamModal({ league, team, ctx, onClose, onToggle }: { league: League; t
       </div>
       <span className="muted" style={{ fontSize: 13 }}>Seguindo, o time entra em Meus times: lembrete automático dos jogos e aviso de gol.</span>
     </Modal>
+  );
+}
+
+/** Bolinhas dos últimos jogos: V verde, E cinza, D vermelho. */
+function FormDots({ list }: { list: FormLetter[] }) {
+  return (
+    <span className="srow-form">
+      {list.map((r, i) => (
+        <i key={i} className={'fd ' + r}>{r}</i>
+      ))}
+    </span>
+  );
+}
+
+function LeaderRows({ list, unit, mine, onTeam }: { list: Leader[]; unit: string; mine: string[]; onTeam: (t: Team) => void }) {
+  const max = list[0]?.total || 1;
+  return (
+    <div className="srows">
+      {list.map((p, i) => (
+        <button key={p.name + i} className={'srow' + (isMyTeam(p.team.name, mine) ? ' mine' : '')} data-nav="" onClick={() => onTeam(p.team)}>
+          <span className="srow-pos">{i + 1}</span>
+          <span className="srow-team">
+            <Crest team={p.team} size={26} />
+            <span className="srow-tn" style={{ fontWeight: 800 }}>{p.name}</span>
+            <span className="f1-team muted">{p.team.name}</span>
+          </span>
+          <span className="f1-meter"><i style={{ width: Math.round((p.total / max) * 100) + '%' }} /></span>
+          <span className="srow-n wide muted">{p.games ? p.games + ' j' : ''}</span>
+          <span className="srow-n pts" style={{ width: 86, whiteSpace: 'nowrap' }}>{p.total} {unit}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Destaques (etapa 3): artilheiros, assistências e sequências atuais. */
+function Highlights({ league, mine, onTeam }: { league: League; mine: string[]; onTeam: (t: Team) => void }) {
+  const streaks = useMemo(() => streaksOf(league), [league]);
+  return (
+    <div className="gy-22" style={{ display: 'flex', flexDirection: 'column' }}>
+      {streaks.length > 0 && (
+        <div className="facts">
+          {streaks.map((s) => (
+            <button key={s.label} className="fact fact-btn" data-nav="" onClick={() => onTeam(s.team)}>
+              <span className="fact-k">{s.label}</span>
+              <span className="fact-v"><Crest team={s.team} size={30} /> <b>{s.team.name}</b></span>
+              <span className="fact-s">{s.label === 'Invicto há' || s.label === 'Sem vencer há' ? `${s.count} jogos` : `${s.count} jogos seguidos`}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {league.scorers.length > 0 && (
+        <div className="ov-block">
+          <span className="ov-t">Artilheiros</span>
+          <LeaderRows list={league.scorers} unit="gols" mine={mine} onTeam={onTeam} />
+        </div>
+      )}
+      {league.assists.length > 0 && (
+        <div className="ov-block">
+          <span className="ov-t">Assistências</span>
+          <LeaderRows list={league.assists} unit="ass." mine={mine} onTeam={onTeam} />
+        </div>
+      )}
+      {!streaks.length && !league.scorers.length && <span className="muted" style={{ fontSize: 16 }}>Os destaques aparecem quando a temporada começa.</span>}
+    </div>
   );
 }

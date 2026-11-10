@@ -1,6 +1,13 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.26.0 — Fórmula 1, destaques e placar na tela
+- Fórmula 1 em Jogos: próximo GP com todo o fim de semana (treinos, sprint, classificação e corrida) no horário de Brasília, lembrete por sessão ou de todas de uma vez, pilotos, equipes com as cores de cada uma, pódio do último GP e calendário com os vencedores
+- Semana do GP no Início: faltando uma semana, uma faixa mostra o GP, a próxima sessão e o canal
+- Campeonatos ganharam "Destaques": artilheiros, assistências e as sequências do momento (vitórias seguidas, invencibilidade, jejum)
+- Tabela com os últimos 5 resultados de cada time, e o artilheiro na visão geral
+- Placar na tela: em tela cheia, o placar dos Meus times ao vivo fica no canto, e qualquer jogo pode ser fixado com "📌 Mostrar placar na tela" no detalhe; pisca quando sai gol
+
 ## 0.25.0 — centro de esportes
 - Jogos tem uma tela inicial nova: "Ao vivo e a seguir" com escudos, placar e minuto, os Campeonatos, Meus times e todos os jogos de hoje
 - Página própria para Brasileirão, Libertadores, Copa do Brasil, Sul-Americana, Champions, Inglês, Espanhol, Italiano, Alemão e Francês, cada uma com as cores do campeonato

@@ -62,6 +62,10 @@ await tab('Início'); await focusFirst('[data-home-top] button, .scroll-y button
 await tab('Ao vivo'); await focusFirst('.cats .cat'); await walk('Ao vivo · categorias', downs(30));
 await p.keyboard.press('ArrowRight'); await walk('Ao vivo · canais', downs(25));
 await tab('Jogos'); await focusFirst('.sports-hub [data-nav]'); await walk('Jogos · início', [...downs(12), 'ArrowRight', 'ArrowRight', ...ups(12)]);
+// Fórmula 1: cada seção
+await p.locator('.f1card').click(); await p.waitForTimeout(1500); await p.evaluate(() => document.documentElement.classList.add('kbd'));
+{ const n = await p.locator('.lg-menu .lg-mi').count(); for (let i = 0; i < n - 1; i++) { await p.locator('.lg-menu .lg-mi').nth(i).focus(); await p.waitForTimeout(400); await walk(`Jogos · F1 · seção ${i + 1}`, ['ArrowRight', ...downs(25), ...ups(25)]); } }
+await p.keyboard.press('Escape'); await p.waitForTimeout(1000);
 // Página de cada tipo de campeonato (liga e copa): menu e cada seção
 for (const nth of [0, 1]) {
   await p.locator('.lcard').nth(nth).click(); await p.waitForTimeout(1500); await p.evaluate(() => document.documentElement.classList.add('kbd'));

@@ -111,6 +111,23 @@ const EN_PT = {
   'The Heirs': { id: 802, name: 'Os Herdeiros', original_name: 'The Heirs', first_air_date: '2015-03-01', vote_average: 8.0 },
 };
 
+function fakeF1(now) {
+  const t = (d, h) => Math.floor((Math.floor(now / 86400000) * 86400000 + d * 86400000 + h * 3600000) / 1000);
+  const race = (round, name, circuit, city, country, d, w) => [round, name, circuit, city, country, [['TL1', t(d - 2, 15)], ['TL2', t(d - 2, 19)], ['TL3', t(d - 1, 15)], ['CLA', t(d - 1, 19)], ['GP', t(d, 17)]], w];
+  return {
+    season: '2026', round: 20,
+    races: [
+      race(19, 'Mexico City Grand Prix', 'Autódromo Hermanos Rodríguez', 'Mexico City', 'Mexico', -16, ['VER', 'Max Verstappen', 'red_bull']),
+      race(20, 'Brazilian Grand Prix', 'Autódromo José Carlos Pace', 'São Paulo', 'Brazil', -2, ['NOR', 'Lando Norris', 'mclaren']),
+      race(21, 'Las Vegas Grand Prix', 'Las Vegas Strip Street Circuit', 'Las Vegas', 'USA', 4, null),
+      race(22, 'Qatar Grand Prix', 'Lusail International Circuit', 'Lusail', 'Qatar', 11, null),
+    ],
+    drivers: [[1, 'ANT', 'Andrea Kimi', 'Antonelli', '12', 'Mercedes', 'mercedes', 390, 9], [2, 'NOR', 'Lando', 'Norris', '4', 'McLaren', 'mclaren', 341, 3], [3, 'VER', 'Max', 'Verstappen', '1', 'Red Bull', 'red_bull', 320, 3], [4, 'RUS', 'George', 'Russell', '63', 'Mercedes', 'mercedes', 290, 3], [5, 'LEC', 'Charles', 'Leclerc', '16', 'Ferrari', 'ferrari', 210, 1], [6, 'BOR', 'Gabriel', 'Bortoleto', '5', 'Audi', 'audi', 40, 0]],
+    teams: [[1, 'Mercedes', 'mercedes', 680, 12], [2, 'McLaren', 'mclaren', 520, 3], [3, 'Red Bull', 'red_bull', 470, 3], [4, 'Ferrari', 'ferrari', 330, 1], [5, 'Audi', 'audi', 60, 0]],
+    last: [20, 'Brazilian Grand Prix', [[1, 'NOR', 'Lando Norris', 'McLaren', 'mclaren', '1:35:23.504', 25], [2, 'VER', 'Max Verstappen', 'Red Bull', 'red_bull', '+14.602', 18], [3, 'BOR', 'Gabriel Bortoleto', 'Audi', 'audi', '+24.485', 15], [4, 'RUS', 'George Russell', 'Mercedes', 'mercedes', '+33.991', 12]]],
+  };
+}
+
 function fakeSports() {
   const now = Date.now();
   const esc = (t) => `http://127.0.0.1:${PORT}/escudo/${encodeURIComponent(t)}.svg`;
@@ -149,9 +166,10 @@ function fakeSports() {
     v: 1,
     updated: new Date().toISOString(),
     leagues: [
-      { id: 'bra.1', season: '2026 Futebol Brasileiro', logo: '', teams, ev, tables: [{ n: 'Brasileirão Série A', rows }] },
-      { id: 'conmebol.libertadores', season: '2026 CONMEBOL Libertadores', logo: '', teams: lt, ev: lev, tables: [] },
+      { id: 'bra.1', season: '2026 Futebol Brasileiro', logo: `http://127.0.0.1:${PORT}/liga/bra.1.svg`, teams, ev, tables: [{ n: 'Brasileirão Série A', rows }], sc: names.slice(0, 6).map((t, i) => [['Pedro', 'Flaco López', 'Igor Jesus', 'Calleri', 'Yuri Alberto', 'Cano'][i], t, esc(t), 18 - i * 2, 30]), as: names.slice(0, 3).map((t, i) => [['Arrascaeta', 'Estêvão', 'Savarino'][i], t, esc(t), 9 - i, 30]) },
+      { id: 'conmebol.libertadores', season: '2026 CONMEBOL Libertadores', logo: `http://127.0.0.1:${PORT}/liga/conmebol.libertadores.svg`, teams: lt, ev: lev, tables: [] },
     ],
+    f1: fakeF1(now),
   };
 }
 
@@ -251,6 +269,11 @@ createServer((req, res) => {
     }
     if (u.searchParams.get('release_date.gte') && u.searchParams.get('release_date.lte') || u.searchParams.get('first_air_date.lte')) out.forEach((x, i) => { const d = new Date(Date.now() + ((i % 9) - 1) * 86400000).toISOString().slice(0, 10); x.release_date = d; x.first_air_date = d; x.poster_path = '/p' + (i % 6) + '.svg'; });
     return j({ results: Number(u.searchParams.get('page') || 1) > 1 ? out.slice(11) : out.slice(0, 20) });
+  }
+  if (u.pathname.startsWith('/liga/')) {
+    const id = decodeURIComponent(u.pathname.slice(6).replace('.svg', ''));
+    const [label, c] = id === 'bra.1' ? ['BR', '#0E8F48'] : id.includes('libertadores') ? ['LIB', '#C9A240'] : [id.slice(0, 3).toUpperCase(), '#3D7BFF'];
+    return res.writeHead(200, { 'content-type': 'image/svg+xml', 'access-control-allow-origin': '*' }).end(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 4 88 18v34c0 22-17 38-38 44C29 90 12 74 12 52V18z" fill="${c}"/><text x="50" y="62" font-family="Arial" font-weight="900" font-size="28" fill="#fff" text-anchor="middle">${label}</text></svg>`);
   }
   if (u.pathname.startsWith('/escudo/')) {
     const t = decodeURIComponent(u.pathname.slice(8).replace(/\.svg$/, ''));

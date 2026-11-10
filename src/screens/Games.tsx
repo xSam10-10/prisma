@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ensureReminder, gamesStats, hasReminder, isSportsChannel, likelyChannels, loadGames, matchOf, myTeams, setMyTeams, teamsOf, toggleReminder, type Game } from '../core/games';
-import { isMyTeam, loadMatchStats, sameTeam, teamKey, type MatchStats } from '../core/scores';
+import { isMyTeam, isPinned, loadMatchStats, sameTeam, teamKey, togglePinned, type MatchStats } from '../core/scores';
 import type { Match } from '../core/sports';
 import { LeaguePage, SportsHub, useLeagues, type SportsCtx } from './Sports';
+import { F1Page, takeSportsView } from './F1';
+import { f1Of } from '../core/sports';
 import { pushBack } from '../ui/nav';
 import type { Channel, Playlist } from '../core/types';
 import { loadScores, orderedScore, scoreFor, type Score } from '../core/scores';
@@ -10,7 +12,7 @@ import { ChannelLogo, fmtTime, rgba } from '../ui/bits';
 import { Modal } from '../ui/Dialog';
 import { useLayout } from '../ui/layout';
 import { T } from '../ui/tokens';
-import { EmptyState } from '../ui/premium2';
+import { EmptyState, pop, toast } from '../ui/premium2';
 import { VirtualList, type VirtualListHandle } from '../ui/VirtualList';
 
 type Filter = 'agora' | 'hoje' | 'amanha' | 'todos' | 'meus';
@@ -53,7 +55,7 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
   const L = useLayout();
   const mobile = L.form === 'mobile';
   // Centro de esportes: 'hub' (tela inicial), 'guia' (jogos do guia dos canais) ou o id de um campeonato.
-  const [view, setView] = useState<string>('hub');
+  const [view, setView] = useState<string>(() => takeSportsView() ?? 'hub');
   const [games, setGames] = useState<Game[] | null>(null);
   const [prog, setProg] = useState({ done: 0, total: 0 });
   const [filter, setFilter] = useState<Filter>('agora');
@@ -108,7 +110,8 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
     });
   }, [view]);
 
-  const { leagues, ready } = useLeagues(scores);
+  const { leagues, ready, feed } = useLeagues(scores);
+  const f1 = useMemo(() => f1Of(feed), [feed]);
   // Jogo do guia de cada partida do calendário (canal e lembrete); calculado uma vez por partida.
   const guideCache = useRef(new Map<string, Game | null>());
   useEffect(() => guideCache.current.clear(), [games]);
@@ -207,6 +210,7 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
   useEffect(() => setIndex(0), [filter, league]);
   const sel = list[index];
 
+  if (view === 'f1' && f1) return <F1Page f={f1} playlist={playlist} onWatch={onWatch} onBack={() => setView('hub')} />;
   const lg = leagues.find((l) => l.def.id === view);
   if (lg) {
     return (
@@ -216,7 +220,7 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
       </>
     );
   }
-  if (view === 'hub') {
+  if (view === 'hub' || view === 'f1') {
     const liveGuide = (games ?? []).filter((g) => !g.likely && status(g, Date.now()) === 'live' && !/futebol|brasileir|libertadores|sul-?americana|champions|premier|la liga|serie a|bundesliga|ligue 1|copa do brasil/i.test(g.league + ' ' + g.title));
     return (
       <>
@@ -227,7 +231,7 @@ export function Games({ playlist, onWatch }: { playlist: Playlist; onWatch: (c: 
           </button>
           <button className="chip" data-nav="" onClick={() => setTeamsDlg(true)} style={{ height: 40 }}>☆ Meus times{mine.length ? ` (${mine.length})` : ''}</button>
         </div>
-        <SportsHub leagues={leagues} ready={ready} ctx={ctx} liveGuide={liveGuide} onLeague={setView} onGuideGame={(g) => (g.channels[0] ? onWatch(g.channels[0], g.channels) : setOpen(g))} onTeams={() => setTeamsDlg(true)} onGuide={() => setView('guia')} />
+        <SportsHub leagues={leagues} ready={ready} ctx={ctx} liveGuide={liveGuide} f1={f1} onLeague={setView} onGuideGame={(g) => (g.channels[0] ? onWatch(g.channels[0], g.channels) : setOpen(g))} onTeams={() => setTeamsDlg(true)} onGuide={() => setView('guia')} />
         {teamsDialog}
         {matchModal}
         {open && (
@@ -364,6 +368,8 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
   const pct = Math.max(0, Math.min(1, (now - g.start) / Math.max(1, g.end - g.start)));
   const rem = hasReminder(g.key);
   const [tab, setTab] = useState<'onde' | 'stats' | 'escal'>('onde');
+  const [pinned, setPinned] = useState(() => !!score && isPinned(score));
+  useEffect(() => setPinned(!!score && isPinned(score)), [score?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => setTab('onde'), [g.key]);
   return (
     <div className="gy-16 scroll-y game-detail" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% + 8px)', padding: 4, margin: -4 }}>
@@ -425,6 +431,21 @@ function GameDetail({ g, score, now, onWatch, onReminder }: { g: Game; score?: S
       )}
       <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', flexShrink: 0, marginBottom: -12 }}>
         <button className="btn primary" data-nav="" onClick={() => g.channels[0] && onWatch(g.channels[0])}>▶ {st === 'live' ? 'Assistir agora' : 'Ir para o canal'}</button>
+        {score?.id && score.state !== 'post' && (
+          <button
+            className="btn"
+            data-nav=""
+            style={pinned ? { color: T.warn } : undefined}
+            onClick={(e) => {
+              const on = togglePinned(score);
+              setPinned(on);
+              pop(e.currentTarget);
+              toast(on ? 'O placar aparece por cima do vídeo em tela cheia' : 'Placar tirado da tela', on ? '📌' : '✕');
+            }}
+          >
+            {pinned ? '📌 Placar na tela' : '📌 Mostrar placar na tela'}
+          </button>
+        )}
         {st !== 'live' && (
           <button className="btn" data-nav="" onClick={onReminder} style={rem ? { color: T.warn } : undefined}>
             {rem ? '⏰ Lembrete ativado' : '⏰ Lembrar quando começar'}

@@ -1,5 +1,5 @@
 import { fetchText } from './net';
-import { prefGet } from './storage';
+import { prefGet, prefSet } from './storage';
 import type { Game } from './games';
 import { matchOf } from './games';
 
@@ -258,4 +258,31 @@ export async function loadMatchStats(s: Score): Promise<MatchStats | null> {
 /** O time está na lista de "Meus times"? */
 export function isMyTeam(name: string, mine: string[]): boolean {
   return mine.some((m) => sameTeam(m, name));
+}
+
+// ---------------------------------------------------------------- Placar flutuante (0.26.0)
+
+/** Jogo fixado no placar flutuante (aparece por cima do vídeo em tela cheia). */
+export interface PinnedScore {
+  id: string;
+  path: string;
+  home: string;
+  away: string;
+  start: number;
+}
+export function pinnedScores(): PinnedScore[] {
+  // Some sozinho 4 h depois do começo do jogo.
+  return prefGet<PinnedScore[]>('pinnedScores', []).filter((p) => p.start > Date.now() - 4 * 3600000);
+}
+export function isPinned(s: Pick<Score, 'id' | 'path'>): boolean {
+  return pinnedScores().some((p) => p.id === s.id && p.path === s.path);
+}
+/** Liga/desliga o placar na tela (no máximo 2 jogos). Devolve se ficou ligado. */
+export function togglePinned(s: Score): boolean {
+  if (!s.id || !s.path) return false;
+  const cur = pinnedScores();
+  const on = cur.some((p) => p.id === s.id && p.path === s.path);
+  const next = on ? cur.filter((p) => !(p.id === s.id && p.path === s.path)) : [...cur, { id: s.id, path: s.path, home: s.home, away: s.away, start: s.start }].slice(-2);
+  prefSet('pinnedScores', next);
+  return !on;
 }

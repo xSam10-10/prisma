@@ -12,11 +12,11 @@ Este arquivo existe para trocar de conversa sem perder nada. Tudo o que importa 
 
 ## 2. Mensagem para colar (primeira mensagem da nova conversa)
 
-> Vamos continuar o projeto PRISMA (meu player de IPTV). Antes de qualquer coisa, leia `docs/PRISMA-continuidade.md` (comece pela seção 0), `docs/PENDENCIAS.md` e `release-notes.md`, e confirme que entendeu: o estado atual (versão 0.25.0), como publicar uma versão (workflow `release.yml`), as verificações antes de publicar e o servidor falso de testes (`test/fake-xtream.mjs`).
+> Vamos continuar o projeto PRISMA (meu player de IPTV). Antes de qualquer coisa, leia `docs/PRISMA-continuidade.md` (comece pela seção 0), `docs/PENDENCIAS.md` e `release-notes.md`, e confirme que entendeu: o estado atual (versão 0.26.0), como publicar uma versão (workflow `release.yml`), as verificações antes de publicar e o servidor falso de testes (`test/fake-xtream.mjs`).
 >
 > Regras: responda sempre em português; os dados da minha assinatura Goldcard eu passo por aqui quando precisar — nunca grave nenhuma credencial no repositório; a chave do TMDB fica só no secret `TMDB_KEY`.
 >
-> O próximo trabalho é a etapa 2 do "centro de esportes" da aba Jogos (Fórmula 1), descrita em `docs/PENDENCIAS.md`, seção 5.
+> O centro de esportes está concluído; as próximas melhorias estão em `docs/PENDENCIAS.md`.
 
 ## 3. O que já está guardado no repositório
 - `docs/PRISMA-continuidade.md` — história completa, arquitetura, como publicar e testar (seção 0 = resumo atual; seções 10x = o que entrou em cada versão).

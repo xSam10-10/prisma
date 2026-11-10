@@ -52,3 +52,25 @@ describe('gerador do centro de esportes', () => {
   });
 });
 
+
+describe('Fórmula 1 no gerador', () => {
+  it('compacta calendário, sessões, vencedores, classificações e último GP', async () => {
+    const { f1Compact } = await import('../scripts/sports/build-sports.mjs');
+    const cal = { MRData: { RaceTable: { season: '2026', Races: [
+      { round: '1', raceName: 'Australian Grand Prix', Circuit: { circuitName: 'Albert Park', Location: { locality: 'Melbourne', country: 'Australia' } }, date: '2026-03-08', time: '04:00:00Z', FirstPractice: { date: '2026-03-06', time: '01:30:00Z' }, Qualifying: { date: '2026-03-07', time: '05:00:00Z' } },
+      { round: '2', raceName: 'Chinese Grand Prix', Circuit: { circuitName: 'Shanghai', Location: { locality: 'Shanghai', country: 'China' } }, date: '2026-03-15', time: '07:00:00Z', Sprint: { date: '2026-03-14', time: '03:00:00Z' } },
+    ] } } };
+    const drivers = { MRData: { StandingsTable: { StandingsLists: [{ round: '1', DriverStandings: [{ position: '1', points: '25', wins: '1', Driver: { code: 'RUS', givenName: 'George', familyName: 'Russell', permanentNumber: '63' }, Constructors: [{ name: 'Mercedes', constructorId: 'mercedes' }] }] }] } } };
+    const teams = { MRData: { StandingsTable: { StandingsLists: [{ ConstructorStandings: [{ position: '1', points: '43', wins: '1', Constructor: { name: 'Mercedes', constructorId: 'mercedes' } }] }] } } };
+    const winners = { MRData: { RaceTable: { Races: [{ round: '1', Results: [{ Driver: { code: 'RUS', givenName: 'George', familyName: 'Russell' }, Constructor: { constructorId: 'mercedes' } }] }] } } };
+    const f = f1Compact(cal, drivers, teams, winners, null);
+    expect(f.season).toBe('2026');
+    expect(f.races[0][5].map((s) => s[0])).toEqual(['TL1', 'CLA', 'GP']);
+    expect(f.races[0][6]).toEqual(['RUS', 'George Russell', 'mercedes']);
+    expect(f.races[1][5].map((s) => s[0])).toEqual(['SPR', 'GP']);
+    expect(f.races[1][6]).toBe(null);
+    expect(f.drivers[0]).toEqual([1, 'RUS', 'George', 'Russell', '63', 'Mercedes', 'mercedes', 25, 1]);
+    expect(f.teams[0]).toEqual([1, 'Mercedes', 'mercedes', 43, 1]);
+    expect(f.last).toBe(null);
+  });
+});

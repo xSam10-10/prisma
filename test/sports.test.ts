@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentStage, leaguesOf, liveExtras, stagesOf, tiesOf, withLive, type SportsFeed } from '../src/core/sports';
+import { currentStage, f1Of, formOf, gpName, leaguesOf, liveExtras, raceWeek, stagesOf, streaksOf, tiesOf, withLive, type SportsFeed } from '../src/core/sports';
 import type { Score } from '../src/core/scores';
 
 const feed: SportsFeed = {
@@ -82,5 +82,35 @@ describe('centro de esportes no app', () => {
     expect(m[3].state).toBe('pre');
     const extra = liveExtras(ls, live);
     expect(extra.map((x) => x.home.name)).toEqual(['Bahia', 'X']);
+  });
+});
+
+describe('etapa 2 e 3: F1, forma e sequências', () => {
+  it('nome do GP em português', () => {
+    expect(gpName('Las Vegas Grand Prix')).toBe('GP de Las Vegas');
+    expect(gpName('Brazilian Grand Prix')).toBe('GP de São Paulo');
+    expect(gpName('Japanese Grand Prix')).toBe('GP do Japão');
+    expect(gpName('Atlantis Grand Prix')).toBe('GP Atlantis');
+  });
+  it('semana do GP: só a partir de 7 dias antes do primeiro treino', () => {
+    const now = Date.now();
+    const s = (d: number) => Math.floor((now + d * 86400000) / 1000);
+    const feed = { v: 1, updated: '', at: now, leagues: [], f1: { season: '2026', round: 1, drivers: [], teams: [], last: null, races: [
+      [1, 'Old Grand Prix', '', '', '', [['TL1', s(-12)], ['GP', s(-10)]], ['RUS', 'George Russell', 'mercedes']],
+      [2, 'Monaco Grand Prix', '', '', '', [['TL1', s(9)], ['GP', s(11)]], null],
+    ] } } as unknown as SportsFeed;
+    const f = f1Of(feed)!;
+    expect(f.races[0].winner?.name).toBe('George Russell');
+    expect(f.races[1].sessions.map((x) => x.label)).toEqual(['Treino livre 1', 'Corrida']);
+    expect(raceWeek(f, now)).toBeUndefined();
+    expect(raceWeek(f, now + 3 * 86400000)?.name).toBe('GP de Mônaco');
+  });
+  it('forma recente e sequências atuais', () => {
+    const l = leaguesOf(feed)[0];
+    const form = formOf(l);
+    expect(form.get('Flamengo')).toEqual(['V']);
+    expect(form.get('Palmeiras')).toEqual(['D']);
+    expect(form.get('Santos')).toEqual(['E']);
+    expect(streaksOf(l)).toEqual([]);
   });
 });
