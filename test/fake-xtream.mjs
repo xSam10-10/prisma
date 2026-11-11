@@ -175,8 +175,39 @@ function fakeSports() {
 
 const teamColor = (t) => ({ Flamengo: 'C8102E', Palmeiras: '006437', Corinthians: '111111', 'São Paulo': 'E30613', Grêmio: '0D80BF', 'River Plate': 'E4002B' })[t] || '3D7BFF';
 
+// GitHub falso (sincronização pela nuvem, 0.30.0): /gh/user, /gh/gists… com o token "teste-token-0123456789abcdef".
+const gists = new Map();
+let gistSeq = 0;
+function fakeGitHub(req, res, u) {
+  const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'Authorization, Content-Type, Accept', 'access-control-allow-methods': 'GET, POST, PATCH, OPTIONS' };
+  if (req.method === 'OPTIONS') return res.writeHead(204, cors).end();
+  const j = (st, o) => res.writeHead(st, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify(o));
+  if (req.headers.authorization !== 'token teste-token-0123456789abcdef') return j(401, { message: 'Bad credentials' });
+  const path = u.pathname.slice(3);
+  let body = '';
+  req.on('data', (c) => (body += c));
+  req.on('end', () => {
+    const b = body ? JSON.parse(body) : {};
+    if (path === '/user') return j(200, { login: 'samuel-teste' });
+    if (path === '/gists' && req.method === 'GET') return j(200, [...gists.values()]);
+    if (path === '/gists' && req.method === 'POST') {
+      const g = { id: 'g' + ++gistSeq, description: b.description, public: !!b.public, files: b.files };
+      gists.set(g.id, g);
+      return j(201, g);
+    }
+    const m = path.match(/^\/gists\/(\w+)$/);
+    if (m && gists.has(m[1])) {
+      const g = gists.get(m[1]);
+      if (req.method === 'PATCH') g.files = { ...g.files, ...b.files };
+      return j(200, g);
+    }
+    j(404, { message: 'Not Found' });
+  });
+}
+
 createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
+  if (u.pathname.startsWith('/gh/')) return fakeGitHub(req, res, u);
   // Atualização dentro do app (teste): arquivos de UPDATE_DIR em /updates/
   if (u.pathname.startsWith('/updates/') && process.env.UPDATE_DIR) {
     const f = join(process.env.UPDATE_DIR, u.pathname.slice(9).replace(/\.\./g, ''));

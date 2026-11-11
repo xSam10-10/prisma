@@ -8,14 +8,16 @@ import { MyList, VodScreen, type VodTab } from './screens/Vod';
 import { Games } from './screens/Games';
 import { openSportsView } from './screens/F1';
 import { ScoreBug } from './ui/ScoreBug';
+import { cloudSync } from './core/cloud';
 import { cachedGames, dueReminders, ensureReminder, loadGames, myTeams, reminders, teamsOf, type Reminder } from './core/games';
 import { isMyTeam, loadScores, scoreFor } from './core/scores';
-import { installNative, notifyNow, syncNativeReminders } from './core/native';
+import { installNative, nativePlayVod, notifyNow, syncNativeReminders } from './core/native';
+import { IS_ANDROID } from './core/platform';
 import { checkForUpdate, markBootOk, shouldAutoCheck, type CheckResult } from './core/updater';
 import { loadTops } from './core/tops';
-import { Splash, Toasts, useHomeScrolled } from './ui/premium2';
+import { Splash, Toasts, toast as showToast, useHomeScrolled } from './ui/premium2';
 import type { Section } from './screens/Settings';
-import { pushVodRecent } from './core/vod';
+import { pushVodRecent, saveProgress } from './core/vod';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
 import { loadLogoCatalogs } from './core/logos';
 import { loadXmltv } from './core/xmltv';
@@ -101,6 +103,8 @@ export function App() {
 
   // Lembretes de jogos: confere a cada 30 s e avisa na tela.
   const [toast, setToast] = useState<Reminder | null>(null);
+  // Volta do player nativo (Android): redesenha o Início com o progresso novo.
+  const [, setVodTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => {
       const due = dueReminders();
@@ -284,6 +288,25 @@ export function App() {
   playingRef.current = playing;
   const [queue, setQueue] = useState<Channel[]>([]);
   const playVod = useCallback((item: Channel, from?: number, q?: Channel[]) => {
+    // Android: filmes e séries no player nativo (ExoPlayer). Ao voltar, guarda onde parou
+    // e, se o episódio acabou, segue para o próximo da fila.
+    if (IS_ANDROID && item.kind !== 'live' && loadSettings().androidPlayer !== 'web') {
+      pushVodRecent(item);
+      prefSet('lastKind', 'vod');
+      const sub = item.seriesId ? item.group : item.year ? String(item.year) : '';
+      nativePlayVod(item.url, item.name, sub, from ?? 0).then(
+        (r: { posMs: number; durMs: number; ended: boolean; error?: string }) => {
+          if (r.durMs > 0) saveProgress(item.id, r.posMs / 1000, r.durMs / 1000);
+          if (r.error) showToast('O player do Android não tocou este vídeo. Em Ajustes › Player dá para usar o do PRISMA.', '✕');
+          const list = q ?? [];
+          const i = list.findIndex((x) => x.id === item.id);
+          if (r.ended && i >= 0 && list[i + 1]) playVodRef.current?.(list[i + 1], 0, list);
+          else setVodTick((x: number) => x + 1);
+        },
+        () => showToast('Não deu para abrir o player do Android.', '✕'),
+      );
+      return;
+    }
     if (q) setQueue(q);
     else setQueue((cur) => (cur.some((x) => x.id === item.id) ? cur : []));
     setStartAt(from);
@@ -292,6 +315,9 @@ export function App() {
     pushVodRecent(item);
     prefSet('lastKind', 'vod');
   }, []);
+
+  const playVodRef = useRef(playVod);
+  playVodRef.current = playVod;
 
   const onPlayerMode = useCallback((m: PlayerMode) => {
     if (m === 'full') setFull(true);
@@ -306,6 +332,18 @@ export function App() {
       // Volta o foco para a lista de canais.
       setTimeout(() => focusEl(document.querySelector<HTMLElement>('.vlist')), 50);
     }
+  }, []);
+
+  // Nuvem (0.30.0): envia o que mudou a cada 5 min e quando o app sai da frente.
+  useEffect(() => {
+    const push = () => void cloudSync(false).catch(() => undefined);
+    const t = setInterval(push, 5 * 60000);
+    const vis = () => document.hidden && push();
+    document.addEventListener('visibilitychange', vis);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', vis);
+    };
   }, []);
 
   // Voltar: das outras abas volta para o Início.

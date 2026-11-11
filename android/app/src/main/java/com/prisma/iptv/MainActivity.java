@@ -9,6 +9,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Plugin local: atualizar o app de dentro dele.
         registerPlugin(ApkInstallerPlugin.class);
+        // Plugin local: player nativo (ExoPlayer) para filmes e séries.
+        registerPlugin(NativePlayerPlugin.class);
         super.onCreate(savedInstanceState);
         // Canal abre tocando, sem precisar tocar na tela.
         getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);

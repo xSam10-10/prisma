@@ -95,3 +95,21 @@ export async function notifyNow(title: string, body: string): Promise<void> {
     /* sem permissão */
   }
 }
+
+/** Resultado do player nativo ao fechar. */
+export interface NativePlayResult {
+  posMs: number;
+  durMs: number;
+  ended: boolean;
+  error?: string;
+}
+
+/**
+ * Filmes e séries no player nativo do Android (ExoPlayer, 0.30.0): troca de
+ * áudio, legendas e velocidade pelos controles do próprio Android.
+ */
+export async function nativePlayVod(url: string, title: string, subtitle: string, startSec: number): Promise<NativePlayResult> {
+  const { registerPlugin } = await import('@capacitor/core');
+  const NativePlayer = registerPlugin<{ play(o: { url: string; title: string; subtitle: string; startMs: number; ua: string }): Promise<NativePlayResult> }>('NativePlayer');
+  return NativePlayer.play({ url, title, subtitle, startMs: Math.max(0, Math.round(startSec * 1000)), ua: UA });
+}

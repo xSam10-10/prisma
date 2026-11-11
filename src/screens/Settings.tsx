@@ -1,5 +1,6 @@
 import { ProtectionPanel } from './Protection';
 import { SubscriptionCard } from './Subscription';
+import { CloudRows } from "./CloudSync";
 import { forgetSource, savedSources, sourceKey } from '../core/sources';
 import { useEffect, useRef, useState } from 'react';
 import { IS_WEBOS, IS_ANDROID } from '../core/platform';
@@ -180,6 +181,15 @@ export function Settings({
           options={[3, 5, 8, 12].map((v) => ({ v, label: `${v} segundos` }))}
           onChange={set('osdSeconds')}
         />
+        {IS_ANDROID && (
+          <Choice
+            label="Player de filmes e séries"
+            help="Android: o player do Android (ExoPlayer) troca áudio e legenda de qualquer filme e é mais estável; a engrenagem dele tem áudio, legendas e velocidade. Se algum filme não tocar, volte para o player do PRISMA."
+            value={st.androidPlayer ?? 'exo'}
+            options={[{ v: 'exo', label: 'Do Android (ExoPlayer)' }, { v: 'web', label: 'Do PRISMA' }]}
+            onChange={set('androidPlayer')}
+          />
+        )}
         <Choice
           label="Tamanho da legenda"
           help="Vale para as legendas dos filmes, séries e canais, inclusive as carregadas de um arquivo."
@@ -349,6 +359,7 @@ export function Settings({
     );
     panel = (
       <>
+        <CloudRows Row={Row} />
         <BackupRows Row={Row} />
         <Row label="Limpar histórico" help={`Esvazia “Vistos por último” e o “Continuar assistindo” do Início. ${n.recents} canais no histórico.`}>
           <ConfirmButton label="Limpar histórico" onConfirm={data.clearRecents} done="Histórico limpo" />

@@ -82,9 +82,27 @@ export function prefGet<T>(key: string, fallback: T): T {
   }
 }
 
+/** Preferências que vão para a nuvem (0.30.0). Ficam de fora: lista/senha da assinatura, chave do TMDB e o que é do aparelho. */
+export const SYNC_KEYS = new Set(['favs', 'recents', 'sections', 'myList', 'progress', 'vodRecents', 'reminders', 'settings', 'myTeams', 'watched', 'epAlerts', 'locked', 'lockedCats', 'hiddenCats', 'hiddenCh', 'trackPref', 'profiles', 'pin', 'epgExtra']);
+export const STAMPS = 'prisma.syncStamps';
+
+/** Guarda quando cada preferência sincronizada mudou (a mais nova vence na nuvem). */
+function stamp(full: string): void {
+  try {
+    const m = JSON.parse(localStorage.getItem(STAMPS) || '{}') as Record<string, number>;
+    m[full] = Date.now();
+    localStorage.setItem(STAMPS, JSON.stringify(m));
+  } catch {
+    /* ignora */
+  }
+}
+
 export function prefSet(key: string, value: unknown): void {
   try {
-    localStorage.setItem(fullKey(key), JSON.stringify(value));
+    const full = fullKey(key);
+    const text = JSON.stringify(value);
+    if (SYNC_KEYS.has(key) && localStorage.getItem(full) !== text) stamp(full);
+    localStorage.setItem(full, text);
   } catch {
     /* ignora */
   }

@@ -41,6 +41,8 @@ export interface Settings {
   subSize: 'p' | 'm' | 'g' | 'gg';
   subColor: 'white' | 'yellow';
   subBg: 'none' | 'shadow' | 'box';
+  /** Android: filmes e séries no player nativo (ExoPlayer, 0.30.0) ou no player do app. */
+  androidPlayer: 'exo' | 'web';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -62,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   subSize: 'm',
   subColor: 'white',
   subBg: 'shadow',
+  androidPlayer: 'exo',
 };
 
 export function loadSettings(): Settings {

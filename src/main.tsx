@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { installNavigation } from './ui/nav';
 import { LITE } from './core/platform';
+import { cloudPullOnStart } from './core/cloud';
 import './styles.css';
 import './sports.css';
 import './stream.css';
@@ -24,4 +25,5 @@ if (LITE) {
 }
 
 installNavigation();
-createRoot(document.getElementById('root')!).render(<App />);
+// Nuvem (0.30.0): antes de abrir, traz o que mudou nos outros aparelhos (no máximo 3,5 s).
+cloudPullOnStart(3500).then(() => createRoot(document.getElementById('root')!).render(<App />));
