@@ -10,7 +10,9 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.3)
 
-**O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
+**O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
+
+**Passagem de conta (11/11, 0.34.3):** o resumo completo para continuar em outra conta do Claude — regras, comandos, o que foi feito de 0.31.0 a 0.34.3 e o que falta — está em **`docs/MIGRAR-CONTA.md`** (ler primeiro).
 
 **Código:** GitHub `xSam10-10/prisma` (branch `main`). React 18 + TypeScript + Vite 8. O código atual está sempre na `main` do GitHub (o pacote .zip antigo tinha a 0.17.0).
 
@@ -18,13 +20,13 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Atualização dentro do app:** lê `https://github.com/xSam10-10/prisma/releases/latest/download/` — conferida no Windows pelo usuário em 09/11 — repositório **público** desde 08/11 23h (conferido: `prisma-update.json` 0.18.0 e `prisma-tops.json` respondem 200). Ver 10i e 10r.
 
-**Verificações antes de publicar:** `npx tsc --noEmit` · `npx vitest run` (55 testes) · `npm run build:webos` + `npx es-check@8.0.2 es5 "dist-webos/assets/*.js"` (TV de 2017: sem CSS gap/variáveis/grid; flex com prefixos -webkit-; nada de sintaxe nova no JS final).
+**Verificações antes de publicar:** `npx tsc --noEmit` · `npx vitest run` (113 testes na 0.34.3) · `npm run build:webos` + `npx es-check@8.0.2 es5 "dist-webos/assets/*.js"` (TV de 2017: sem CSS gap/variáveis/grid; flex com prefixos -webkit-; nada de sintaxe nova no JS final).
 **Testes de tela:** `node test/fake-xtream.mjs` (servidor Xtream falso na porta 8090, usuário `teste` / senha `1234`; também ESPN falsa em `/espn/...`, TMDB falso em `/tmdb/...`, `/updates/` com `UPDATE_DIR`) + `npx vite --port 5173` + roteiros Playwright. O Chromium do ambiente não decodifica H.264: nos testes, segurar as requisições de vídeo (`page.route(... /live/ ..., () => {})`).
 **Limites do ambiente de desenvolvimento:** ESPN, TMDB, guias públicos e o servidor da Goldcard não são acessíveis de lá — testar com o servidor falso e pedir ao Samuel o teste real.
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10t (0.10.0 → 0.18.0). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10az (0.10.0 → 0.34.3). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -33,6 +35,10 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 **Sessão local (10/11):** a conversa nova roda no PC do Samuel (cópia em `Downloads\prisma`), que alcança ESPN e GitHub — dá para testar com dados reais da ESPN além do servidor falso. Playwright instalado globalmente (`NPMROOT=$(npm root -g)`).
 
 **Como o Samuel gosta de trabalhar:** tudo em português; visual "mega premium" com cara de app oficial; quando ele pede "só sugira / não crie nada", responder só com a opinião; depois de cada lote, testar navegação pelo controle (setas/OK/Voltar) e publicar uma versão; avisar com honestidade o que depende da TV real, do TMDB ou da Goldcard. Sugestões de design descartadas estão listadas no topo de `docs/PENDENCIAS.md` (não oferecer de novo). Chave do TMDB fica no secret `TMDB_KEY` (Tops) e nos Ajustes dos aparelhos; desde a 0.31.0 também vai pelo Gist privado da sincronização (pedido do Samuel), nunca no repositório.
+
+**Categoria de adultos (0.31.0–0.34.3):** capas pela ThePornDB (token do Samuel em Ajustes › Serviços) com nome parecido, foto da atriz e imagem do OnlyFans como reserva; filtros de atrizes e de produtoras (fileira que cabe na tela + "Ver todas"); senha só fora do horário livre (22:00–06:00). Ver 10as–10az e `docs/MIGRAR-CONTA.md` seção 5.
+
+**Atualização automática (0.34.2):** confere ao abrir e a cada 6 h; TV LG e Windows baixam sozinhos (vale ao reabrir), Android mostra "Atualizar agora". Ver 10ay.
 
 **Referências do app usado pelo Samuel (vídeos que ele mandou):** barra do canal estilo receptor + PIP (10f), programação do canal por dia (10h), lista de canais por cima da tela cheia com menu lateral e grupos (10j).
 
