@@ -250,3 +250,22 @@ export function collapseVersions(items: Channel[]): Channel[] {
   }
   return out;
 }
+
+// ---- Capa genérica da lista (0.31.0) ----
+// Muitas listas usam a mesma imagem para vários títulos (ex.: todos os filmes de
+// adulto com o mesmo "XXX"). Essas capas são trocadas pela oficial quando acha.
+
+const logoCount = new Map<string, number>();
+const GENERIC = /no[_-]?(image|poster|cover)|placeholder|default[_-]?(poster|cover)?\.|\/(xxx|adult[os]*|18)\.(png|jpe?g|webp)$/i;
+
+/** Conta quantos títulos usam cada capa (chamado quando a lista carrega). */
+export function indexLogos(items: Channel[]): void {
+  logoCount.clear();
+  for (const i of items) if (i.kind !== 'live' && i.logo) logoCount.set(i.logo, (logoCount.get(i.logo) ?? 0) + 1);
+}
+
+/** Sem capa, capa com cara de "sem imagem" ou a mesma imagem em 3+ títulos. */
+export function isGenericLogo(url?: string): boolean {
+  if (!url) return true;
+  return GENERIC.test(url) || (logoCount.get(url) ?? 0) >= 3;
+}

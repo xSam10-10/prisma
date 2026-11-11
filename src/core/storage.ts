@@ -82,8 +82,8 @@ export function prefGet<T>(key: string, fallback: T): T {
   }
 }
 
-/** Preferências que vão para a nuvem (0.30.0). Ficam de fora: lista/senha da assinatura, chave do TMDB e o que é do aparelho. */
-export const SYNC_KEYS = new Set(['favs', 'recents', 'sections', 'myList', 'progress', 'vodRecents', 'reminders', 'settings', 'myTeams', 'watched', 'epAlerts', 'locked', 'lockedCats', 'hiddenCats', 'hiddenCh', 'trackPref', 'profiles', 'pin', 'epgExtra']);
+/** Preferências que vão para a nuvem (0.30.0). Ficam de fora: lista/senha da assinatura e o que é do aparelho. As chaves do TMDB e da ThePornDB vão (0.31.0, pedido do Samuel), só no Gist privado. */
+export const SYNC_KEYS = new Set(['favs', 'recents', 'sections', 'myList', 'progress', 'vodRecents', 'reminders', 'settings', 'myTeams', 'watched', 'epAlerts', 'locked', 'lockedCats', 'hiddenCats', 'hiddenCh', 'trackPref', 'profiles', 'pin', 'epgExtra', 'tmdbKey', 'tpdbKey']);
 export const STAMPS = 'prisma.syncStamps';
 
 /** Guarda quando cada preferência sincronizada mudou (a mais nova vence na nuvem). */

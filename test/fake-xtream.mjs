@@ -35,7 +35,7 @@ live.find((c) => c.stream_id === 30).category_ids = ['20', '10'];
 for (let i = 0; i < 400; i++) live.push({ num: 100 + i, name: `Canal Extra ${i + 1}`, stream_id: 100 + i, category_id: '50', epg_channel_id: '', dir: ['prisma1', 'prisma2', 'prisma3', 'prisma4'][i % 4] });
 
 // ---- Filmes e séries de teste ----
-const VOD_CATS = [['101', 'FILMES | NETFLIX'], ['102', 'FILMES | HBO MAX'], ['103', 'FILMES | DISNEY+'], ['104', 'LANÇAMENTOS 2026'], ['105', 'FILMES | AÇÃO'], ['106', 'DUBLAGEM NAO OFICIAL']];
+const VOD_CATS = [['101', 'FILMES | NETFLIX'], ['102', 'FILMES | HBO MAX'], ['103', 'FILMES | DISNEY+'], ['104', 'LANÇAMENTOS 2026'], ['105', 'FILMES | AÇÃO'], ['106', 'DUBLAGEM NAO OFICIAL'], ['107', 'ADULTOS +18']];
 const SER_CATS = [['201', 'SÉRIES | NETFLIX'], ['202', 'SÉRIES | PRIME VIDEO'], ['203', 'ANIMES | CRUNCHYROLL'], ['204', 'SÉRIES | GLOBOPLAY'],
   // Mais streamings (para testar o carrossel de logotipos)
   ['205', 'SÉRIES | HBO MAX'], ['206', 'SÉRIES | DISNEY+'], ['207', 'SÉRIES | APPLE TV+'], ['208', 'SÉRIES | PARAMOUNT+'], ['209', 'SÉRIES | STAR+'], ['210', 'SÉRIES | DISCOVERY+'],
@@ -47,6 +47,10 @@ const vods = Array.from({ length: 64 }, (_, i) => ({
   stream_id: 3000 + i, stream_icon: `http://127.0.0.1:${PORT}/poster/m${i}.svg`, category_id: VOD_CATS[i % VOD_CATS.length][0],
   container_extension: 'mp4', rating: (5 + (i * 37) % 50 / 10).toFixed(1), added: String(1790000000 - i * 3600), year: String(2018 + (i % 9)),
 }));
+// Adultos (teste das capas oficiais, 0.31.0): títulos inventados, todos com a mesma capa genérica.
+['Estudio Teste - Filme Adulto Um (2024)', 'Estudio Teste - Cena Adulta Dois', 'Titulo Sem Capa Tres'].forEach((name, k) =>
+  vods.push({ name, stream_id: 3950 + k, stream_icon: `http://127.0.0.1:${PORT}/poster/generica.svg`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000000 + k), year: '2024' }),
+);
 // Mesmo filme em outras versões (para "versões num só card")
 vods.push({ name: 'Rota 66 [LEG] (2019)', stream_id: 3900, stream_icon: `http://127.0.0.1:${PORT}/poster/m10.svg`, category_id: '105', container_extension: 'mp4', rating: '7.0', added: String(1789990000), year: '2019' });
 vods.push({ name: 'Rota 66 4K (2019)', stream_id: 3901, stream_icon: `http://127.0.0.1:${PORT}/poster/m10.svg`, category_id: '104', container_extension: 'mp4', rating: '7.0', added: String(1789990001), year: '2019' });
@@ -208,6 +212,16 @@ function fakeGitHub(req, res, u) {
 createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   if (u.pathname.startsWith('/gh/')) return fakeGitHub(req, res, u);
+  if (u.pathname.startsWith('/tpdb/')) {
+    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'Authorization, Accept', 'access-control-allow-methods': 'GET, OPTIONS' };
+    if (req.method === 'OPTIONS') return res.writeHead(204, cors).end();
+    if (req.headers.authorization !== 'Bearer tpdb-teste') return res.writeHead(401, cors).end('{}');
+    const p = (u.searchParams.get('parse') || '').toLowerCase();
+    const data = u.pathname === '/tpdb/scenes' && p.includes('cena adulta dois')
+      ? [{ id: 's2', title: 'Cena Adulta Dois', site: { name: 'Estudio Teste' }, date: '2024-05-01', posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-cena.svg` }, background: { large: `http://127.0.0.1:${PORT}/poster/tpdb-cena-b.svg` } }]
+      : u.pathname === '/tpdb/scenes' && p === 'test' ? [] : [];
+    return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data }));
+  }
   // Atualização dentro do app (teste): arquivos de UPDATE_DIR em /updates/
   if (u.pathname.startsWith('/updates/') && process.env.UPDATE_DIR) {
     const f = join(process.env.UPDATE_DIR, u.pathname.slice(9).replace(/\.\./g, ''));
@@ -328,6 +342,7 @@ createServer((req, res) => {
     }
     const q = (u.searchParams.get('query') || '').toLowerCase();
     if (path === '3/search/person') return j({ results: /ana|souza/i.test(u.searchParams.get('query') || '') ? [{ id: 500, name: 'Ana Souza', known_for_department: 'Acting', popularity: 12, profile_path: '/face0.jpg' }] : [] });
+    if (u.searchParams.get('include_adult') === 'true') return j({ results: /filme adulto um/.test(q) ? [{ id: 777, adult: true, title: 'Filme Adulto Um', original_title: 'Filme Adulto Um', poster_path: '/adulto-tmdb.svg', backdrop_path: '/adulto-tmdb-b.svg', release_date: '2024-01-01' }] : [] });
     if (path === '3/search/movie' || path === '3/search/tv') return j({ results: q ? [{ id: q.length, title: u.searchParams.get('query'), name: u.searchParams.get('query'), poster_path: '/p' + q.length + '.svg', backdrop_path: '/b' + q.length + '.svg', overview: 'Sinopse vinda do TMDB em português. Uma história envolvente sobre escolhas difíceis, viagens inesperadas e reencontros que mudam tudo.', release_date: '2020-01-01', vote_average: 8.4 }] : [] });
     if (path === '3/trending/movie/week') return j({ results: ['Rota 66', 'Inexistente', 'Maré Alta', 'Luz do Norte', 'Plano B'].map((t, i) => ({ id: 100 + i, title: t, poster_path: '/p.svg' })) });
     if (path === '3/trending/tv/week') return j({ results: ['Turno da Noite', 'Os Herdeiros'].map((t, i) => ({ id: 200 + i, name: t, poster_path: '/p.svg' })) });

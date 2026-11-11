@@ -1,6 +1,9 @@
 import { fetchText } from './net';
 import { idbGet, idbSet, prefGet } from './storage';
 import type { Channel } from './types';
+import { isAdultName } from './parental';
+import { isGenericLogo } from './vod';
+import { adultQuery, sameContent, tpdbKey, tpdbLookup } from './tpdb';
 
 // TMDB (The Movie Database): capas, fundos, sinopse em português, trailer e
 // "Top 10 da semana". Precisa de uma chave gratuita (API v3) nos Ajustes.
@@ -34,6 +37,8 @@ export function tmdbKey(): string {
 async function call<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const key = tmdbKey();
   if (!key) throw new Error('sem chave');
+  // Capa vinda da ThePornDB (número negativo): não tem página no TMDB.
+  if (/\/-\d/.test(path)) throw new Error('fora do TMDB');
   const q = new URLSearchParams({ api_key: key, language: 'pt-BR', ...params });
   return JSON.parse(await fetchText(`${API()}${path}?${q.toString()}`, 15000)) as T;
 }
@@ -65,7 +70,7 @@ export function norm(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-type Raw = { id: number; title?: string; name?: string; original_title?: string; original_name?: string; poster_path?: string; backdrop_path?: string; overview?: string; release_date?: string; first_air_date?: string; vote_average?: number };
+type Raw = { id: number; adult?: boolean; title?: string; name?: string; original_title?: string; original_name?: string; poster_path?: string; backdrop_path?: string; overview?: string; release_date?: string; first_air_date?: string; vote_average?: number };
 
 function toInfo(r: Raw, type: 'movie' | 'tv'): TmdbInfo {
   const date = r.release_date || r.first_air_date || '';
@@ -113,7 +118,11 @@ async function slot<T>(fn: () => Promise<T>): Promise<T> {
 
 /** Encontra o título no TMDB (com cache). */
 export async function lookup(item: Channel): Promise<TmdbInfo | null> {
-  if (!tmdbKey() || item.kind === 'live') return null;
+  if (item.kind === 'live') return null;
+  // Adultos (0.31.0): só procura quando a capa da lista é a genérica; aí tenta o TMDB com
+  // conteúdo adulto e, se não achar, a ThePornDB. Capa de verdade da lista fica como está.
+  if (isAdultName(item.group)) return isGenericLogo(item.logo) ? adultLookup(item) : null;
+  if (!tmdbKey()) return null;
   const type = item.kind === 'movie' ? 'movie' : 'tv';
   const { title, year } = searchTitle(item.fullName ?? item.name);
   const key = `${type}|${norm(title)}|${year ?? item.year ?? ''}`;
@@ -134,6 +143,32 @@ export async function lookup(item: Channel): Promise<TmdbInfo | null> {
     } catch {
       return null;
     }
+  });
+}
+
+/** Título de adulto com capa genérica: TMDB (só resultado marcado como adulto e com o título batendo) › ThePornDB. */
+async function adultLookup(item: Channel): Promise<TmdbInfo | null> {
+  const name = item.fullName ?? item.name;
+  const { title, year } = searchTitle(adultQuery(name));
+  const key = `adult|${norm(title)}|${year ?? item.year ?? ''}`;
+  const c = await loadCache();
+  if (key in c) return c[key];
+  if (!tmdbKey() && !tpdbKey()) return null;
+  return slot(async () => {
+    let info: TmdbInfo | null = null;
+    try {
+      if (tmdbKey()) {
+        const r = await call<{ results: Raw[] }>('/search/movie', { query: title, include_adult: 'true' });
+        const hit = (r.results ?? []).find((x) => x.adult && x.poster_path && (sameContent(title, x.title ?? '') || sameContent(title, x.original_title ?? '')));
+        if (hit) info = toInfo(hit, 'movie');
+      }
+      if (!info) info = await tpdbLookup(name, year ?? item.year);
+    } catch {
+      info = null;
+    }
+    c[key] = info;
+    persist();
+    return info;
   });
 }
 

@@ -7,14 +7,15 @@ import { prefGet, STAMPS, SYNC_KEYS } from './storage';
 // permissão só de "gist". Para cada preferência fica a versão mais nova
 // (cada alteração local guarda a hora — storage.ts › prefSet).
 //
-// Nunca vão para a nuvem: login/senha da lista IPTV (sources), chave do TMDB,
-// tamanho/margens da tela (são do aparelho). O token fica só neste aparelho.
+// Nunca vão para a nuvem: login/senha da lista IPTV (sources) e tamanho/margens
+// da tela (são do aparelho). As chaves do TMDB e da ThePornDB vão (0.31.0), só
+// neste Gist privado — nunca no repositório. O token fica só neste aparelho.
 
 const CFG = 'prisma.cloud';
 const FILE = 'prisma-sync.json';
 const DESC = 'PRISMA · sincronização (não apague)';
 /** Ajustes que são do aparelho, não da pessoa. */
-const DEVICE_SETTINGS = ['layoutForm', 'uiScale', 'safeMargin', 'tmdbKey', 'liveFormat'];
+const DEVICE_SETTINGS = ['layoutForm', 'uiScale', 'safeMargin', 'liveFormat'];
 
 export interface CloudCfg {
   token: string;

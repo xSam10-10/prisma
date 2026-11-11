@@ -12,6 +12,7 @@ import { T } from '../ui/tokens';
 import { THEMES } from '../ui/themes';
 import { ProfilesPanel } from './Profiles';
 import { clearTmdbCache, testKey, tmdbKey } from '../core/tmdb';
+import { testTpdbKey, tpdbKey } from '../core/tpdb';
 import { prefSet } from '../core/storage';
 import { ConfirmButton } from '../ui/Dialog';
 import { applyBackup, exportBackup, pickBackupFile } from '../core/backup';
@@ -485,7 +486,7 @@ function Services() {
       <div className="opt-row gy-10" style={{ display: 'flex', flexDirection: 'column' }}>
         <span style={{ fontSize: mobile ? 16 : 18, fontWeight: 700 }}>TMDB · capas, sinopses, trailers e Top 10</span>
         <span className="muted" style={{ fontSize: 15, lineHeight: 1.45 }}>
-          Crie uma conta grátis em <b>themoviedb.org</b> › Configurações › API › “Chave da API (v3)” e cole aqui. Fica salva só neste aparelho.
+          Crie uma conta grátis em <b>themoviedb.org</b> › Configurações › API › “Chave da API (v3)” e cole aqui. Com a sincronização pela nuvem ligada (Ajustes › Dados), ela vai sozinha para a TV e o celular.
         </span>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="field" style={{ flexGrow: 1, minWidth: 260, marginRight: 12 }}>
@@ -498,6 +499,7 @@ function Services() {
         {state === 'ok' && <span style={{ color: T.primary, fontWeight: 700, fontSize: 15 }}>✓ TMDB ligado: capas, trailers e Top 10 ativados.</span>}
         {state === 'bad' && <span style={{ color: T.live, fontWeight: 700, fontSize: 15 }}>Chave recusada pelo TMDB (ou sem internet). Confira se é a “Chave da API (v3)”.</span>}
       </div>
+      <TpdbRow mobile={mobile} />
       <TopsRow mobile={mobile} />
       <div className="opt-row gy-6" style={{ display: 'flex', flexDirection: 'column' }}>
         <span style={{ fontSize: mobile ? 16 : 18, fontWeight: 700 }}>Placar ao vivo</span>
@@ -506,6 +508,45 @@ function Services() {
         </span>
       </div>
     </>
+  );
+}
+
+/** Ajustes › Serviços: ThePornDB (0.31.0) — capas oficiais dos títulos de adulto que vêm com capa genérica. */
+function TpdbRow({ mobile }: { mobile: boolean }) {
+  const [key, setKey] = useState(tpdbKey());
+  const [state, setState] = useState<'idle' | 'testing' | 'ok' | 'bad'>(tpdbKey() ? 'ok' : 'idle');
+  const save = async () => {
+    const k = key.trim();
+    if (!k) {
+      prefSet('tpdbKey', '');
+      setState('idle');
+      return;
+    }
+    setState('testing');
+    const ok = await testTpdbKey(k);
+    setState(ok ? 'ok' : 'bad');
+    if (ok) {
+      prefSet('tpdbKey', k);
+      clearTmdbCache(); // procura de novo as capas que ficaram sem
+    }
+  };
+  return (
+    <div className="opt-row gy-10" style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ fontSize: mobile ? 16 : 18, fontWeight: 700 }}>ThePornDB · capas da categoria de adultos</span>
+      <span className="muted" style={{ fontSize: 15, lineHeight: 1.45 }}>
+        Para os títulos de adulto que a lista manda com capa genérica: primeiro o PRISMA procura no TMDB; o que faltar, aqui. Crie uma conta grátis em <b>theporndb.net</b> › seu perfil › API Tokens e cole o token. As capas continuam atrás da senha de Proteção.
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="field" style={{ flexGrow: 1, minWidth: 260, marginRight: 12 }}>
+          <input data-nav="" type="password" value={key} placeholder="Token da API" autoCapitalize="off" autoCorrect="off" onChange={(e) => { setKey(e.target.value); setState('idle'); }} />
+        </div>
+        <button className="btn" data-nav="" onClick={save} disabled={state === 'testing'} style={{ marginTop: mobile ? 10 : 0 }}>
+          {state === 'testing' ? 'Testando…' : key.trim() ? 'Salvar e testar' : 'Remover token'}
+        </button>
+      </div>
+      {state === 'ok' && <span style={{ color: T.primary, fontWeight: 700, fontSize: 15 }}>✓ ThePornDB ligada.</span>}
+      {state === 'bad' && <span style={{ color: T.live, fontWeight: 700, fontSize: 15 }}>Token recusado (ou sem internet).</span>}
+    </div>
   );
 }
 

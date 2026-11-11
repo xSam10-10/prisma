@@ -17,7 +17,7 @@ import { checkForUpdate, markBootOk, shouldAutoCheck, type CheckResult } from '.
 import { loadTops } from './core/tops';
 import { Splash, Toasts, toast as showToast, useHomeScrolled } from './ui/premium2';
 import type { Section } from './screens/Settings';
-import { pushVodRecent, saveProgress } from './core/vod';
+import { indexLogos, pushVodRecent, saveProgress } from './core/vod';
 import { clearPlaylist, loadSavedPlaylist, loadSource, savePlaylist } from './core/source';
 import { loadLogoCatalogs } from './core/logos';
 import { loadXmltv } from './core/xmltv';
@@ -333,6 +333,9 @@ export function App() {
       setTimeout(() => focusEl(document.querySelector<HTMLElement>('.vlist')), 50);
     }
   }, []);
+
+  // Capas genéricas da lista (0.31.0): conta as imagens repetidas assim que a lista carrega.
+  useMemo(() => indexLogos(playlist?.items ?? []), [playlist]);
 
   // Nuvem (0.30.0): envia o que mudou a cada 5 min e quando o app sai da frente.
   useEffect(() => {

@@ -1,4 +1,4 @@
-# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.30.0)
+# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.31.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -54,5 +54,5 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 - Atualização dentro do app na **TV LG** e no **Android/Google TV**: conferir uma vez (no Windows já funciona).
 - Testar na TV LG OLED B7 (webOS 3.5) e no celular/Google TV: vídeo, PIP com 2 telas, placar/tabela da ESPN, guias públicos, banners dos streamings (na LG ficam sem animação).
 - Logotipos de Star+, Discovery+ e Hulu (hoje tipográficos).
-- Opcional: a mesma chave do TMDB em Ajustes › Serviços de cada aparelho (capas, sinopses em português e trailers).
+- Chave do TMDB e token da ThePornDB (theporndb.net, grátis) em Ajustes › Serviços de um aparelho — com a nuvem ligada vão para os outros (0.31.0).
 

@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.31.0 — capas oficiais e chaves pela nuvem
+- Filmes da categoria de adultos que vêm com capa genérica ganham a capa oficial: o PRISMA procura no TMDB e, o que faltar, na ThePornDB (token grátis em Ajustes › Serviços). Capas que já estão certas na lista não mudam
+- As chaves do TMDB e da ThePornDB vão pela sincronização da nuvem: digite uma vez e a TV e o celular recebem
+
 ## 0.30.0 — nuvem, player do Android, Roku, legendas e filtros
 - Sincronização pela nuvem: favoritos, Minha lista, seções, onde você parou, histórico, lembretes, perfis e ajustes iguais na TV, no computador e no celular (Ajustes › Dados, com um token do GitHub; fica num Gist privado seu)
 - Android: filmes e séries abrem no player do Android (ExoPlayer), com troca de áudio, legendas e velocidade na engrenagem; dá para voltar ao player do PRISMA em Ajustes › Player

@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.30.0)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.31.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -32,7 +32,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Sessão local (10/11):** a conversa nova roda no PC do Samuel (cópia em `Downloads\prisma`), que alcança ESPN e GitHub — dá para testar com dados reais da ESPN além do servidor falso. Playwright instalado globalmente (`NPMROOT=$(npm root -g)`).
 
-**Como o Samuel gosta de trabalhar:** tudo em português; visual "mega premium" com cara de app oficial; quando ele pede "só sugira / não crie nada", responder só com a opinião; depois de cada lote, testar navegação pelo controle (setas/OK/Voltar) e publicar uma versão; avisar com honestidade o que depende da TV real, do TMDB ou da Goldcard. Sugestões de design descartadas estão listadas no topo de `docs/PENDENCIAS.md` (não oferecer de novo). Chave do TMDB fica só no secret `TMDB_KEY` e nos Ajustes de cada aparelho.
+**Como o Samuel gosta de trabalhar:** tudo em português; visual "mega premium" com cara de app oficial; quando ele pede "só sugira / não crie nada", responder só com a opinião; depois de cada lote, testar navegação pelo controle (setas/OK/Voltar) e publicar uma versão; avisar com honestidade o que depende da TV real, do TMDB ou da Goldcard. Sugestões de design descartadas estão listadas no topo de `docs/PENDENCIAS.md` (não oferecer de novo). Chave do TMDB fica no secret `TMDB_KEY` (Tops) e nos Ajustes dos aparelhos; desde a 0.31.0 também vai pelo Gist privado da sincronização (pedido do Samuel), nunca no repositório.
 
 **Referências do app usado pelo Samuel (vídeos que ele mandou):** barra do canal estilo receptor + PIP (10f), programação do canal por dia (10h), lista de canais por cima da tela cheia com menu lateral e grupos (10j).
 
@@ -537,6 +537,13 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - **Nuvem** (`src/core/cloud.ts`, `src/screens/CloudSync.tsx`): token do GitHub com escopo só "gist", digitado em Ajustes › Dados em cada aparelho e guardado só nele (`prisma.cloud`); Gist privado "PRISMA · sincronização (não apague)" com `prisma-sync.json`. `prefSet` grava a hora de cada mudança das chaves `SYNC_KEYS` (`prisma.syncStamps`); a mais nova vence por chave, empate (dados antigos) = vale a nuvem (o 1º aparelho é a base). Ao abrir (`cloudPullOnStart`, até 3,5 s, em main.tsx) puxa e aplica; com o app aberto só envia (a cada 5 min e ao sair da frente). Não sincroniza: `sources` (login da lista), chave do TMDB, layout/escala/margem/formato ao vivo. GitHub falso em `/gh/` no servidor de testes (token `teste-token-0123456789abcdef`, pref `cloudApi`).
 - **ExoPlayer** (Android): `NativePlayerActivity` (Media3 1.4.1, `PlayerView` com engrenagem de áudio/legendas/velocidade, ◀ ▶ = 10 s, português preferido) + `NativePlayerPlugin` (`NativePlayer.play` → posMs/durMs/ended/error). `App.playVod` usa o nativo para filmes/séries no Android (ajuste `androidPlayer`, padrão exo); ao voltar salva o progresso e, se o episódio acabou, segue a fila. APK compilado no workflow Android (branch de teste); não testado num aparelho.
 - **Roku** (`roku/`): SceneGraph/BrightScript — `MainScene` (menu › categorias › lista › episódios › Video), `XtreamTask` (rede), login com `StandardKeyboardDialog` guardado no registro do Roku. `scripts/roku-pack.mjs` gera `PRISMA-Roku-x.zip` (versão do manifest = package.json); a Release roda `brighterscript` (validação) e publica o zip. Instalação: `roku/LEIAME.md`. Não testado num Roku.
+
+## 10as. Versão 0.31.0 — capas oficiais da categoria de adultos e chaves pela nuvem (11/11)
+- Pedido do Samuel: capas oficiais para os filmes de "Adultos", que vêm da Goldcard com capa genérica; só onde a capa é genérica; TMDB + ThePornDB; chaves pela nuvem.
+- `isGenericLogo` (vod.ts): sem capa, URL com cara de "sem imagem" ou a mesma imagem em 3+ títulos (`indexLogos` no App quando a lista carrega).
+- `lookup` (tmdb.ts): categoria de adulto (`isAdultName`) com capa da lista certa → não procura; com capa genérica → `adultLookup`: TMDB `/search/movie` com `include_adult=true`, aceitando só resultado `adult` com o título batendo (`sameContent`: nome da lista no resultado ≥ 60% ou o título encontrado inteiro no nome da lista, por causa do estúdio na frente) › ThePornDB (`src/core/tpdb.ts`, `/scenes` e `/movies?parse=`, token Bearer em Ajustes › Serviços, pref `tpdbKey`). Capas da ThePornDB têm id negativo; `call` do TMDB recusa id negativo (sem logo/trailer/semelhantes errados).
+- Nuvem: `tmdbKey` e `tpdbKey` entraram em `SYNC_KEYS` e `tmdbKey` saiu dos ajustes "do aparelho".
+- Servidor falso: categoria "ADULTOS +18" com 3 títulos inventados e a mesma capa genérica; TMDB adulto falso (`include_adult`) e ThePornDB falsa em `/tpdb/` (token `tpdb-teste`).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
