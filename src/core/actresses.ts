@@ -10,6 +10,8 @@ export interface Actress {
   key: string;
   name: string;
   photo?: string;
+  /** Foto em pé (vira a capa dos filmes dela sem capa, 0.34.1). */
+  portrait?: string;
   /** Títulos da categoria em que ela aparece. */
   ids: Set<string>;
 }
@@ -65,18 +67,19 @@ export function studiosOf(items: Channel[]): Set<string> {
  */
 export function buildActresses(items: Channel[], perfOf: Map<string, Performer[]>, verified: Map<string, Performer | null>, withKey: boolean): Actress[] {
   const map = new Map<string, Actress>();
-  const add = (name: string, id: string, photo?: string) => {
+  const add = (name: string, id: string, photo?: string, portrait?: string) => {
     const key = actressKey(name);
     if (!key) return;
     let a = map.get(key);
-    if (!a) map.set(key, (a = { key, name, photo, ids: new Set() }));
+    if (!a) map.set(key, (a = { key, name, photo, portrait, ids: new Set() }));
     if (!a.photo && photo) a.photo = photo;
+    if (!a.portrait && portrait) a.portrait = portrait;
     a.ids.add(id);
   };
   const parsed = new Map<string, { name: string; ids: string[] }>();
   const studios = studiosOf(items);
   for (const it of items) {
-    for (const p of perfOf.get(it.id) ?? []) add(p.name, it.id, p.photo);
+    for (const p of perfOf.get(it.id) ?? []) add(p.name, it.id, p.photo, p.portrait);
     for (const n of namesInTitle(it.fullName ?? it.name)) {
       const k = actressKey(n);
       if (studios.has(k)) continue;
@@ -89,7 +92,7 @@ export function buildActresses(items: Channel[], perfOf: Map<string, Performer[]
     const v = verified.get(k);
     const ok = map.has(k) || (withKey ? !!v : e.ids.length >= 2);
     if (!ok) return;
-    e.ids.forEach((id) => add(v?.name ?? e.name, id, v?.photo));
+    e.ids.forEach((id) => add(v?.name ?? e.name, id, v?.photo, v?.portrait));
   });
   // Quem a ThePornDB achou numa cena também vale para os outros títulos com o nome dela.
   const titles = items.map((it) => ({ id: it.id, t: ' ' + actressKey(it.fullName ?? it.name) + ' ' }));
@@ -98,6 +101,26 @@ export function buildActresses(items: Channel[], perfOf: Map<string, Performer[]
     for (const x of titles) if (x.t.indexOf(needle) >= 0) a.ids.add(x.id);
   });
   return [...map.values()].sort((a, b) => b.ids.size - a.ids.size || a.name.localeCompare(b.name));
+}
+
+/**
+ * Atrizes de cada título, na ordem em que o nome aparece no título (0.34.1). Serve de capa
+ * para os filmes sem capa: o filtro acha a atriz em qualquer lugar do nome ("Kissa Sins Gets…"),
+ * mesmo quando a busca da capa não achou.
+ */
+export function castByItem(items: Channel[], list: Actress[]): Map<string, Actress[]> {
+  const byId = new Map<string, Actress[]>();
+  for (const a of list) a.ids.forEach((id) => (byId.get(id) ?? byId.set(id, []).get(id)!).push(a));
+  const title = new Map(items.map((it) => [it.id, ' ' + actressKey(it.fullName ?? it.name) + ' '] as [string, string]));
+  byId.forEach((l, id) => {
+    const t = title.get(id) ?? '';
+    const at = (a: Actress) => {
+      const i = t.indexOf(' ' + a.key + ' ');
+      return i < 0 ? 1e6 : i;
+    };
+    l.sort((a, b) => at(a) - at(b));
+  });
+  return byId;
 }
 
 /** Nomes do título que ainda precisam ser conferidos na ThePornDB (os mais frequentes primeiro). */

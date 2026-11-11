@@ -32,3 +32,13 @@ describe('produtoras da categoria de adultos (0.34.0)', () => {
     expect(studiosToVerify(items, verified)).toEqual([]);
   });
 });
+
+import { buildActresses, castByItem } from '../src/core/actresses';
+describe('capa com a atriz do filtro (0.34.1)', () => {
+  it('a atriz achada em qualquer lugar do título vira a capa, na ordem do título', () => {
+    const items = [mk('1', 'Kissa Sins Gets Lucky With Ana Exemplo'), mk('2', 'Estudio - Kissa Sins - Dois'), mk('3', 'Estudio - Ana Exemplo - Tres')];
+    const ver = new Map([['kissa sins', { name: 'Kissa Sins', photo: 'k.jpg', portrait: 'kp.jpg' }], ['ana exemplo', { name: 'Ana Exemplo', photo: 'a.jpg', portrait: 'ap.jpg' }]]);
+    const list = buildActresses(items, new Map(), ver, true);
+    expect(castByItem(items, list).get('1')!.map((a) => a.portrait)).toEqual(['kp.jpg', 'ap.jpg']);
+  });
+});

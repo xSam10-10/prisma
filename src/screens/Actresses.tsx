@@ -25,6 +25,8 @@ function stored<T>(idbKey: string) {
       if (!cache) {
         const raw = (await idbGet<Record<string, T | null>>(idbKey)) ?? {};
         cache = new Map(Object.keys(raw).map((k) => [k, raw[k]] as [string, T | null]));
+        // Atrizes guardadas antes da 0.33.0 não têm a foto em pé: confere de novo.
+        if (idbKey === 'tpdbPerf') cache.forEach((v, k) => v && !(v as unknown as Performer).portrait && cache!.delete(k));
       }
       return cache;
     },

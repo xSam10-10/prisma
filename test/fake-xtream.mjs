@@ -61,7 +61,7 @@ const vods = Array.from({ length: 64 }, (_, i) => ({
   vods.push({ name, stream_id: id, stream_icon: `http://127.0.0.1:${PORT}/poster/generica.svg`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000200 + k), year: '2024' }),
 );
 // 0.34.0: produtoras em vários formatos de nome (" - ", [colchetes], nome de arquivo, conhecida no começo).
-['Vixen - Ana Exemplo - Hotel Nove', '[Tiny4K] Dia Dez', 'Blacked.24.03.15.Bia.Modelo.Onze', 'Vixen Carla Teste Doze', 'Brasileirinhas - Treze', 'Vixen - Bia Modelo - Quatorze'].forEach((name, k) =>
+['Ana Exemplo Ganha Presente Grande', 'Vixen - Ana Exemplo - Hotel Nove', '[Tiny4K] Dia Dez', 'Blacked.24.03.15.Bia.Modelo.Onze', 'Vixen Carla Teste Doze', 'Brasileirinhas - Treze', 'Vixen - Bia Modelo - Quatorze'].forEach((name, k) =>
   vods.push({ name, stream_id: 3980 + k, stream_icon: `http://127.0.0.1:${PORT}/poster/generica.svg`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000300 + k), year: '2024' }),
 );
 // Mesmo filme em outras versões (para "versões num só card")

@@ -3,7 +3,7 @@ import { useSettings } from '../core/settings';
 import { applyStreamSkin } from '../ui/themes';
 import { styleOf, type SkinMode } from '../ui/streamStyle';
 import type { Channel, ItemKind, Playlist } from '../core/types';
-import { ANIME, STREAMINGS, audioTag, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
+import { ANIME, STREAMINGS, audioTag, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, isGenericLogo, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
 import { Symbol, colorFor, initials, rgba } from '../ui/bits';
 import { PreviewBackdrop, SkeletonRow, TitleLogo, badgesOf, setPreview } from '../ui/premium';
@@ -27,6 +27,8 @@ import { hasEpAlert, newEpisodeOf, onNewEpisodes, toggleEpAlert } from '../core/
 import { ZoomFrom } from '../ui/premium4';
 import { isAdultName } from '../core/parental';
 import { FilterRow, useAdultFilters } from './Actresses';
+import { castByItem } from '../core/actresses';
+import type { Performer } from '../core/tpdb';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
 // grade de capas com busca; OK abre o detalhe (sinopse, elenco, episódios).
@@ -38,7 +40,7 @@ function norm(s: string) {
 }
 
 /** Capa (2:3) com título, ano/nota, selos e progresso. Sem imagem: arte automática (cor da categoria + símbolo). */
-export function PosterCard({ item, w, selected, rank }: { item: Channel; w: number; selected?: boolean; rank?: number }) {
+export function PosterCard({ item, w, selected, rank, fallbackCast }: { item: Channel; w: number; selected?: boolean; rank?: number; fallbackCast?: Performer[] }) {
   const [broken, setBroken] = useState(false);
   const [loaded, setLoaded] = useState(false);
   // Capa da lista que não abre: pede a oficial (0.32.0). Fica marcada até trocar de título.
@@ -47,7 +49,9 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
   const tm = useTmdb(item, logoBad);
   // Capa com a foto das atrizes (0.33.0): a do título é a padrão; com o foco (ou o mouse)
   // parado 3 segundos, passa para a próxima a cada 3 segundos. Saiu, volta para a principal.
-  const cast = tm?.actressCover ? (tm.performers ?? []).filter((p) => p.portrait) : [];
+  // Sem capa achada e a da lista é genérica: usa a foto das atrizes que o filtro achou no título (0.34.1).
+  const generic = isGenericLogo(item.logo) || logoBad;
+  const cast = tm?.actressCover ? (tm.performers ?? []).filter((p) => p.portrait) : !tm?.poster && generic && fallbackCast ? fallbackCast.map((p) => ({ ...p, portrait: p.portrait || p.photo })).filter((p) => p.portrait) : [];
   const [hover, setHover] = useState(false);
   const [ci, setCi] = useState(0);
   const rotate = (!!selected || hover) && cast.length > 1;
@@ -276,6 +280,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const catItems = useMemo(() => (adultCat ? inStream.filter((i) => i.group === cat) : []), [adultCat, inStream, cat]);
   const flt = useAdultFilters(catItems, adultCat);
   const actSel = adultCat && actress ? flt.actresses.find((a) => a.key === actress) : undefined;
+  const castOfItem = useMemo(() => (adultCat ? castByItem(catItems, flt.actresses) : null), [adultCat, catItems, flt.actresses]);
   const [studio, setStudio] = useState('');
   const stSel = adultCat && studio ? flt.studios.find((x) => x.key === studio) : undefined;
   // Grade rolada: as fileiras de atrizes e produtoras se recolhem (mais espaço para as capas).
@@ -386,7 +391,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
       gap={mobile ? 10 : 18}
       label={title}
       onScrolled={setGridDown}
-      render={(it, _i, sel, w) => <PosterCard item={it} w={w} selected={sel} />}
+      render={(it, _i, sel, w) => <PosterCard item={it} w={w} selected={sel} fallbackCast={castOfItem?.get(it.id)} />}
       empty={
         topMode && !q ? (
           <EmptyState kind="empty" title="Os Tops ainda não chegaram" text={`Eles se completam quando a chave do TMDB estiver no GitHub (secret TMDB_KEY) — veja Ajustes › Serviços.`} />

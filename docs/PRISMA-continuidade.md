@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.0)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.1)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -568,6 +568,10 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - `tpdb.ts`: `toStudio` (logo › poster › favicon do `site`), `TmdbInfo.studio`, `tpdbSite` (`/sites?q=`). Cache dos adultos virou `adult4|…`.
 - `VirtualGrid`: `onScrolled`; o Vod esconde as fileiras de filtro quando a grade sai do alto. O efeito "manter a selecionada à vista" não reage mais à mudança de altura (desfazia a rolagem do mouse).
 - Servidor falso: títulos de Vixen, [Tiny4K], Blacked.24…, Brasileirinhas; `/tpdb/sites` com Vixen, Tiny 4K e Estudio Teste.
+
+## 10ax. Versão 0.34.1 — foto da atriz nas capas genéricas (11/11)
+- Print do Samuel: filtro "Kissa Sins" com 3 filmes, 1 com capa e 2 genéricos. Causa: a capa de atriz (`actressCover`) só usa `namesInTitle` (nome entre " - ", "&", ","…) e as atrizes da cena; o filtro acha o nome em qualquer lugar do título. Títulos como "Kissa Sins Gets…" entravam no filtro mas não ganhavam a foto. Além disso, as atrizes guardadas no IDB pela 0.32.0 não tinham `portrait`.
+- Correção: `Actress.portrait`; `castByItem` (actresses.ts) monta as atrizes de cada título na ordem do nome; `PosterCard` recebe `fallbackCast` e, se não há capa achada e a da lista é genérica/quebrada, usa a foto delas (com o revezamento de 3 s). `tpdbPerf` sem `portrait` é conferido de novo.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
