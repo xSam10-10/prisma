@@ -35,8 +35,8 @@ export interface Settings {
   theme: string;
   /** Logotipos dos streamings em Filmes/Séries: coloridos ou brancos. */
   streamLogos: 'color' | 'mono';
-  /** Dentro de cada streaming, o app veste o visual dele (0.27.0). */
-  streamSkin: boolean;
+  /** Dentro de cada streaming: Marcante (o mais perto do app oficial, 0.28.0), Cores (só o tema, 0.27.0) ou Desligado. */
+  streamSkin: 'marcante' | 'cores' | 'off';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -54,7 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   structure: 'A',
   theme: 'apple',
   streamLogos: 'color',
-  streamSkin: true,
+  streamSkin: 'marcante',
 };
 
 export function loadSettings(): Settings {
@@ -63,6 +63,11 @@ export function loadSettings(): Settings {
   // 0.18.0: só Menu Horizontal (A) e Menu Vertical (C); tema padrão Apple TV
   // (quem estava no tema padrão antigo, Prisma, passa para o Apple TV uma vez).
   if (s.structure === 'B') s.structure = 'A';
+  // 0.27.0 guardava liga/desliga: ligado vira Marcante; desligado continua sem mudar nada.
+  const sk = s.streamSkin as unknown;
+  if (sk === true) s.streamSkin = 'marcante';
+  else if (sk === false) s.streamSkin = 'off';
+  else if (sk !== 'marcante' && sk !== 'cores' && sk !== 'off') s.streamSkin = 'marcante';
   if (!saved.v18) {
     if (!saved.theme || saved.theme === 'prisma') s.theme = 'apple';
     (s as Settings & { v18?: boolean }).v18 = true;

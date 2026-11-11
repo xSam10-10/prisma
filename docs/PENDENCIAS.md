@@ -1,4 +1,4 @@
-# PRISMA — Melhorias pendentes (atualizado em 10/11/2026, versão 0.27.0)
+# PRISMA — Melhorias pendentes (atualizado em 10/11/2026, versão 0.28.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -20,7 +20,7 @@ pendências [1º] 0.24.0: 7 controle parental (senha para categorias +18 e qualq
 **Sugestões de design premium descartadas pelo Samuel (09/11) — não oferecer de novo:** Perfil Kids (rodada 3, nº 11); da rodada 4: Quem está assistindo? em tela cheia, Retrospectiva do mês, Trailer em tela cheia com som, Modo ambiente (Ambilight), Pular abertura/recapitulação como item de design, Legendas premium. (Os itens 65 Pular abertura e 69 Estilo da legenda da lista original continuam na lista abaixo.)
 centro de esportes 0.25.0–0.26.0: hub de Jogos, página de cada campeonato (calendário, tabela, chaves, times, destaques com artilheiros/assistências/sequências, forma dos últimos 5), Fórmula 1 completa, Semana do GP no Início, 31 placar flutuante em tela cheia.
 
-51 identidade visual por streaming (0.27.0, todos os streamings; desligável em Aparência).
+51 identidade visual por streaming (0.27.0 cores; 0.28.0 modo Marcante para os 18 streamings; três modos em Aparência).
 
 Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organizado nas seções pedidas pelo Samuel.
 

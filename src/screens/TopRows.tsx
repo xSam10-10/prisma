@@ -6,6 +6,7 @@ import { Carousel } from '../ui/Carousel';
 import { LayoutContext, useLayout } from '../ui/layout';
 import { rgba } from '../ui/bits';
 import { PosterTile } from '../ui/premium2';
+import { WideTile } from './StreamHero';
 
 // Filmes/Séries › Top e streaming escolhido: as listas uma embaixo da outra,
 // cada uma num carrossel (como no Início). A coluna da esquerda leva até a
@@ -25,8 +26,12 @@ export interface Row {
 
 const PAD = 14; // folga lateral para a capa em foco crescer sem ser cortada
 
-export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
+export function StackedRows({ rows, width, banner, tail, onSeen, onPick, wide, heroH }: {
   rows: Row[];
+  /** Modo Marcante: capas deitadas (16:9) nas fileiras que não são ranking. */
+  wide?: boolean;
+  /** Modo Marcante: destaque grande no lugar do banner [cheio, encolhido]. */
+  heroH?: [number, number];
   width: number;
   /** Banner fixo no alto; encolhe (compact) quando o foco desce pelas listas. */
   banner?: (compact: boolean) => React.ReactNode;
@@ -43,8 +48,8 @@ export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
   const tailRef = useRef<HTMLDivElement>(null);
   const [outerH, setOuterH] = useState(700);
   const [compact, setCompact] = useState(false);
-  const fullH = banner ? (mobile ? 132 : 196) : 0;
-  const smallH = banner ? (mobile ? 54 : 74) : 0;
+  const fullH = banner ? (heroH ? heroH[0] : mobile ? 132 : 196) : 0;
+  const smallH = banner ? (heroH ? heroH[1] : mobile ? 54 : 74) : 0;
   const bannerH = compact ? smallH : fullH;
   // Foco saiu da página para cima (busca, fileira de streamings): volta ao início, banner inteiro.
   useEffect(() => {
@@ -73,8 +78,12 @@ export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
     const first = rows[0]?.id === id;
     // Desceu para as listas: banner encolhe. Ele só volta ao tamanho cheio quando o foco sobe
     // para a busca (voltar à 1ª lista vindo de baixo não o expande, para nada sair da tela).
-    if (!first) setCompact(true);
-    b.scrollTop = first ? 0 : Math.max(0, el.offsetTop - 4);
+    if (!first || heroH) setCompact(true);
+    const top = first ? 0 : Math.max(0, el.offsetTop - 4);
+    b.scrollTop = top;
+    // O destaque grande encolhe com animação e o carrossel pode rolar a página no meio dela:
+    // depois que termina, a fileira volta a ficar inteira no alto.
+    if (heroH) setTimeout(() => { if (box.current && el.contains(document.activeElement)) box.current.scrollTop = top; }, 320);
   };
   // Carrossel calcula o tamanho pela "tela": aqui a tela é a coluna da direita.
   const inner = { ...L, W: width + PAD * 2, px: PAD };
@@ -108,8 +117,8 @@ export function StackedRows({ rows, width, banner, tail, onSeen, onPick }: {
                   subtitle={r.src}
                   items={r.items}
                   keyOf={(x) => x.item.id}
-                  minWidth={r.ranked ? (mobile ? 140 : 168) : mobile ? 104 : 118}
-                  render={(x, _i, w) => <PosterTile item={x.item} w={w} rank={r.ranked ? x.rank : undefined} onPick={onPick} />}
+                  minWidth={r.ranked ? (mobile ? 140 : 168) : wide ? (mobile ? 190 : 270) : mobile ? 104 : 118}
+                  render={(x, _i, w) => (wide && !r.ranked ? <WideTile item={x.item} w={w} onPick={onPick} /> : <PosterTile item={x.item} w={w} rank={r.ranked ? x.rank : undefined} onPick={onPick} />)}
                 />
               )}
             </div>

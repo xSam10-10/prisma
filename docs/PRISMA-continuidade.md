@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (10/11/2026 · versão 0.27.0)
+## 0. ESTADO ATUAL — leia primeiro (10/11/2026 · versão 0.28.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -517,6 +517,13 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Pedido do Samuel após o esboço (10/11): "faça todos". Em Filmes/Séries/Anime, `VodScreen` chama `applyStreamSkin(st)` ao escolher um streaming e `applyStreamSkin(null)` ao sair/desmontar (`src/ui/themes.ts`).
 - `skinTheme(s)`: Netflix, HBO Max, Disney+, Prime Video, Apple TV e Globoplay usam o tema próprio já existente; os demais ganham tema montado das cores de `STREAMINGS` (bg, accent, accent2; destaque escuro é clareado; texto do botão escuro/claro pela luminância; cantos retos em Claro, AMC+, Lionsgate, DirecTV). O tema do usuário fica em `setBaseTheme` (App) e volta ao sair.
 - Ajuste `streamSkin` (padrão ligado) em Ajustes › Aparência › "Visual de cada streaming". Testes em `test/skin.test.ts`; `scan-foco` passa por dentro de um streaming.
+
+## 10ap. Versão 0.28.0 — modo Marcante dos streamings
+- Pedido do Samuel (10/11), depois do esboço em alta definição: "o mais próximo possível dos streamings oficiais, letras, fontes, paleta… para todos". Ajuste `streamSkin`: `marcante` (padrão) · `cores` (= 0.27) · `off` (= antes da 0.27); o booleano antigo é convertido em `loadSettings` (true → marcante, false → off).
+- `src/ui/streamStyle.ts`: `STREAM_STYLE` para os 18 streamings (fonte gratuita mais parecida com a da marca no Google Fonts, carregada só ao entrar — `loadFont`; peso/caixa dos títulos; capa em pé ou deitada; foco grow/lift/ring/glow; selo; kicker; botões; nomes "Top 10…"/"Explore tudo"; "% relevante" na Netflix). `skinCss` monta as regras (sem variáveis CSS) na folha `#prisma-skin`; `applyMarcante` liga/desliga; `applyStreamSkin(s, modo)` em themes.ts aplica tema + Marcante.
+- `src/screens/StreamHero.tsx`: `StreamHero` (destaque grande: arte do TMDB w1280, logo do título ou nome na fonte da marca, meta, sinopse, Assistir/Detalhes/Minha lista, gira entre até 5 títulos do Top 10 a cada 10 s fora da TV antiga; encolhe para uma faixa ao descer) e `WideTile` (capa 16:9). `StackedRows` ganhou `wide` e `heroH` (372/74 na TV); com o destaque, encolhe já na 1ª fileira e realinha a fileira depois da animação.
+- A grade "Explore tudo/Tudo no…" continua com capas em pé em todos (mexer na VirtualGrid seria arriscado na TV). Fontes vêm do Google Fonts: sem internet, cai na Inter.
+- `scan-foco` passa por três streamings (em pé e deitadas); testes em `test/skin.test.ts`.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

@@ -1,5 +1,6 @@
 import { T } from './tokens';
 import type { Streaming } from '../core/vod';
+import { applyMarcante, type SkinMode } from './streamStyle';
 
 // Temas do PRISMA: só aparência (cores, botões, cantos, fonte). A estrutura
 // (A, B, C) é escolhida à parte. Funciona sem variáveis CSS (TV de 2017):
@@ -95,7 +96,7 @@ export function applyTheme(t: Theme): void {
   const sheets = document.styleSheets;
   for (let i = 0; i < sheets.length; i++) {
     const sh = sheets[i];
-    if (sh.ownerNode && (sh.ownerNode as HTMLElement).id === 'prisma-theme') continue;
+    if (sh.ownerNode && /^prisma-(theme|skin)$/.test((sh.ownerNode as HTMLElement).id)) continue;
     let rules: CSSRuleList;
     try {
       rules = sh.cssRules;
@@ -195,10 +196,15 @@ export function setBaseTheme(t: Theme): void {
   if (!skin) applyTheme(t);
 }
 
-/** Entra (streaming) ou sai (null) do visual de um streaming. */
-export function applyStreamSkin(s: Streaming | null | undefined): void {
-  const id = s ? s.id : null;
+/**
+ * Entra (streaming) ou sai (null) do visual de um streaming.
+ * Marcante: tema + fonte, capas, foco e destaque da marca. Cores: só o tema. Desligado: nada.
+ */
+export function applyStreamSkin(s: Streaming | null | undefined, mode: SkinMode = 'marcante'): void {
+  const on = s && mode !== 'off' ? s : null;
+  const id = on ? on.id + '|' + mode : null;
   if (id === skin) return;
   skin = id;
-  applyTheme(s ? skinTheme(s) : baseTheme);
+  applyTheme(on ? skinTheme(on) : baseTheme);
+  applyMarcante(on && mode === 'marcante' ? on : null);
 }

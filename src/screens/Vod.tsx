@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { useSettings } from '../core/settings';
 import { applyStreamSkin } from '../ui/themes';
+import { styleOf, type SkinMode } from '../ui/streamStyle';
 import type { Channel, ItemKind, Playlist } from '../core/types';
 import { ANIME, STREAMINGS, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
@@ -17,6 +18,7 @@ import { castOf, episodesOf, personOf, ratingOf, searchTitle, similarOf, trailer
 import { collectionsIn, findInList, matchedLists, streamCatalog, streamGenreLists, type Collection, type MatchedList } from '../core/tops';
 import { CollectionCard, EmptyState, GenreCard, PosterTile, pop, toast, useDominantColor } from '../ui/premium2';
 import { StackedRows, StreamBanner, type Row } from './TopRows';
+import { StreamHero } from './StreamHero';
 import { useTopsState } from '../ui/useTops';
 import { categoryColumnWidth } from '../ui/catColumn';
 import { Modal } from '../ui/Dialog';
@@ -84,6 +86,7 @@ type Sort = 'recent' | 'az' | 'rating';
 /** Botão "Top" na fileira de streamings. */
 const TOPS = '__top__';
 // Número grande só em ranking de verdade (Top 10 de streaming/gênero/especial), em sequência 1, 2, 3…
+const kindLabelOf = (tab: VodTab) => (tab === 'filmes' ? 'filmes' : tab === 'series' ? 'séries' : 'títulos');
 const toRow = (l: MatchedList, ranked = l.group !== 'geral'): Row => ({ id: l.id, title: l.title, src: l.src, items: l.items.map((r, i) => ({ item: r.item, rank: i + 1 })), ranked });
 
 export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: VodTab; onPlay: (item: Channel, startAt?: number, queue?: Channel[]) => void }) {
@@ -91,7 +94,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const mobile = L.form === 'mobile';
   const { settings } = useSettings();
   const logoMode = settings.streamLogos ?? 'color';
-  const skinOn = settings.streamSkin !== false;
+  const skinMode: SkinMode = settings.streamSkin ?? 'marcante';
   const all = useMemo(() => {
     const kinds: ItemKind[] = tab === 'filmes' ? ['movie'] : tab === 'series' ? ['series'] : ['movie', 'series'];
     const list = playlist.items.filter((i) => kinds.includes(i.kind));
@@ -108,10 +111,12 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const gridRef = useRef<VirtualGridHandle>(null);
   const st: Streaming | undefined = STREAMINGS.find((s) => s.id === stream);
   const topMode = stream === TOPS;
+  const marcante = !!st && skinMode === 'marcante';
+  const sty = st ? styleOf(st) : null;
   // Visual de cada streaming (0.27.0): ao entrar na Netflix, o app veste o visual dela; ao sair, volta o tema do usuário.
   useLayoutEffect(() => {
-    applyStreamSkin(st && skinOn ? st : null);
-  }, [st?.id, skinOn]); // eslint-disable-line react-hooks/exhaustive-deps
+    applyStreamSkin(st ?? null, skinMode);
+  }, [st?.id, skinMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => applyStreamSkin(null), []);
 
   const byCats = useMemo(() => (st ? all.filter((i) => st.match.test(i.group)) : all), [all, st]);
@@ -179,9 +184,19 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
       if (colls.length && !out.includes(collRow)) out.push(collRow);
       return out;
     }
-    if (st) return [...(stTop ? [toRow(stTop)] : []), ...stGenres.map((g) => toRow(g, false))];
+    if (st) {
+      const top = stTop ? toRow(stTop) : null;
+      if (top && marcante && sty) top.title = sty.topRow(kindLabelOf(tab));
+      return [...(top ? [top] : []), ...stGenres.map((g) => toRow(g, false))];
+    }
     return [];
-  }, [topMode, st, recentRow, topLists, stTop, stGenres, colls]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [topMode, st, recentRow, topLists, stTop, stGenres, colls, marcante]); // eslint-disable-line react-hooks/exhaustive-deps
+  const heroItems = useMemo(() => {
+    if (!st || !marcante) return [];
+    const fromTop = stTop ? collapseVersions(stTop.items.map((r) => r.item)) : [];
+    const rest = collapseVersions([...inStream].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || (b.added ?? 0) - (a.added ?? 0)));
+    return [...fromTop, ...rest.filter((x) => !fromTop.includes(x))].slice(0, 5);
+  }, [st, marcante, stTop, inStream]);
   const pickStream = (s: Streaming) => {
     setStream(s.id);
     setCat('');
@@ -390,14 +405,22 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
               key={stream}
               rows={rows}
               width={L.W - L.px * 2 - (mobile || noLeft ? 0 : catW + 18)}
-              banner={st ? (c: boolean) => <StreamBanner s={st} count={inStream.length} kindLabel={kindLabel} top={!!stTop} genres={stGenres.length} compact={c} /> : undefined}
+              banner={
+                st && marcante && sty && heroItems.length
+                  ? (c: boolean) => <StreamHero s={st} sty={sty} items={heroItems} kindLabel={`${inStream.length.toLocaleString('pt-BR')} ${kindLabel}`} compact={c} onPlay={(it, pos) => onPlay(it, pos)} onInfo={openDetail} />
+                  : st
+                    ? (c: boolean) => <StreamBanner s={st} count={inStream.length} kindLabel={kindLabel} top={!!stTop} genres={stGenres.length} compact={c} />
+                    : undefined
+              }
+              heroH={st && marcante && heroItems.length ? (mobile ? [210, 54] : [372, 74]) : undefined}
+              wide={marcante && sty?.shape === 'landscape'}
               onPick={openDetail}
               tail={
                 st && inStream.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div className="vod-tools" style={{ marginTop: 6 }}>
                       <span className="title" style={{ fontSize: mobile ? 19 : 22, flexShrink: 0 }}>
-                        Todos · {st.name}
+                        {marcante && sty ? sty.allRow : `Todos · ${st.name}`}
                       </span>
                       <span className="carousel-sub">
                         {list.length.toLocaleString('pt-BR')} {kindLabel} na sua lista{fromCatalog ? ` que estão no ${st.name} (TMDB)` : ''}

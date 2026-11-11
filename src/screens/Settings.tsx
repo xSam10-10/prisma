@@ -246,10 +246,10 @@ export function Settings({
         />
         <Choice
           label="Visual de cada streaming"
-          help="Em Filmes e Séries, ao entrar na Netflix, no HBO Max, no Disney+… o app veste as cores, os cantos e a letra daquele streaming (inspirados, sem copiar a marca). Ao sair, volta o seu tema."
-          value={st.streamSkin ? 'on' : 'off'}
-          options={[{ v: 'on', label: 'Ligado' }, { v: 'off', label: 'Desligado' }]}
-          onChange={(v) => set('streamSkin')(v === 'on')}
+          help="Em Filmes e Séries, ao entrar num streaming. Marcante: o mais perto do app oficial — fonte, cores, capas em pé ou deitadas, foco do controle, destaque grande no topo e nomes das fileiras. Só as cores: troca cores, cantos e letra (como na 0.27). Original: o PRISMA não muda nada."
+          value={st.streamSkin}
+          options={[{ v: 'marcante', label: 'Marcante' }, { v: 'cores', label: 'Só as cores' }, { v: 'off', label: 'Original' }]}
+          onChange={set('streamSkin')}
         />
         <Choice
           label="Logotipos dos streamings"
