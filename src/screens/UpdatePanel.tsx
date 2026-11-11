@@ -74,7 +74,7 @@ export function UpdatePanel({ autoStart }: { autoStart?: CheckResult | null }) {
               setAuto(!auto);
             }}
           >
-            {auto ? '✓ Avisar quando houver versão nova' : 'Não avisar sozinho'}
+            {auto ? '✓ Atualizar sozinho ao abrir' : 'Não atualizar sozinho'}
           </button>
           {p === 'webos' && ota && (
             <button className="btn" data-nav="" onClick={() => resetWebosUpdate()}>

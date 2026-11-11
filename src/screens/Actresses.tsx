@@ -15,7 +15,7 @@ import { focusEl, focusFirst, pushBack } from '../ui/nav';
 // Com o token da ThePornDB, as fotos, os logotipos e quem está em cada cena chegam aos poucos
 // (até 150 títulos novos por vez; o que já foi visto fica guardado).
 
-const ENRICH = 150;
+const ENRICH = 250;
 
 /** Mapa guardado no aparelho (nomes já conferidos na ThePornDB). */
 function stored<T>(idbKey: string) {
@@ -89,10 +89,18 @@ export function useAdultFilters(items: Channel[], on: boolean): { actresses: Act
       if (!alive) return;
       push();
       // Nomes tirados do título: confere na ThePornDB (e pega a foto / o logotipo).
-      for (const name of namesToVerify(items, per, ver)) {
-        if (!alive) break;
-        ver.set(actressKey(name), await tpdbPerformer(name).catch(() => null));
-      }
+      // 3 de cada vez; a fileira vai crescendo enquanto confere.
+      const names = namesToVerify(items, per, ver, 150);
+      let ni = 0;
+      let done = 0;
+      const vworker = async () => {
+        while (alive && ni < names.length) {
+          const name = names[ni++];
+          ver.set(actressKey(name), await tpdbPerformer(name).catch(() => null));
+          if (++done % 20 === 0 && alive) setVerified(new Map(ver));
+        }
+      };
+      await Promise.all([vworker(), vworker(), vworker()]);
       perfStore.save();
       if (alive) setVerified(new Map(ver));
       for (const name of studiosToVerify(items, sv)) {
@@ -251,7 +259,7 @@ export function FilterRow({ kind, list, busy, selected, onSelect, mobile }: { ki
         {shown.map((p) => (
           <PickButton key={p.key} p={p} kind={kind} d={d} on={p.key === selected} active={p.key === selected} onPick={() => onSelect(p.key === selected ? '' : p.key)} />
         ))}
-        {list.length > shown.length && <TextButton kind={kind} d={d} big={`+${list.length - shown.length}`} label="Ver todas" sub={fem ? `${list.length} ${word}` : undefined} onClick={() => setAll(true)} />}
+        {list.length > 0 && <TextButton kind={kind} d={d} big={list.length > shown.length ? `+${list.length - shown.length}` : '☰'} label="Ver todas" sub={fem ? `${list.length} ${word}` : undefined} onClick={() => setAll(true)} />}
       </div>
       {all && <PickPage kind={kind} picks={picks} selected={selected} mobile={mobile} onClose={() => setAll(false)} onSelect={(k) => { setAll(false); onSelect(k); }} />}
     </>

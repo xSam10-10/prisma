@@ -1,4 +1,4 @@
-# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.34.1)
+# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.34.2)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -47,6 +47,7 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 - Nada pendente (0.30.0: 11 ExoPlayer para filmes/séries no Android, 9 nuvem por Gist do GitHub, 14 app básico para Roku). Chromecast (23) saiu da lista a pedido do Samuel (11/11). Próximos passos possíveis do Roku, se ele pedir: guia, favoritos e visual do app principal.
 
 ## Depende do Samuel
+- **0.34.2:** abrir o PRISMA na TV/Windows numa versão antiga e ver o aviso "baixado" sozinho; no Android, "Atualizar agora". Ver se a lista de atrizes cresce a cada abertura.
 - **0.34.1:** filtrar a "Kissa Sins" de novo: os 2 filmes genéricos devem mostrar a foto dela.
 - **0.34.0:** ver a fileira de atrizes sem cortes + "Ver todas", e o filtro por produtora (logotipos) na lista real; no celular, rolar a lista e ver as fileiras se recolherem.
 - **0.33.0:** ver se aparecem mais capas (nome parecido) e a capa com a foto da atriz, trocando após 3 s quando há mais de uma.

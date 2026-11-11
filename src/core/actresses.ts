@@ -38,14 +38,31 @@ export function namesInTitle(title: string): string[] {
     .map((x) => x.trim())
     .filter(Boolean);
   const out: string[] = [];
-  segs.forEach((seg, i) => {
+  segs.forEach((raw, i) => {
     // "Estúdio - Atriz - Título": o primeiro pedaço costuma ser o estúdio.
     if (segs.length >= 3 && i === 0) return;
+    // Título todo em MAIÚSCULAS ou minúsculas: passa para "Nome Sobrenome" (0.34.2).
+    const seg = /[a-zß-ÿ]/.test(raw) && /[A-ZÀ-Þ]/.test(raw) ? raw : raw.toLowerCase().replace(/(^|[\s'.-])([a-zß-ÿ])/g, (_m, a: string, b: string) => a + b.toUpperCase());
     for (const p of seg.split(/\s*[,&+]\s*|\s+(?:feat\.?|ft\.?|and|e|with|x)\s+/i)) {
       const n = p.trim().replace(/\s+/g, ' ');
       if (NAME.test(n) && !n.split(' ').some((w) => STOP.has(w.toLowerCase())) && out.indexOf(n) < 0) out.push(n);
     }
   });
+  return out;
+}
+
+/**
+ * Nome colado no resto do título ("Kissa Sins Gets Lucky"): as duas primeiras palavras de cada
+ * pedaço, quando têm cara de nome (0.34.2). Só vale depois de a ThePornDB confirmar.
+ */
+export function leadNames(title: string): string[] {
+  const out: string[] = [];
+  for (const seg of title.replace(/\[[^\]]*\]|\([^)]*\)/g, ' ').split(/\s+[-–|:]\s+/)) {
+    const w = seg.trim().split(/\s+/);
+    if (w.length < 3) continue;
+    const two = namesInTitle(w.slice(0, 2).join(' '));
+    if (two.length === 1 && two[0].split(' ').length === 2 && out.indexOf(two[0]) < 0) out.push(two[0]);
+  }
   return out;
 }
 
@@ -80,10 +97,13 @@ export function buildActresses(items: Channel[], perfOf: Map<string, Performer[]
   const studios = studiosOf(items);
   for (const it of items) {
     for (const p of perfOf.get(it.id) ?? []) add(p.name, it.id, p.photo, p.portrait);
-    for (const n of namesInTitle(it.fullName ?? it.name)) {
+    const full = it.fullName ?? it.name;
+    const lead = withKey ? leadNames(full) : [];
+    for (const n of namesInTitle(full).concat(lead.filter((x) => verified.get(actressKey(x))))) {
       const k = actressKey(n);
       if (studios.has(k)) continue;
       const e = parsed.get(k) ?? { name: n, ids: [] };
+      if (e.ids.indexOf(it.id) >= 0) continue;
       e.ids.push(it.id);
       parsed.set(k, e);
     }
@@ -129,13 +149,22 @@ export function namesToVerify(items: Channel[], perfOf: Map<string, Performer[]>
   perfOf.forEach((l) => l.forEach((p) => known.add(actressKey(p.name))));
   const count = new Map<string, { name: string; n: number }>();
   const studios = studiosOf(items);
-  for (const it of items)
-    for (const n of namesInTitle(it.fullName ?? it.name)) {
-      const k = actressKey(n);
-      if (known.has(k) || verified.has(k) || studios.has(k)) continue;
-      const e = count.get(k) ?? { name: n, n: 0 };
-      e.n++;
-      count.set(k, e);
-    }
+  const lead = new Map<string, { name: string; n: number }>();
+  const bump = (m: Map<string, { name: string; n: number }>, n: string) => {
+    const k = actressKey(n);
+    if (known.has(k) || verified.has(k) || studios.has(k)) return;
+    const e = m.get(k) ?? { name: n, n: 0 };
+    e.n++;
+    m.set(k, e);
+  };
+  for (const it of items) {
+    const full = it.fullName ?? it.name;
+    namesInTitle(full).forEach((n) => bump(count, n));
+    leadNames(full).forEach((n) => bump(lead, n));
+  }
+  // Nome colado no título só vale a busca quando se repete (atriz aparece em vários filmes).
+  lead.forEach((e, k) => {
+    if (e.n >= 2 && !count.has(k)) count.set(k, e);
+  });
   return [...count.values()].sort((a, b) => b.n - a.n).slice(0, max).map((e) => e.name);
 }

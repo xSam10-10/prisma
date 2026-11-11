@@ -35,7 +35,8 @@ export interface StudioInfo {
 }
 export function toStudio(x?: Site | null): StudioInfo | undefined {
   const name = (x?.name || '').trim();
-  if (!name) return undefined;
+  // "FansDB: Fulana" é a página da própria atriz (OnlyFans etc.), não uma produtora.
+  if (!name || /^fansdb\s*:/i.test(name)) return undefined;
   return { name, logo: x?.logo || x?.poster || x?.favicon || undefined };
 }
 type Gender = { gender?: string };

@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.34.2 — atualização automática e mais atrizes
+- Atualização automática: ao abrir, o PRISMA confere se há versão nova (e a cada 6 horas). Na TV LG e no Windows ele já baixa sozinho e avisa; vale na próxima vez que abrir (ou em "Reabrir agora"). No Android aparece "Atualizar agora" (o sistema sempre pede para confirmar)
+- Produtoras: o botão "Ver todas" aparece sempre; páginas "FansDB: …" (da própria atriz) não contam mais como produtora
+- Mais atrizes no filtro: títulos em MAIÚSCULAS, nomes colados no título ("Kissa Sins Gets…") conferidos na ThePornDB e mais nomes conferidos por vez
+
 ## 0.34.1 — foto da atriz nas capas genéricas
 - Filme da categoria de adultos com capa genérica e sem capa na ThePornDB: se o filtro de atrizes acha uma atriz no nome (em qualquer lugar do título, como "Kissa Sins Gets…"), a capa vira a foto dela
 - Atrizes guardadas por versões antigas são conferidas de novo para pegar a foto em pé

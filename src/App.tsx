@@ -13,7 +13,7 @@ import { cachedGames, dueReminders, ensureReminder, loadGames, myTeams, reminder
 import { isMyTeam, loadScores, scoreFor } from './core/scores';
 import { installNative, nativePlayVod, notifyNow, syncNativeReminders } from './core/native';
 import { IS_ANDROID } from './core/platform';
-import { checkForUpdate, markBootOk, shouldAutoCheck, type CheckResult } from './core/updater';
+import { applyNow, autoInstall, checkForUpdate, installUpdate, markBootOk, shouldAutoCheck, type CheckResult } from './core/updater';
 import { loadTops } from './core/tops';
 import { Splash, Toasts, toast as showToast, useHomeScrolled } from './ui/premium2';
 import type { Section } from './screens/Settings';
@@ -115,6 +115,8 @@ export function App() {
   // Atualizações: o app abriu bem (a TV LG guarda isso para não voltar à versão instalada)
   // e, de vez em quando, procura uma versão nova e avisa.
   const [updInfo, setUpdInfo] = useState<CheckResult | null>(null);
+  // 'ready' = já baixada (TV e Windows); 'ask' = o sistema precisa confirmar (Android); 'busy' = baixando.
+  const [updState, setUpdState] = useState<'ready' | 'ask' | 'busy' | ''>('');
   const [setSection, setSetSection] = useState<Section | undefined>();
   useEffect(() => {
     (window as unknown as { __PRISMA_BOOTED__?: boolean }).__PRISMA_BOOTED__ = true;
@@ -123,14 +125,30 @@ export function App() {
   useEffect(() => {
     if (tab !== 'ajustes') setSetSection(undefined);
   }, [tab]);
+  // Atualização automática (0.34.2): confere ao abrir e a cada 6 h; na TV e no Windows já baixa
+  // sozinho e avisa quando está pronta (vale ao reabrir); no Android avisa com "Atualizar agora".
   useEffect(() => {
-    if (phase !== 'app' || !shouldAutoCheck()) return;
-    const t = setTimeout(() => {
+    if (phase !== 'app') return;
+    let busy = false;
+    const run = () => {
+      if (busy || !shouldAutoCheck()) return;
+      busy = true;
       checkForUpdate()
-        .then((r) => r.available && setUpdInfo(r))
-        .catch(() => {});
-    }, 8000);
-    return () => clearTimeout(t);
+        .then(async (r) => {
+          if (!r.available || !r.manifest) return;
+          const st = await autoInstall(r.manifest).catch(() => 'ask' as const);
+          setUpdState(st);
+          setUpdInfo(r);
+        })
+        .catch(() => {})
+        .then(() => (busy = false));
+    };
+    const t = setTimeout(run, 8000);
+    const iv = setInterval(run, 6 * 3600 * 1000);
+    return () => {
+      clearTimeout(t);
+      clearInterval(iv);
+    };
   }, [phase]);
   // Inclinação da capa seguindo o mouse (computador; na TV e no toque, não).
   useEffect(() => {
@@ -575,19 +593,32 @@ export function App() {
         {updInfo && !toast && (
           <div className="toast gy-10" style={{ right: L.px, top: 24 + L.safeY, display: 'flex', flexDirection: 'column' }} role="alert">
             <span className="badge-live" style={{ alignSelf: 'flex-start', background: '#3DD6C4', color: '#0B0B12' }}>Nova versão</span>
-            <span style={{ fontSize: 18, fontWeight: 700 }}>PRISMA {updInfo.version} está disponível</span>
+            <span style={{ fontSize: 18, fontWeight: 700 }}>{updState === 'ready' ? `PRISMA ${updInfo.version} baixado` : updState === 'busy' ? `Baixando o PRISMA ${updInfo.version}…` : `PRISMA ${updInfo.version} está disponível`}</span>
+            {updState === 'ready' && <span className="muted" style={{ fontSize: 15 }}>Já vale na próxima vez que o PRISMA abrir.</span>}
             {updInfo.notes && updInfo.notes[0] && <span className="muted" style={{ fontSize: 15 }}>{updInfo.notes[0]}</span>}
             <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
               <button
                 className="btn primary"
                 data-nav=""
+                disabled={updState === 'busy'}
                 onClick={() => {
+                  if (updState === 'ready') return applyNow();
+                  if (updState === 'ask' && updInfo.manifest) {
+                    setUpdState('busy');
+                    installUpdate(updInfo.manifest, () => {})
+                      .catch(() => {
+                        setSetSection('sobre');
+                        setTab('ajustes');
+                      })
+                      .then(() => setUpdInfo(null));
+                    return;
+                  }
                   setUpdInfo(null);
                   setSetSection('sobre');
                   setTab('ajustes');
                 }}
               >
-                Atualizar
+                {updState === 'ready' ? 'Reabrir agora' : 'Atualizar agora'}
               </button>
               <button className="btn" data-nav="" onClick={() => setUpdInfo(null)}>Depois</button>
             </div>

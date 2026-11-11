@@ -42,3 +42,23 @@ describe('capa com a atriz do filtro (0.34.1)', () => {
     expect(castByItem(items, list).get('1')!.map((a) => a.portrait)).toEqual(['kp.jpg', 'ap.jpg']);
   });
 });
+
+import { leadNames, namesInTitle, namesToVerify } from '../src/core/actresses';
+import { toStudio } from '../src/core/tpdb';
+describe('mais atrizes e produtoras limpas (0.34.2)', () => {
+  it('título em maiúsculas também dá nome de atriz', () => {
+    expect(namesInTitle('BRAZZERS - KISSA SINS - HOT DAY')).toEqual(['Kissa Sins']);
+  });
+  it('nome colado no título: só entra se a ThePornDB confirmar', () => {
+    expect(leadNames('Kissa Sins Gets Lucky Today')).toEqual(['Kissa Sins']);
+    const items = [mk('1', 'Kissa Sins Gets Lucky'), mk('2', 'Kissa Sins Takes It All'), mk('3', 'Outra Coisa Qualquer Aqui')];
+    expect(namesToVerify(items, new Map(), new Map())).toEqual(['Kissa Sins']);
+    const ver = new Map([['kissa sins', { name: 'Kissa Sins', photo: 'k.jpg', portrait: 'kp.jpg' }]]);
+    const l = buildActresses(items, new Map(), ver, true);
+    expect(l.map((a) => [a.name, a.ids.size])).toEqual([['Kissa Sins', 2]]);
+  });
+  it('"FansDB: Fulana" não é produtora', () => {
+    expect(toStudio({ name: 'FansDB: Angela White' })).toBeUndefined();
+    expect(toStudio({ name: 'Brasileirinhas', logo: 'b.png' })).toEqual({ name: 'Brasileirinhas', logo: 'b.png' });
+  });
+});

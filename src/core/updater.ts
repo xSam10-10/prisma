@@ -95,10 +95,41 @@ export async function checkForUpdate(): Promise<CheckResult> {
   return { available, version: m.version, notes: m.notes, manifest: m };
 }
 
-/** Verifica sozinho no máximo a cada 12 h. */
+/** Atualização automática ligada (Ajustes › Sobre; vem ligada). */
+export function autoUpdateOn(): boolean {
+  return prefGet<boolean>('updateAuto', true) !== false;
+}
+
+/** Verifica sozinho ao abrir o app (0.34.2: toda vez, com folga de 10 min para não repetir à toa). */
 export function shouldAutoCheck(): boolean {
-  if (prefGet<boolean>('updateAuto', true) === false) return false;
-  return Date.now() - prefGet<number>('updateCheckedAt', 0) > 12 * 3600 * 1000;
+  if (!autoUpdateOn()) return false;
+  return Date.now() - prefGet<number>('updateCheckedAt', 0) > 10 * 60 * 1000;
+}
+
+/**
+ * Atualização automática (0.34.2), sem atrapalhar o que está passando:
+ * - TV LG: baixa o código novo e guarda; vale na próxima vez que o app abrir → 'ready';
+ * - Windows: baixa o instalador; instala ao fechar o programa → 'ready';
+ * - Android: o sistema sempre pede para confirmar a instalação → 'ask' (o aviso tem "Atualizar agora").
+ */
+export async function autoInstall(m: UpdateManifest): Promise<'ready' | 'ask'> {
+  const p = platform();
+  if (p === 'webos') {
+    await installWebos(m, () => {}, false);
+    return 'ready';
+  }
+  if (p === 'windows' && desktop()) {
+    await installWindows(() => {}, false);
+    return 'ready';
+  }
+  return 'ask';
+}
+
+/** Aplica já o que foi baixado (TV: reabre; Windows: fecha, instala e abre). */
+export function applyNow(): void {
+  const p = platform();
+  if (p === 'windows') void desktop()?.installUpdate();
+  else location.reload();
 }
 
 export type Progress = (pct: number | null, msg: string) => void;
@@ -113,7 +144,7 @@ export async function installUpdate(m: UpdateManifest, onProgress: Progress): Pr
 }
 
 // ---------- Windows ----------
-function installWindows(onProgress: Progress): Promise<string> {
+function installWindows(onProgress: Progress, install = true): Promise<string> {
   const d = desktop();
   if (!d) return Promise.reject(new Error('Feche e abra o programa de novo para atualizar.'));
   return new Promise((resolve, reject) => {
@@ -121,6 +152,7 @@ function installWindows(onProgress: Progress): Promise<string> {
       if (e.type === 'progress') onProgress(e.percent ?? null, 'Baixando…');
       else if (e.type === 'ready') {
         off();
+        if (!install) return resolve('Pronto: instala ao fechar o programa.');
         onProgress(100, 'Instalando… o PRISMA vai fechar e abrir de novo.');
         d.installUpdate();
         resolve('Reiniciando…');
@@ -171,7 +203,7 @@ interface WebosBundle {
   polyfills: string;
   entry: string;
 }
-async function installWebos(m: UpdateManifest, onProgress: Progress): Promise<string> {
+async function installWebos(m: UpdateManifest, onProgress: Progress, reload = true): Promise<string> {
   if (!m.files.webos) throw new Error('Esta versão não tem pacote para a TV.');
   onProgress(null, 'Baixando…');
   const text = await fetchText(feedBase() + m.files.webos, 180000);
@@ -187,6 +219,7 @@ async function installWebos(m: UpdateManifest, onProgress: Progress): Promise<st
   } catch {
     /* ignora */
   }
+  if (!reload) return 'Pronto: vale na próxima vez que o PRISMA abrir.';
   onProgress(100, 'Pronto! Reabrindo…');
   setTimeout(() => location.reload(), 800);
   return 'Reabrindo na versão ' + b.version + '…';
