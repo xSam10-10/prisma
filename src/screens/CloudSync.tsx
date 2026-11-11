@@ -21,6 +21,7 @@ export function CloudRows({ Row }: { Row: RowC }) {
   const [token, setToken] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
   if (!cfg) {
     return (
       <>
@@ -31,7 +32,10 @@ export function CloudRows({ Row }: { Row: RowC }) {
           <span />
         </Row>
         <div className="field" style={{ display: 'flex', alignItems: 'center' }}>
-          <input data-nav="" type="password" value={token} placeholder="Token do GitHub (ghp_…)" onChange={(e) => setToken(e.target.value)} style={{ flexGrow: 1 }} autoComplete="off" />
+          <input data-nav="" type={show ? 'text' : 'password'} value={token} placeholder="Token do GitHub (ghp_…)" onChange={(e) => setToken(e.target.value)} style={{ flexGrow: 1 }} autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+          <button className="btn" data-nav="" style={{ marginLeft: 12 }} onClick={() => setShow((s) => !s)}>
+            {show ? 'Ocultar' : 'Mostrar'}
+          </button>
           <button
             className="btn primary"
             data-nav=""
@@ -95,6 +99,9 @@ export function CloudRows({ Row }: { Row: RowC }) {
           >
             Sincronizar agora
           </button>
+          <button className="btn" data-nav="" onClick={() => setShow((s) => !s)}>
+            {show ? 'Ocultar token' : 'Mostrar token'}
+          </button>
           <ConfirmButton
             label="Desligar"
             confirmLabel="Este aparelho para de sincronizar. Confirmar?"
@@ -106,6 +113,11 @@ export function CloudRows({ Row }: { Row: RowC }) {
           />
         </div>
       </Row>
+      {show && (
+        <span style={{ fontSize: 15, fontFamily: 'monospace', wordBreak: 'break-all', userSelect: 'text', WebkitUserSelect: 'text' }}>
+          Token do GitHub deste aparelho: {cfg.token}
+        </span>
+      )}
       {msg && <span className="muted" role="status" style={{ fontSize: 15 }}>{msg}</span>}
     </>
   );

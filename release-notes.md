@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.34.4 — mostrar os tokens
+- Ajustes: botão "Mostrar" no token da ThePornDB e no token do GitHub (nuvem), para ver o que está salvo no aparelho; com a nuvem ligada, "Mostrar token" em Dados e limpeza
+
 ## 0.34.3 — capa do OnlyFans
 - Categoria de adultos: quando não há capa do filme nem foto da atriz, a capa vira a imagem da página dela no OnlyFans (FansDB), no lugar da capa genérica
 

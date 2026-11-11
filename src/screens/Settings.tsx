@@ -514,6 +514,7 @@ function Services() {
 /** Ajustes › Serviços: ThePornDB (0.31.0) — capas oficiais dos títulos de adulto que vêm com capa genérica. */
 function TpdbRow({ mobile }: { mobile: boolean }) {
   const [key, setKey] = useState(tpdbKey());
+  const [show, setShow] = useState(false);
   const [state, setState] = useState<'idle' | 'testing' | 'ok' | 'bad'>(tpdbKey() ? 'ok' : 'idle');
   const save = async () => {
     const k = key.trim();
@@ -538,8 +539,11 @@ function TpdbRow({ mobile }: { mobile: boolean }) {
       </span>
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
         <div className="field" style={{ flexGrow: 1, minWidth: 260, marginRight: 12 }}>
-          <input data-nav="" type="password" value={key} placeholder="Token da API" autoCapitalize="off" autoCorrect="off" onChange={(e) => { setKey(e.target.value); setState('idle'); }} />
+          <input data-nav="" type={show ? 'text' : 'password'} value={key} placeholder="Token da API" autoCapitalize="off" autoCorrect="off" spellCheck={false} onChange={(e) => { setKey(e.target.value); setState('idle'); }} />
         </div>
+        <button className="btn" data-nav="" onClick={() => setShow((s) => !s)} style={{ marginTop: mobile ? 10 : 0, marginRight: 12 }}>
+          {show ? 'Ocultar' : 'Mostrar'}
+        </button>
         <button className="btn" data-nav="" onClick={save} disabled={state === 'testing'} style={{ marginTop: mobile ? 10 : 0 }}>
           {state === 'testing' ? 'Testando…' : key.trim() ? 'Salvar e testar' : 'Remover token'}
         </button>
