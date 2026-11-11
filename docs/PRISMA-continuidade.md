@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.33.0)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -560,6 +560,14 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - `adultInfo` (tmdb.ts; cache `adult3|…`): ThePornDB › TMDB adulto › `actressCover`: atrizes da cena + nomes do título conferidos com `tpdbPerformer` (agora com memória da sessão e nome parecido), ordenadas pela ordem em que aparecem no título; capa = `portrait` (1º pôster da atriz › image › thumbnail › face). `TmdbInfo.actressCover`.
 - `PosterCard` (Vod.tsx): capa de atriz mostra o nome e pontinhos; com foco (`selected`) ou mouse por 3 s, troca a cada 3 s; ao sair volta para a principal.
 - Servidor falso: "Grande Festa 10/11" (só o 10 pega "Vol. 10") e "Bia Modelo & Carla Teste - Encontro Oito" (capa de atriz trocando); `/tpdb/performers` com Ana, Bia e Carla com pôsteres.
+
+## 10aw. Versão 0.34.0 — produtoras e fileiras sem cortes (11/11)
+- Pedido do Samuel (prints do celular e do PC): fileira de atrizes sem carrossel, só as que cabem (até 10) + "Ver todas" abrindo uma página com várias fileiras; filtro por produtora igual, com logotipo; nome do filme cortado no celular.
+- `screens/Actresses.tsx` virou genérico: `useAdultFilters` (atrizes + produtoras; produtora de cada cena vem de `TmdbInfo.studio`, nomes do título conferidos com `tpdbSite` e guardados no IDB `tpdbSite`), `FilterRow kind="actress"|"studio"` (mede a largura com ResizeObserver; ref por estado porque a fileira pode nascer depois) e `PickPage` (portal no `.stage`, `data-nav-scope`, Voltar com `pushBack`, foco na escolhida e não no campo de texto).
+- `core/studios.ts`: `studioInTitle` ("Estúdio - Atriz - Título", "[Estúdio]", "Estudio.24.03.15.…", nome conhecido no começo; "Algo - Título" é fraco), lista `KNOWN` de produtoras, `buildStudios` (sem token: conhecida ou 2+ títulos fortes; com token: conferida, conhecida ou 3+ fortes ainda não conferidas; atriz nunca vira produtora). Chave sem espaços (`Tiny 4K` = `Tiny4K`).
+- `tpdb.ts`: `toStudio` (logo › poster › favicon do `site`), `TmdbInfo.studio`, `tpdbSite` (`/sites?q=`). Cache dos adultos virou `adult4|…`.
+- `VirtualGrid`: `onScrolled`; o Vod esconde as fileiras de filtro quando a grade sai do alto. O efeito "manter a selecionada à vista" não reage mais à mudança de altura (desfazia a rolagem do mouse).
+- Servidor falso: títulos de Vixen, [Tiny4K], Blacked.24…, Brasileirinhas; `/tpdb/sites` com Vixen, Tiny 4K e Estudio Teste.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

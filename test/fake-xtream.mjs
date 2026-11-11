@@ -60,6 +60,10 @@ const vods = Array.from({ length: 64 }, (_, i) => ({
 [['Estudio Teste - Grande Festa 10 (2016)', 3970], ['Estudio Teste - Grande Festa 11 (2016)', 3971], ['Estudio Teste - Bia Modelo & Carla Teste - Encontro Oito', 3972]].forEach(([name, id], k) =>
   vods.push({ name, stream_id: id, stream_icon: `http://127.0.0.1:${PORT}/poster/generica.svg`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000200 + k), year: '2024' }),
 );
+// 0.34.0: produtoras em vários formatos de nome (" - ", [colchetes], nome de arquivo, conhecida no começo).
+['Vixen - Ana Exemplo - Hotel Nove', '[Tiny4K] Dia Dez', 'Blacked.24.03.15.Bia.Modelo.Onze', 'Vixen Carla Teste Doze', 'Brasileirinhas - Treze', 'Vixen - Bia Modelo - Quatorze'].forEach((name, k) =>
+  vods.push({ name, stream_id: 3980 + k, stream_icon: `http://127.0.0.1:${PORT}/poster/generica.svg`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000300 + k), year: '2024' }),
+);
 // Mesmo filme em outras versões (para "versões num só card")
 vods.push({ name: 'Rota 66 [LEG] (2019)', stream_id: 3900, stream_icon: `http://127.0.0.1:${PORT}/poster/m10.svg`, category_id: '105', container_extension: 'mp4', rating: '7.0', added: String(1789990000), year: '2019' });
 vods.push({ name: 'Rota 66 4K (2019)', stream_id: 3901, stream_icon: `http://127.0.0.1:${PORT}/poster/m10.svg`, category_id: '104', container_extension: 'mp4', rating: '7.0', added: String(1789990001), year: '2019' });
@@ -238,6 +242,16 @@ createServer((req, res) => {
       ];
       const perf = all.filter((x) => x.name.toLowerCase() === qn);
       return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: perf }));
+    }
+    if (u.pathname === '/tpdb/sites') {
+      const flat = (x) => x.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const qn = flat(u.searchParams.get('q') || '');
+      const sites = [
+        { name: 'Vixen', logo: `http://127.0.0.1:${PORT}/poster/logo-vixen.svg` },
+        { name: 'Tiny 4K', logo: `http://127.0.0.1:${PORT}/poster/logo-tiny4k.svg` },
+        { name: 'Estudio Teste', logo: `http://127.0.0.1:${PORT}/poster/logo-estudio.svg` },
+      ];
+      return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: sites.filter((x) => flat(x.name).includes(qn)) }));
     }
     if (u.pathname === '/tpdb/scenes' && p.includes('noite quatro'))
       return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ id: 's4', title: 'Noite Quatro', site: { name: 'Estudio Teste' }, date: '2024-06-01', performers: [ana, joao], posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-noite.svg` } }] }));

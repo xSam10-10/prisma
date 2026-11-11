@@ -26,7 +26,7 @@ import { fuzzyMatch } from '../core/fuzzy';
 import { hasEpAlert, newEpisodeOf, onNewEpisodes, toggleEpAlert } from '../core/newEpisodes';
 import { ZoomFrom } from '../ui/premium4';
 import { isAdultName } from '../core/parental';
-import { ActressRow, useActresses } from './Actresses';
+import { FilterRow, useAdultFilters } from './Actresses';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
 // grade de capas com busca; OK abre o detalhe (sinopse, elenco, episódios).
@@ -274,9 +274,16 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const q = norm(query.trim());
   const adultCat = !!cat && cat !== RECENT && isAdultName(cat) && tab === 'filmes';
   const catItems = useMemo(() => (adultCat ? inStream.filter((i) => i.group === cat) : []), [adultCat, inStream, cat]);
-  const acts = useActresses(catItems, adultCat);
-  const actSel = adultCat && actress ? acts.list.find((a) => a.key === actress) : undefined;
-  useEffect(() => setActress(''), [cat, stream, tab]);
+  const flt = useAdultFilters(catItems, adultCat);
+  const actSel = adultCat && actress ? flt.actresses.find((a) => a.key === actress) : undefined;
+  const [studio, setStudio] = useState('');
+  const stSel = adultCat && studio ? flt.studios.find((x) => x.key === studio) : undefined;
+  // Grade rolada: as fileiras de atrizes e produtoras se recolhem (mais espaço para as capas).
+  const [gridDown, setGridDown] = useState(false);
+  useEffect(() => {
+    setActress('');
+    setStudio('');
+  }, [cat, stream, tab]);
   const list = useMemo(() => {
     if (!q && topMode) return [];
     let l = q
@@ -295,9 +302,10 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     if (yearF) l = l.filter((i) => YEARS[yearF].test(i.year));
     if (langF) l = l.filter((i) => LANGS[langF].test(audioTag(i)));
     if (actSel) l = l.filter((i) => actSel.ids.has(i.id));
+    if (stSel) l = l.filter((i) => stSel.ids.has(i.id));
     // Mesmo título em várias versões (Dublado, Legendado, 4K): uma capa só; a versão escolhe no detalhe.
     return collapseVersions(l);
-  }, [all, inStream, cat, q, sort, topMode, yearF, langF, actSel]);
+  }, [all, inStream, cat, q, sort, topMode, yearF, langF, actSel, stSel]);
   const openTop = () => {
     setStream(TOPS);
     setCat('');
@@ -314,7 +322,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     setDetail(it);
   };
 
-  useEffect(() => setIndex(0), [stream, cat, q, sort, yearF, langF, actress]);
+  useEffect(() => setIndex(0), [stream, cat, q, sort, yearF, langF, actress, studio]);
   useEffect(() => {
     requestAnimationFrame(() => gridRef.current?.focus());
   }, [tab]);
@@ -377,6 +385,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
       extraH={mobile ? 58 : 56}
       gap={mobile ? 10 : 18}
       label={title}
+      onScrolled={setGridDown}
       render={(it, _i, sel, w) => <PosterCard item={it} w={w} selected={sel} />}
       empty={
         topMode && !q ? (
@@ -464,12 +473,17 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
         </div>
         {!stacked && <div className="muted caps" style={{ fontSize: 14, fontWeight: 600, margin: '10px 4px 0', display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {q ? `Busca: “${query.trim()}”` : topMode ? 'Top' : actSel ? `${cat} · ${actSel.name}` : cat === RECENT ? `Últimos adicionados · os ${RECENT_MAX} mais novos da lista` : cat || (st ? st.name : `Todos os ${kindLabel}`)}
+            {q ? `Busca: “${query.trim()}”` : topMode ? 'Top' : actSel || stSel ? [cat, actSel?.name, stSel?.name].filter(Boolean).join(' · ') : cat === RECENT ? `Últimos adicionados · os ${RECENT_MAX} mais novos da lista` : cat || (st ? st.name : `Todos os ${kindLabel}`)}
           </span>
           <span>{list.length.toLocaleString('pt-BR')} {kindLabel}</span>
         </div>}
         {mobile && !noLeft && !q && cats.length > 0 && catChips}
-        {adultCat && !q && !stacked && <ActressRow list={acts.list} busy={acts.busy} selected={actress} onSelect={setActress} mobile={mobile} />}
+        {adultCat && !q && !stacked && !gridDown && (
+          <>
+            <FilterRow kind="actress" list={flt.actresses} busy={flt.busy} selected={actress} onSelect={setActress} mobile={mobile} />
+            <FilterRow kind="studio" list={flt.studios} busy={flt.busy} selected={studio} onSelect={setStudio} mobile={mobile} />
+          </>
+        )}
         {topMode && !q && !topsReady && !rows.length ? (
           <div style={{ flexGrow: 1, minHeight: 0, marginTop: 8, marginLeft: -L.px, marginRight: -L.px, overflow: 'hidden' }}>
             <SkeletonRow />

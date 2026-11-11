@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.34.0 — filtro por produtora e fileiras sem cortes
+- Categoria de adultos: a fileira de atrizes mostra só as que cabem na tela (até 10), sem rolar para o lado, e um botão "Ver todas" abre uma página com todas, em várias fileiras (com busca pelo nome)
+- Novo filtro por produtora (Vixen, Tiny4K, Brazzers, Brasileirinhas…): o PRISMA tira o nome da produtora do título e confere na ThePornDB, que traz o logotipo; também com "Ver todas"
+- Rolando a lista de filmes, as fileiras de atrizes e produtoras se recolhem e dão espaço para as capas (o nome do filme não fica mais cortado em telas pequenas)
+
 ## 0.33.0 — mais capas e capa com a foto da atriz
 - Categoria de adultos: o PRISMA procura a capa na ThePornDB também pelo título com nome parecido (ex.: "Grande Festa 10" acha "Grande Festa Vol. 10"), sem aceitar outra parte ou outro volume
 - Sem capa em lugar nenhum: a capa vira a foto da atriz do filme (a que está no nome do título é a principal). Com mais de uma atriz, parando o controle ou o mouse na capa por 3 segundos, as fotos vão se revezando

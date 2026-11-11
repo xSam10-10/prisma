@@ -19,13 +19,15 @@ interface Props<T> {
   gap?: number;
   empty?: ReactNode;
   label?: string;
+  /** Avisa quando a grade sai (ou volta para) o alto — para recolher o que fica em cima. */
+  onScrolled?: (scrolled: boolean) => void;
 }
 
 export interface VirtualGridHandle {
   focus: () => void;
 }
 
-function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, extraH = 0, gap = 16, empty, label }: Props<T>, ref: React.Ref<VirtualGridHandle>) {
+function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, extraH = 0, gap = 16, empty, label, onScrolled }: Props<T>, ref: React.Ref<VirtualGridHandle>) {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 500 });
   const [top, setTop] = useState(0);
@@ -60,9 +62,13 @@ function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, 
     const y = r * step + pad;
     // Fileira em foco sempre inteira e alinhada no alto (sem a de cima cortada pela metade).
     if (y < top + pad || y + cellH > top + size.h - pad) setTop(Math.max(0, Math.min(maxTop, y - pad)));
-  }, [index, cols, step, size.h]); // eslint-disable-line react-hooks/exhaustive-deps
+  // (Não reage à mudança de altura: rolar com o mouse recolhe o que fica em cima e a grade
+  // cresce; voltar à capa selecionada aqui desfaria a rolagem.)
+  }, [index, cols, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const t = Math.min(top, maxTop);
+  const scrolled = top > 4;
+  useEffect(() => onScrolled?.(scrolled), [scrolled]); // eslint-disable-line react-hooks/exhaustive-deps
   const firstRow = Math.max(0, Math.floor((t - pad) / step) - 1);
   const lastRow = Math.min(rows - 1, Math.ceil((t + size.h) / step) + 1);
 

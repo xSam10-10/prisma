@@ -1628,3 +1628,21 @@ html.lite .feat-art > img.feat-blur { -webkit-filter: none; filter: none; opacit
 .poster-cast .pc-dots { display: -webkit-flex; display: flex; margin-top: 5px; }
 .poster-cast .pc-dots i { width: 6px; height: 6px; border-radius: 3px; margin-right: 4px; background: rgba(255, 255, 255, 0.4); }
 .poster-cast .pc-dots i.on { width: 16px; background: #fff; }
+
+/* Fileiras sem rolar para o lado + produtoras + página "Ver todas" (0.34.0) */
+.act-row { overflow: hidden; display: -webkit-flex; display: flex; -webkit-align-items: flex-start; align-items: flex-start; }
+.st-row { margin-top: 2px; }
+.act.st .act-name { font-size: 13px; margin-top: 5px; }
+.st-tile { position: relative; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12); -webkit-transition: -webkit-transform 0.15s, box-shadow 0.15s; transition: transform 0.15s, box-shadow 0.15s; }
+.st-tile.all { background: rgba(255, 255, 255, 0.08); }
+.st-tile img { max-width: 82%; max-height: 70%; object-fit: contain; }
+.st-tile b { color: #fff; font-weight: 900; letter-spacing: 0.02em; text-transform: uppercase; padding: 0 8px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
+.act.st.on .st-tile { box-shadow: 0 0 0 3px #fff; }
+.act.st:focus .st-tile { -webkit-transform: scale(1.08); transform: scale(1.08); box-shadow: 0 0 0 3px #fff, 0 6px 18px rgba(0, 0, 0, 0.5); }
+.pick-page { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; padding: 28px 40px 0; }
+.pick-head { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.pick-head > * { margin-right: 14px; margin-bottom: 10px; }
+.pick-head .pick-search { -webkit-flex-grow: 1; flex-grow: 1; min-width: 220px; max-width: 520px; margin-left: auto; margin-right: 0; }
+.pick-grid { -webkit-flex-grow: 1; flex-grow: 1; min-height: 0; display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-align-content: flex-start; align-content: flex-start; padding: 10px 6px 40px; }
+.pick-grid .act { margin-bottom: 14px; }
+.mobile .pick-page { padding: 18px 14px 0; }

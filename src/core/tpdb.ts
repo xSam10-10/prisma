@@ -24,8 +24,19 @@ interface Item {
   poster?: string;
   posters?: Img;
   background?: Img;
-  site?: { name?: string };
+  site?: Site;
   performers?: Perf[];
+}
+type Site = { name?: string; logo?: string; favicon?: string; poster?: string; parent?: { name?: string; logo?: string } | null };
+/** Produtora (0.34.0): nome e logotipo. */
+export interface StudioInfo {
+  name: string;
+  logo?: string;
+}
+export function toStudio(x?: Site | null): StudioInfo | undefined {
+  const name = (x?.name || '').trim();
+  if (!name) return undefined;
+  return { name, logo: x?.logo || x?.poster || x?.favicon || undefined };
 }
 type Gender = { gender?: string };
 interface Perf {
@@ -215,6 +226,7 @@ function toInfo(best: Item, q: string, year?: number): TmdbInfo | null {
     overview: best.description || undefined,
     year: y && !isNaN(y) ? y : undefined,
     performers: performersOfItem(best),
+    studio: toStudio(best.site),
   };
 }
 
@@ -230,6 +242,7 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
   const q = adultQuery(name);
   if (q.length < 3) return null;
   let cast: Performer[] = [];
+  let studio: StudioInfo | undefined;
   for (const kind of ['scenes', 'movies']) {
     const r = await get(`/${kind}?parse=${encodeURIComponent(q)}&per_page=5`, key);
     let best: Item | undefined;
@@ -246,6 +259,7 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
       const info = toInfo(best, q, year);
       if (info) return info;
       if (!cast.length) cast = performersOfItem(best);
+      if (!studio) studio = toStudio(best.site);
     }
   }
   // Nome parecido: busca de texto só com o título (sem estúdio e atriz).
@@ -269,10 +283,12 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
         const info = toInfo(best, t, year);
         if (info) return info;
         if (!cast.length) cast = performersOfItem(best);
+        if (!studio) studio = toStudio(best.site);
+      if (!studio) studio = toStudio(best.site);
       }
     }
   }
-  return cast.length ? { id: negId('cast:' + q), type: 'movie', title: t || q, performers: cast } : null;
+  return cast.length || studio ? { id: negId('cast:' + q), type: 'movie', title: t || q, performers: cast, studio } : null;
 }
 
 // Atrizes já procuradas nesta sessão (o mesmo nome aparece em vários filmes).
@@ -294,6 +310,35 @@ export function tpdbPerformer(name: string): Promise<Performer | null> {
   }
   return p;
 }
+
+// Produtoras já procuradas nesta sessão.
+const siteMemo = new Map<string, Promise<StudioInfo | null>>();
+
+/** Produtora pelo nome (0.34.0), com o logotipo. Aceita "Tiny 4K" = "Tiny4K". */
+export function tpdbSite(name: string): Promise<StudioInfo | null> {
+  const flat = (x: string) => words2(x).join('');
+  const k = flat(name);
+  let p = siteMemo.get(k);
+  if (!p) {
+    p = (async () => {
+      const key = tpdbKey();
+      if (!key || !k) return null;
+      const r = (await get(`/sites?q=${encodeURIComponent(name)}&per_page=10`, key).catch(() => null)) as { data?: Site[] } | null;
+      const list = (r?.data ?? []).map(toStudio).filter((x): x is StudioInfo => !!x);
+      return list.find((x) => flat(x.name) === k) ?? list.find((x) => similar(name, x.name) === 1) ?? null;
+    })();
+    siteMemo.set(k, p);
+  }
+  return p;
+}
+const words2 = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .split(' ')
+    .filter(Boolean);
 
 /** Confere a chave com uma busca pequena. */
 export async function testTpdbKey(key: string): Promise<boolean> {
