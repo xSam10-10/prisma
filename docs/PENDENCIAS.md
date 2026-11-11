@@ -1,4 +1,4 @@
-# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.31.0)
+# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.31.1)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -41,7 +41,7 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 - Nada pendente (apagar canais do histórico um por um saiu da lista em 10/11).
 
 ## 5. Estética e organização
-- Logotipos de **Star+, Discovery+ e Hulu** (hoje tipográficos; o Samuel vai criar no ChatGPT).
+- Nada pendente (logotipos de Star+, Discovery+ e Hulu entraram na 0.31.1, enviados pelo Samuel).
 
 ## 6. Geral
 - Nada pendente (0.30.0: 11 ExoPlayer para filmes/séries no Android, 9 nuvem por Gist do GitHub, 14 app básico para Roku). Chromecast (23) saiu da lista a pedido do Samuel (11/11). Próximos passos possíveis do Roku, se ele pedir: guia, favoritos e visual do app principal.
@@ -53,6 +53,5 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 - **Jogos com a Goldcard**: conferir na TV/PC o centro de esportes (0.25–0.26): canais dos jogos e da F1 achados no guia (sem guia aparece "canal provável"), placar na tela em tela cheia. O "Guia de jogos" mostra diagnóstico se vier vazio — mandar print.
 - Atualização dentro do app na **TV LG** e no **Android/Google TV**: conferir uma vez (no Windows já funciona).
 - Testar na TV LG OLED B7 (webOS 3.5) e no celular/Google TV: vídeo, PIP com 2 telas, placar/tabela da ESPN, guias públicos, banners dos streamings (na LG ficam sem animação).
-- Logotipos de Star+, Discovery+ e Hulu (hoje tipográficos).
 - Chave do TMDB e token da ThePornDB (theporndb.net, grátis) em Ajustes › Serviços de um aparelho — com a nuvem ligada vão para os outros (0.31.0).
 

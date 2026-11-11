@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.31.1
+- Star+, Discovery+ e Hulu ganharam os logotipos de verdade (coloridos e na versão branca), nos botões de Filmes e Séries e no destaque de cada streaming
+
 ## 0.31.0 — capas oficiais e chaves pela nuvem
 - Filmes da categoria de adultos que vêm com capa genérica ganham a capa oficial: o PRISMA procura no TMDB e, o que faltar, na ThePornDB (token grátis em Ajustes › Serviços). Capas que já estão certas na lista não mudam
 - As chaves do TMDB e da ThePornDB vão pela sincronização da nuvem: digite uma vez e a TV e o celular recebem

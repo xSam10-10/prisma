@@ -107,7 +107,7 @@ export const STREAM_STYLE: Record<string, StreamStyle> = {
   discovery: {
     font: 'Plus Jakarta Sans', weights: '400;600;700;800', rowWeight: 700, heroWeight: 800,
     shape: 'landscape', radius: 8, focus: 'ring', newLabel: 'NOVO',
-    kicker: () => 'DISCOVERY+', play: 'Assistir', playBg: '#2175FF', playFg: '#FFFFFF', more: 'Detalhes', list: 'Minha lista', btnRadius: 999,
+    kicker: () => 'ORIGINAL', play: 'Assistir', playBg: '#2175FF', playFg: '#FFFFFF', more: 'Detalhes', list: 'Minha lista', btnRadius: 999,
     topRow: () => 'Populares agora', allRow: 'Tudo no Discovery+',
   },
   crunchyroll: {

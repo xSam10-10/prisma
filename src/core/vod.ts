@@ -43,8 +43,8 @@ export const STREAMINGS: Streaming[] = [
   { id: 'prime', name: 'Prime Video', match: /prime|amazon/i, bg: '#0F171E', accent: '#00A8E1', accent2: '#1A4D8F', logo: { w: 470, h: 144, k: 1.08 } },
   { id: 'paramount', name: 'Paramount+', match: /paramount/i, bg: '#00112E', accent: '#0064FF', accent2: '#00B3FF', logo: { w: 238, h: 144, k: 1.45 } },
   { id: 'globoplay', name: 'Globoplay', match: /globoplay/i, bg: '#1E0A12', accent: '#FB2E5A', accent2: '#FF7A00', logo: { w: 652, h: 144 } },
-  { id: 'star', name: 'Star+', match: /star\s?\+|star plus/i, bg: '#1A0B2E', accent: '#C724B1', accent2: '#FF6C00', logo: { w: 494, h: 144, k: 0.86 } },
-  { id: 'discovery', name: 'Discovery+', match: /discovery/i, bg: '#00101F', accent: '#2175FF', accent2: '#00C2FF', logo: { w: 772, h: 144 } },
+  { id: 'star', name: 'Star+', match: /star\s?\+|star plus/i, bg: '#1A0B2E', accent: '#C724B1', accent2: '#FF6C00', logo: { w: 505, h: 144, k: 0.94 } },
+  { id: 'discovery', name: 'Discovery+', match: /discovery/i, bg: '#00101F', accent: '#2175FF', accent2: '#00C2FF', logo: { w: 715, h: 144 } },
   { id: 'crunchyroll', name: 'Crunchyroll', match: /crunchy/i, bg: '#1A1206', accent: '#F47521', accent2: '#FFB000', logo: { w: 789, h: 144 } },
   { id: 'funimation', name: 'Funimation Now', match: /funimation/i, bg: '#14081F', accent: '#5B0BB5', accent2: '#A44DFF', logo: { w: 879, h: 144, k: 1.15 } },
   { id: 'lionsgate', name: 'Lionsgate', match: /lions\s?gate|starzplay/i, bg: '#0D0D0D', accent: '#C8A24B', accent2: '#5A4A22', logo: { w: 1143, h: 144 } },
@@ -52,7 +52,7 @@ export const STREAMINGS: Streaming[] = [
   { id: 'sbt', name: 'SBT+', match: /\bsbt\s?(\+|plus|video|vídeo)/i, bg: '#04122E', accent: '#0055B8', accent2: '#F5B800', logo: { w: 159, h: 144, k: 1.5 } },
   { id: 'directv', name: 'DirecTV GO', match: /direc\s?tv|\bdgo\b/i, bg: '#04101F', accent: '#00A6E8', accent2: '#0D3B66', logo: { w: 755, h: 144 } },
   { id: 'amc', name: 'AMC+', match: /\bamc\b/i, bg: '#0B0B0B', accent: '#E4E4E4', accent2: '#5A5A5A', logo: { w: 305, h: 144, k: 1.2 } },
-  { id: 'hulu', name: 'Hulu', match: /hulu/i, bg: '#0B0C0F', accent: '#1CE783', accent2: '#0B8F52', logo: { w: 378, h: 144 } },
+  { id: 'hulu', name: 'Hulu', match: /hulu/i, bg: '#0B0C0F', accent: '#1CE783', accent2: '#0B8F52', logo: { w: 437, h: 144 } },
 ];
 
 export function streamingsIn(groups: string[]): Streaming[] {

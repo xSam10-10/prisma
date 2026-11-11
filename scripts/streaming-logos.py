@@ -16,7 +16,8 @@ FONTS = '/usr/share/fonts/opentype/inter/'
 H = 144  # altura final (nítida até ~4x numa altura de 30 px)
 KNOCKOUT = {'paramount'}
 
-# Sem logotipo no pacote: texto
+# Sem logotipo no pacote: texto. (Star+, Discovery+ e Hulu ganharam arte própria em 11/11 — scripts/streaming-src;
+# a versão branca do Discovery+ abre um vão no contorno claro do "D", feita com o navegador nessa data.)
 TEXT = {
     'star': ('Star+', 'Inter-Bold.otf', 0.0),
     'discovery': ('discovery+', 'Inter-Bold.otf', -0.02),

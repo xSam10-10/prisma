@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.31.0)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.31.1)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -544,6 +544,9 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - `lookup` (tmdb.ts): categoria de adulto (`isAdultName`) com capa da lista certa → não procura; com capa genérica → `adultLookup`: TMDB `/search/movie` com `include_adult=true`, aceitando só resultado `adult` com o título batendo (`sameContent`: nome da lista no resultado ≥ 60% ou o título encontrado inteiro no nome da lista, por causa do estúdio na frente) › ThePornDB (`src/core/tpdb.ts`, `/scenes` e `/movies?parse=`, token Bearer em Ajustes › Serviços, pref `tpdbKey`). Capas da ThePornDB têm id negativo; `call` do TMDB recusa id negativo (sem logo/trailer/semelhantes errados).
 - Nuvem: `tmdbKey` e `tpdbKey` entraram em `SYNC_KEYS` e `tmdbKey` saiu dos ajustes "do aparelho".
 - Servidor falso: categoria "ADULTOS +18" com 3 títulos inventados e a mesma capa genérica; TMDB adulto falso (`include_adult`) e ThePornDB falsa em `/tpdb/` (token `tpdb-teste`).
+
+## 10at. Versão 0.31.1 — logotipos de Star+, Discovery+ e Hulu (11/11)
+- Pacote do Samuel (PNG 2048×1024 transparentes, versões para fundo escuro) em `scripts/streaming-src/{star,discovery,hulu}.png`. `public/streaming/color|mono` gerados com o navegador (recorte, altura 144; branco com vão no contorno claro do "D" do Discovery+). `logo { w, h }` atualizados em vod.ts. O servidor falso ganhou as categorias Star+, Discovery+ e Hulu.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
