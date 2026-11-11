@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.34.3 — capa do OnlyFans
+- Categoria de adultos: quando não há capa do filme nem foto da atriz, a capa vira a imagem da página dela no OnlyFans (FansDB), no lugar da capa genérica
+
 ## 0.34.2 — atualização automática e mais atrizes
 - Atualização automática: ao abrir, o PRISMA confere se há versão nova (e a cada 6 horas). Na TV LG e no Windows ele já baixa sozinho e avisa; vale na próxima vez que abrir (ou em "Reabrir agora"). No Android aparece "Atualizar agora" (o sistema sempre pede para confirmar)
 - Produtoras: o botão "Ver todas" aparece sempre; páginas "FansDB: …" (da própria atriz) não contam mais como produtora

@@ -4,7 +4,7 @@ Tudo o que importa do projeto está no **GitHub**, não na conversa: o código, 
 as pendências e as instruções. A conta nova do Claude só precisa enxergar o mesmo repositório.
 
 - Repositório: **https://github.com/xSam10-10/prisma** (público, branch `main`)
-- Versão atual: **0.34.2** (11/11/2026)
+- Versão atual: **0.34.3** (11/11/2026)
 - Documentos que a nova conversa deve ler: `docs/PRISMA-continuidade.md` (seção 0 primeiro),
   `docs/PENDENCIAS.md` e `release-notes.md`. Uma cópia das pendências está no fim deste arquivo.
 
@@ -24,7 +24,7 @@ as pendências e as instruções. A conta nova do Claude só precisa enxergar o 
 ## Passo 3 — Primeira mensagem (copiar e colar)
 
 ```
-Vamos continuar o projeto PRISMA (meu player de IPTV), que veio de outra conta do Claude. Antes de qualquer coisa, leia `docs/PRISMA-continuidade.md` (comece pela seção 0), `docs/PENDENCIAS.md`, `release-notes.md` e `docs/MIGRAR-CONTA.md`, e confirme que entendeu: o estado atual (versão 0.34.2), como publicar uma versão (workflow `release.yml`), as verificações antes de publicar (incluindo `test/scan-foco.mjs`) e o servidor falso de testes (`test/fake-xtream.mjs`). Confira também se você consegue dar push na `main` e rodar `gh workflow run` neste repositório.
+Vamos continuar o projeto PRISMA (meu player de IPTV), que veio de outra conta do Claude. Antes de qualquer coisa, leia `docs/PRISMA-continuidade.md` (comece pela seção 0), `docs/PENDENCIAS.md`, `release-notes.md` e `docs/MIGRAR-CONTA.md`, e confirme que entendeu: o estado atual (versão 0.34.3), como publicar uma versão (workflow `release.yml`), as verificações antes de publicar (incluindo `test/scan-foco.mjs`) e o servidor falso de testes (`test/fake-xtream.mjs`). Confira também se você consegue dar push na `main` e rodar `gh workflow run` neste repositório.
 
 Regras: responda sempre em português; os dados da minha assinatura Goldcard eu passo por aqui quando precisar — nunca grave nenhuma credencial no repositório; a chave do TMDB fica só no secret `TMDB_KEY` do GitHub. Commits com o autor "Samuel Costa".
 

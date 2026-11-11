@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.2)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.3)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -577,6 +577,10 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Atualização: `shouldAutoCheck` agora vale a cada abertura (folga de 10 min) e o App confere de novo a cada 6 h. `autoInstall(m)`: LG baixa o pacote OTA sem recarregar (`installWebos(..., reload=false)`, vale ao reabrir); Windows baixa pelo electron-updater sem instalar (`installWindows(..., install=false)`; `autoInstallOnAppQuit` instala ao fechar); Android devolve `ask` e o aviso tem "Atualizar agora" (chama `installUpdate` direto). `applyNow()` = "Reabrir agora". Ajuste "✓ Atualizar sozinho ao abrir" (pref `updateAuto`). Roku e navegador não se atualizam sozinhos.
 - Filtros: "Ver todas" sempre (☰ quando tudo cabe); `toStudio` ignora "FansDB: …". Atrizes: `namesInTitle` passa títulos em MAIÚSCULAS/minúsculas para "Nome Sobrenome"; `leadNames` (2 primeiras palavras de cada pedaço) entra em `namesToVerify` quando se repete em 2+ títulos e em `buildActresses` só se a ThePornDB confirmou; conferência com 3 de cada vez, até 150 nomes por abertura; ENRICH 250.
 - Por que eram poucas atrizes (37 em 10.119 títulos): com o token, nome do título só entra depois de conferido, e eram só 40 nomes e 150 títulos por abertura; nomes em maiúsculas ou colados no título nem viravam candidatos.
+
+## 10az. Versão 0.34.3 — capa do OnlyFans (11/11)
+- Pedido do Samuel: as cenas cujo site na ThePornDB é "FansDB: Fulana" (página da atriz no OnlyFans) saíram das produtoras na 0.34.2; quando não houver mais nada, usar a imagem delas como capa.
+- `fansOf(site)` (tpdb.ts) → `TmdbInfo.fans {name, image}` (poster › logo › favicon do site). `adultInfo`: ThePornDB › TMDB adulto › foto da atriz › imagem do OnlyFans › genérica. Cache `adult5|…`.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

@@ -39,6 +39,16 @@ export function toStudio(x?: Site | null): StudioInfo | undefined {
   if (!name || /^fansdb\s*:/i.test(name)) return undefined;
   return { name, logo: x?.logo || x?.poster || x?.favicon || undefined };
 }
+/** Página da atriz no OnlyFans e parecidos ("FansDB: Fulana", 0.34.3): a imagem serve de capa em último caso. */
+export interface FansPage {
+  name: string;
+  image?: string;
+}
+export function fansOf(x?: Site | null): FansPage | undefined {
+  const m = /^fansdb\s*:\s*(.+)$/i.exec((x?.name || '').trim());
+  if (!m) return undefined;
+  return { name: m[1].trim(), image: x?.poster || x?.logo || x?.favicon || undefined };
+}
 type Gender = { gender?: string };
 interface Perf {
   name?: string;
@@ -228,6 +238,7 @@ function toInfo(best: Item, q: string, year?: number): TmdbInfo | null {
     year: y && !isNaN(y) ? y : undefined,
     performers: performersOfItem(best),
     studio: toStudio(best.site),
+    fans: fansOf(best.site),
   };
 }
 
@@ -244,6 +255,7 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
   if (q.length < 3) return null;
   let cast: Performer[] = [];
   let studio: StudioInfo | undefined;
+  let fans: FansPage | undefined;
   for (const kind of ['scenes', 'movies']) {
     const r = await get(`/${kind}?parse=${encodeURIComponent(q)}&per_page=5`, key);
     let best: Item | undefined;
@@ -261,6 +273,7 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
       if (info) return info;
       if (!cast.length) cast = performersOfItem(best);
       if (!studio) studio = toStudio(best.site);
+      if (!fans) fans = fansOf(best.site);
     }
   }
   // Nome parecido: busca de texto só com o título (sem estúdio e atriz).
@@ -285,11 +298,11 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
         if (info) return info;
         if (!cast.length) cast = performersOfItem(best);
         if (!studio) studio = toStudio(best.site);
-      if (!studio) studio = toStudio(best.site);
+        if (!fans) fans = fansOf(best.site);
       }
     }
   }
-  return cast.length || studio ? { id: negId('cast:' + q), type: 'movie', title: t || q, performers: cast, studio } : null;
+  return cast.length || studio || fans ? { id: negId('cast:' + q), type: 'movie', title: t || q, performers: cast, studio, fans } : null;
 }
 
 // Atrizes já procuradas nesta sessão (o mesmo nome aparece em vários filmes).

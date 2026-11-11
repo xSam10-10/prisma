@@ -62,3 +62,11 @@ describe('mais atrizes e produtoras limpas (0.34.2)', () => {
     expect(toStudio({ name: 'Brasileirinhas', logo: 'b.png' })).toEqual({ name: 'Brasileirinhas', logo: 'b.png' });
   });
 });
+
+import { fansOf } from '../src/core/tpdb';
+describe('capa do OnlyFans (0.34.3)', () => {
+  it('"FansDB: Fulana" vira a página dela, com a imagem', () => {
+    expect(fansOf({ name: 'FansDB: Lena The Plug', poster: 'p.jpg', logo: 'l.png' })).toEqual({ name: 'Lena The Plug', image: 'p.jpg' });
+    expect(fansOf({ name: 'Vixen', logo: 'v.png' })).toBeUndefined();
+  });
+});

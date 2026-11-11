@@ -3,7 +3,7 @@ import { idbGet, idbSet, prefGet } from './storage';
 import type { Channel } from './types';
 import { isAdultName } from './parental';
 import { isGenericLogo } from './vod';
-import { adultQuery, sameContent, titlePart, tpdbKey, tpdbLookup, tpdbPerformer, type Performer, type StudioInfo } from './tpdb';
+import { adultQuery, sameContent, titlePart, tpdbKey, tpdbLookup, tpdbPerformer, type FansPage, type Performer, type StudioInfo } from './tpdb';
 import { actressKey, namesInTitle } from './actresses';
 
 // TMDB (The Movie Database): capas, fundos, sinopse em português, trailer e
@@ -27,6 +27,8 @@ export interface TmdbInfo {
   actressCover?: boolean;
   /** Produtora (ThePornDB, 0.34.0). */
   studio?: StudioInfo;
+  /** Página da atriz no OnlyFans ("FansDB: …", 0.34.3). */
+  fans?: FansPage;
 }
 
 const API = () => prefGet<string>('tmdbBase', 'https://api.themoviedb.org/3');
@@ -162,7 +164,7 @@ export async function lookup(item: Channel, logoBroken = false): Promise<TmdbInf
 export async function adultInfo(item: Channel): Promise<TmdbInfo | null> {
   const name = item.fullName ?? item.name;
   const { title, year } = searchTitle(adultQuery(name));
-  const key = `adult4|${tpdbKey() ? 'p' : ''}${tmdbKey() ? 't' : ''}|${norm(title)}|${year ?? item.year ?? ''}`;
+  const key = `adult5|${tpdbKey() ? 'p' : ''}${tmdbKey() ? 't' : ''}|${norm(title)}|${year ?? item.year ?? ''}`;
   const c = await loadCache();
   if (key in c) return c[key];
   if (!tmdbKey() && !tpdbKey()) return null;
@@ -173,10 +175,12 @@ export async function adultInfo(item: Channel): Promise<TmdbInfo | null> {
       if (!info?.poster && tmdbKey()) {
         const r = await call<{ results: Raw[] }>('/search/movie', { query: title, include_adult: 'true' });
         const hit = (r.results ?? []).find((x) => x.adult && x.poster_path && (sameContent(title, x.title ?? '') || sameContent(title, x.original_title ?? '')));
-        if (hit) info = { ...toInfo(hit, 'movie'), performers: info?.performers, studio: info?.studio };
+        if (hit) info = { ...toInfo(hit, 'movie'), performers: info?.performers, studio: info?.studio, fans: info?.fans };
       }
       // Nada de capa: a foto das atrizes vira a capa (a do título primeiro).
       if (!info?.poster && tpdbKey()) info = await actressCover(name, info);
+      // Último recurso antes da capa genérica: a imagem da página dela no OnlyFans (FansDB).
+      if (info && !info.poster && info.fans?.image) info = { ...info, poster: info.fans.image, backdrop: info.backdrop || info.fans.image };
     } catch {
       info = null;
     }
@@ -214,6 +218,7 @@ async function actressCover(name: string, found: TmdbInfo | null): Promise<TmdbI
     backdrop: out[0].portrait,
     overview: found?.overview,
     studio: found?.studio,
+    fans: found?.fans,
     year: found?.year,
     performers: out,
     actressCover: true,
