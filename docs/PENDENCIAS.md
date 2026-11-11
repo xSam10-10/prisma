@@ -17,7 +17,7 @@ visual premium III 0.22.0: 28 página do ator, 52 novidades/em breve ("Chegando 
 visual premium IV 0.23.0: 66 "Ainda está assistindo?", 63 aviso de novo episódio (selo + "Me avise"), busca nova (teclado em grade, ator, gênero), maratona de coleção, Dia de jogo no Início, guia com arte do programa, capa que cresce até o detalhe.
 pendências [1º] 0.24.0: 7 controle parental (senha para categorias +18 e qualquer categoria; o perfil infantil ficou de fora junto com o Perfil Kids descartado), 41 esconder canais e categorias, 15 começar do início, 70 lembrar áudio/legenda, 57 versões num só card, 62 marcar filme/série como visto, 64 série abre no próximo episódio, 76 tirar de Continuar assistindo, 81 busca tolerante, 38 várias listas, 39 painel da assinatura. (48, 53, 54 e 61 já estavam feitas.)
 
-**Itens tirados da lista pelo Samuel em 10/11 — não oferecer de novo:** 36 canal favorito ao abrir, 16 pausar o ao vivo, 40 diagnóstico do canal, 19 gravar programas, 17 multitela, logos de canais que faltam, 37 apagar histórico item a item, 18 picture-in-picture do sistema, 12 voz no app Android, 82 buscas recentes, 34 PIN por perfil, 35 tempo de tela infantil, 43 atalhos para apps oficiais, 13 assinatura digital do instalador, 23 Chromecast.
+**Itens tirados da lista pelo Samuel em 10/11 — não oferecer de novo:** 36 canal favorito ao abrir, 16 pausar o ao vivo, 40 diagnóstico do canal, 19 gravar programas, 17 multitela, logos de canais que faltam, 37 apagar histórico item a item, 18 picture-in-picture do sistema, 12 voz no app Android, 82 buscas recentes, 34 PIN por perfil, 35 tempo de tela infantil, 43 atalhos para apps oficiais, 13 assinatura digital do instalador, 23 Chromecast; em 11/11 também 75 histórico de assistidos, 65 pular abertura, 59 notas IMDb/Rotten, 20 baixar offline, 79 assistir junto, 58 gostei/não gostei, 74 listas próprias, 77 esconder títulos.
 
 **Sugestões de design premium descartadas pelo Samuel (09/11) — não oferecer de novo:** Perfil Kids (rodada 3, nº 11); da rodada 4: Quem está assistindo? em tela cheia, Retrospectiva do mês, Trailer em tela cheia com som, Modo ambiente (Ambilight), Pular abertura/recapitulação como item de design, Legendas premium. (Os itens 65 Pular abertura e 69 Estilo da legenda da lista original continuam na lista abaixo.)
 centro de esportes 0.25.0–0.26.0: hub de Jogos, página de cada campeonato (calendário, tabela, chaves, times, destaques com artilheiros/assistências/sequências, forma dos últimos 5), Fórmula 1 completa, Semana do GP no Início, 31 placar flutuante em tela cheia.
@@ -29,11 +29,7 @@ centro de esportes 0.25.0–0.26.0: hub de Jogos, página de cada campeonato (ca
 Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organizado nas seções pedidas pelo Samuel.
 
 ## 1. Filmes e Séries
-- **75 · Histórico de assistidos** (tela com tudo o que já viu) [Depois].
 - **44 · "Onde assistir" nos streamings oficiais** [Depois].
-- **65 · Pular abertura e recapitulação** [Depois].
-- **59 · Notas IMDb e Rotten Tomatoes** · **20 · Baixar para ver offline** · **79 · Assistir junto à distância** [Grande].
-- **58 · Gostei/não gostei** · **74 · Listas próprias** · **77 · Esconder títulos** [Talvez].
 
 ## 2. Jogos
 - Nada pendente do centro de esportes (etapas 1–3 e placar flutuante prontos na 0.26.0). Ideias para o futuro, se o Samuel quiser: manchetes (ficou combinado "só dados"), mais ligas (Série B, Estaduais, NBA).
