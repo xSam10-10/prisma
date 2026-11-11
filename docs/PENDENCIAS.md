@@ -53,7 +53,6 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 - **Jogos com a Goldcard**: conferir na TV/PC o centro de esportes (0.25–0.26): canais dos jogos e da F1 achados no guia (sem guia aparece "canal provável"), placar na tela em tela cheia. O "Guia de jogos" mostra diagnóstico se vier vazio — mandar print.
 - Atualização dentro do app na **TV LG** e no **Android/Google TV**: conferir uma vez (no Windows já funciona).
 - Testar na TV LG OLED B7 (webOS 3.5) e no celular/Google TV: vídeo, PIP com 2 telas, placar/tabela da ESPN, guias públicos, banners dos streamings (na LG ficam sem animação).
-- Conferir o "0 filmes" da Goldcard (provavelmente resolvido: em 09/11 a lista mostrava 44 mil filmes).
 - Logotipos de Star+, Discovery+ e Hulu (hoje tipográficos).
 - Opcional: a mesma chave do TMDB em Ajustes › Serviços de cada aparelho (capas, sinopses em português e trailers).
 
