@@ -45,7 +45,27 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
   const [logoBad, setLogoBad] = useState(false);
   useEffect(() => setLogoBad(false), [item.id]);
   const tm = useTmdb(item, logoBad);
-  const img = tm?.poster || item.logo;
+  // Capa com a foto das atrizes (0.33.0): a do título é a padrão; com o foco (ou o mouse)
+  // parado 3 segundos, passa para a próxima a cada 3 segundos. Saiu, volta para a principal.
+  const cast = tm?.actressCover ? (tm.performers ?? []).filter((p) => p.portrait) : [];
+  const [hover, setHover] = useState(false);
+  const [ci, setCi] = useState(0);
+  const rotate = (!!selected || hover) && cast.length > 1;
+  useEffect(() => {
+    setCi(0);
+    if (!rotate) return;
+    let iv = 0;
+    const t = window.setTimeout(() => {
+      setCi(1);
+      iv = window.setInterval(() => setCi((i) => i + 1), 3000);
+    }, 3000);
+    return () => {
+      clearTimeout(t);
+      clearInterval(iv);
+    };
+  }, [rotate, cast.length]);
+  const who = cast.length ? cast[ci % cast.length] : undefined;
+  const img = who?.portrait || tm?.poster || item.logo;
   useEffect(() => {
     setBroken(false);
     setLoaded(false);
@@ -56,7 +76,7 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
   useEffect(() => (item.kind === 'series' ? onNewEpisodes(() => tick((x) => x + 1)) : undefined), [item.kind]);
   const badges = badgesOf(item);
   return (
-    <div className={'poster' + (selected ? ' sel' : '') + (badges.some((b) => b.k === 'newep') ? ' newep' : '')}>
+    <div className={'poster' + (selected ? ' sel' : '') + (badges.some((b) => b.k === 'newep') ? ' newep' : '')} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <div className="poster-art" style={{ height: Math.round(w * 1.5), background: `linear-gradient(160deg, ${rgba(c, 0.6)} 0%, ${rgba(c, 0.18)} 45%, #12121a 100%)` }}>
         {(!img || broken || !loaded) && (
           <div className="poster-fb" aria-hidden={!!img && !broken}>
@@ -75,6 +95,18 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
             {badges.map((b) => (
               <span key={b.t} className={'pbadge ' + b.k}>{b.t}</span>
             ))}
+          </span>
+        )}
+        {who && (
+          <span className="poster-cast">
+            <b>{who.name}</b>
+            {cast.length > 1 && (
+              <span className="pc-dots">
+                {cast.map((p, k) => (
+                  <i key={p.name} className={k === ci % cast.length ? 'on' : undefined} />
+                ))}
+              </span>
+            )}
           </span>
         )}
         {rank ? <span className="poster-rank">{rank}</span> : null}

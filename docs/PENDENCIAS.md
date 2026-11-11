@@ -1,4 +1,4 @@
-# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.32.0)
+# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.33.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -47,6 +47,7 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 - Nada pendente (0.30.0: 11 ExoPlayer para filmes/séries no Android, 9 nuvem por Gist do GitHub, 14 app básico para Roku). Chromecast (23) saiu da lista a pedido do Samuel (11/11). Próximos passos possíveis do Roku, se ele pedir: guia, favoritos e visual do app principal.
 
 ## Depende do Samuel
+- **0.33.0:** ver se aparecem mais capas (nome parecido) e a capa com a foto da atriz, trocando após 3 s quando há mais de uma.
 - **0.32.0:** abrir a categoria de adultos e ver se as capas trocaram e se a fileira de atrizes aparece com fotos (com a lista real da Goldcard o formato dos títulos pode pedir ajuste); conferir a senha antes das 22:00 e a abertura sem senha depois.
 - **0.30.0 nos aparelhos:** criar o token do GitHub (só "gist") e ligar a nuvem em cada aparelho (o 1º vira a base); no Android, abrir um filme e uma série no player novo (áudio/legendas na engrenagem); no Roku, instalar o PRISMA-Roku pelo modo desenvolvedor (roku/LEIAME.md) e testar login, ao vivo, filmes e séries.
 - ✅ Repositório público (08/11) e atualização dentro do app conferida no Windows pelo Samuel (09/11, 0.18.1 → 0.19.x).

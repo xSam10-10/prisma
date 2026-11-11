@@ -23,7 +23,7 @@ describe('atrizes da categoria de adultos', () => {
   });
   it('a ThePornDB deixa só as atrizes (homem fica de fora) e traz a foto', () => {
     const p = performersOfItem({ performers: [{ name: 'Ana Exemplo', face: 'f.jpg', parent: { extras: { gender: 'Female' } } }, { name: 'Joao Ator', parent: { extras: { gender: 'Male' } } }] });
-    expect(p).toEqual([{ name: 'Ana Exemplo', photo: 'f.jpg' }]);
+    expect(p).toEqual([{ name: 'Ana Exemplo', photo: 'f.jpg', portrait: 'f.jpg' }]);
   });
   it('sem token: entra o nome que aparece em 2+ títulos', () => {
     const items = [mk('1', 'Estudio Teste - Ana Exemplo - Noite Quatro'), mk('2', 'Estudio Teste - Ana Exemplo & Bia Modelo - Tarde Cinco'), mk('3', 'Outro Estudio - Bia Modelo - Manha Seis'), mk('4', 'Outro - Carla Teste - Sete'), mk('5', 'Estudio Teste - Cena Adulta Dois'), mk('6', 'Estudio Teste - Filme Adulto Um')];
@@ -60,5 +60,17 @@ describe('horário livre da senha', () => {
     expect(inFreeHours(at(1))).toBe(false);
     setFreeHours({ on: false, from: 22, to: 6 });
     expect(inFreeHours(at(23))).toBe(false);
+  });
+});
+
+describe('nome parecido na ThePornDB (0.33.0)', () => {
+  it('aceita volume escrito diferente e uma letra trocada; recusa outro número', async () => {
+    const { similar, titlePart } = await import('../src/core/tpdb');
+    expect(titlePart('Estudio Teste - Ana Exemplo - Grande Festa 10 (2016) [4K]')).toBe('Grande Festa 10');
+    expect(similar('Grande Festa 10', 'Grande Festa Vol. 10')).toBe(1);
+    expect(similar('Anal Bufet 10', 'Anal Buffet 10')).toBe(1);
+    expect(similar('Grande Festa 11', 'Grande Festa Vol. 10')).toBe(0);
+    expect(similar('Grande Festa', 'Pequena Reuniao')).toBe(0);
+    expect(similar('Kali Rose', 'Kali Roses')).toBe(1);
   });
 });

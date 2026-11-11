@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.33.0 — mais capas e capa com a foto da atriz
+- Categoria de adultos: o PRISMA procura a capa na ThePornDB também pelo título com nome parecido (ex.: "Grande Festa 10" acha "Grande Festa Vol. 10"), sem aceitar outra parte ou outro volume
+- Sem capa em lugar nenhum: a capa vira a foto da atriz do filme (a que está no nome do título é a principal). Com mais de uma atriz, parando o controle ou o mouse na capa por 3 segundos, as fotos vão se revezando
+- As atrizes encontradas assim também entram no filtro de atrizes, com a foto da ThePornDB
+
 ## 0.32.0 — atrizes, senha com horário livre e capas
 - Categoria de adultos: fileira de atrizes acima dos filmes, com foto. Escolha uma e aparecem só os filmes dela ("Procurar" acha qualquer atriz). As fotos vêm da ThePornDB; sem o token, os nomes saem do título dos filmes
 - Senha com horário livre: antes das 22:00 o conteúdo protegido pede a senha; das 22:00 às 06:00 abre sem senha. Os horários mudam em Ajustes › Proteção, e mudar pede a senha

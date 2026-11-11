@@ -55,6 +55,11 @@ const vods = Array.from({ length: 64 }, (_, i) => ({
 [['Estudio Teste - Ana Exemplo - Noite Quatro', 'quebrada-404.svg'], ['Estudio Teste - Ana Exemplo & Bia Modelo - Tarde Cinco', 'a5.svg'], ['Outro Estudio - Bia Modelo - Manha Seis', 'a6.svg'], ['Outro Estudio - Carla Teste - Sete', 'a7.svg']].forEach(([name, img], k) =>
   vods.push({ name, stream_id: 3960 + k, stream_icon: `http://127.0.0.1:${PORT}/poster/${img}`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000100 + k), year: '2024' }),
 );
+// 0.33.0: nome parecido ("Grande Festa 10" × "Grande Festa Vol. 10"), número diferente (não pode pegar a capa)
+// e filme sem capa em lugar nenhum com duas atrizes no título (capa = foto delas, trocando).
+[['Estudio Teste - Grande Festa 10 (2016)', 3970], ['Estudio Teste - Grande Festa 11 (2016)', 3971], ['Estudio Teste - Bia Modelo & Carla Teste - Encontro Oito', 3972]].forEach(([name, id], k) =>
+  vods.push({ name, stream_id: id, stream_icon: `http://127.0.0.1:${PORT}/poster/generica.svg`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000200 + k), year: '2024' }),
+);
 // Mesmo filme em outras versões (para "versões num só card")
 vods.push({ name: 'Rota 66 [LEG] (2019)', stream_id: 3900, stream_icon: `http://127.0.0.1:${PORT}/poster/m10.svg`, category_id: '105', container_extension: 'mp4', rating: '7.0', added: String(1789990000), year: '2019' });
 vods.push({ name: 'Rota 66 4K (2019)', stream_id: 3901, stream_icon: `http://127.0.0.1:${PORT}/poster/m10.svg`, category_id: '104', container_extension: 'mp4', rating: '7.0', added: String(1789990001), year: '2019' });
@@ -226,11 +231,19 @@ createServer((req, res) => {
     const joao = { name: 'Joao Ator', face: face('joao'), parent: { extras: { gender: 'Male' } } };
     if (u.pathname === '/tpdb/performers') {
       const qn = (u.searchParams.get('q') || '').toLowerCase();
-      const perf = qn === 'bia modelo' ? [{ name: 'Bia Modelo', face: face('bia'), extras: { gender: 'Female' } }] : [];
+      const all = [
+        { name: 'Bia Modelo', face: face('bia'), image: face('bia-corpo'), posters: [{ url: `http://127.0.0.1:${PORT}/poster/atriz-bia.svg` }], extras: { gender: 'Female' } },
+        { name: 'Carla Teste', face: face('carla'), posters: [{ url: `http://127.0.0.1:${PORT}/poster/atriz-carla.svg` }], extras: { gender: 'Female' } },
+        { name: 'Ana Exemplo', face: face('ana'), posters: [{ url: `http://127.0.0.1:${PORT}/poster/atriz-ana.svg` }], extras: { gender: 'Female' } },
+      ];
+      const perf = all.filter((x) => x.name.toLowerCase() === qn);
       return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: perf }));
     }
     if (u.pathname === '/tpdb/scenes' && p.includes('noite quatro'))
       return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ id: 's4', title: 'Noite Quatro', site: { name: 'Estudio Teste' }, date: '2024-06-01', performers: [ana, joao], posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-noite.svg` } }] }));
+    const tq = (u.searchParams.get('q') || '').toLowerCase();
+    if (u.pathname === '/tpdb/movies' && tq.includes('grande festa'))
+      return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ id: 'm10', title: 'Grande Festa Vol. 10', date: '2016-03-01', posters: { large: `http://127.0.0.1:${PORT}/poster/grande-festa-10.svg` } }, { id: 'm9', title: 'Grande Festa Vol. 9', date: '2015-03-01', posters: { large: `http://127.0.0.1:${PORT}/poster/grande-festa-9.svg` } }] }));
     const data = u.pathname === '/tpdb/scenes' && p.includes('cena adulta dois')
       ? [{ id: 's2', title: 'Cena Adulta Dois', site: { name: 'Estudio Teste' }, date: '2024-05-01', performers: [ana, joao], posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-cena.svg` }, background: { large: `http://127.0.0.1:${PORT}/poster/tpdb-cena-b.svg` } }]
       : u.pathname === '/tpdb/scenes' && p === 'test' ? [] : [];

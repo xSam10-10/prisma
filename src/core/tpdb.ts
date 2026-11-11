@@ -33,15 +33,19 @@ interface Perf {
   image?: string;
   face?: string;
   thumbnail?: string;
+  posters?: { url?: string }[];
   extra?: Gender;
   extras?: Gender;
-  parent?: { name?: string; image?: string; face?: string; thumbnail?: string; extras?: Gender; extra?: Gender };
+  parent?: { name?: string; image?: string; face?: string; thumbnail?: string; posters?: { url?: string }[]; extras?: Gender; extra?: Gender };
 }
 
 /** Atriz do resultado (0.32.0): nome e foto do rosto. Homens ficam de fora. */
 export interface Performer {
   name: string;
+  /** Rosto (para o filtro, redondo). */
   photo?: string;
+  /** Foto em pé (para a capa, 0.33.0). */
+  portrait?: string;
 }
 function toPerformer(p: Perf): Performer | null {
   const name = (p.name || p.parent?.name || '').trim();
@@ -49,7 +53,9 @@ function toPerformer(p: Perf): Performer | null {
   const g = (p.extra?.gender || p.extras?.gender || p.parent?.extras?.gender || p.parent?.extra?.gender || '').toLowerCase();
   if (g && !/female|woman|trans/.test(g)) return null;
   const photo = p.face || p.parent?.face || p.image || p.parent?.image || p.thumbnail || p.parent?.thumbnail || undefined;
-  return { name, photo };
+  const post = (l?: { url?: string }[]) => (Array.isArray(l) ? l.map((x) => x && x.url).filter(Boolean)[0] : undefined);
+  const portrait = post(p.posters) || post(p.parent?.posters) || p.image || p.parent?.image || p.thumbnail || p.parent?.thumbnail || photo;
+  return { name, photo, portrait };
 }
 export function performersOfItem(it: { performers?: Perf[] }): Performer[] {
   const out: Performer[] = [];
@@ -137,18 +143,98 @@ function negId(s: string): number {
   return -Math.abs(h || 1);
 }
 
-/** Procura cena e depois filme; aceita só se o título bater o suficiente com o da lista. */
+// ---- Nome parecido (0.33.0) ----
+// "Anal Buffet 10" na lista e "Anal Buffet Vol. 10" na ThePornDB são o mesmo filme; "... 11" não é.
+
+const allWords = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .split(' ')
+    .filter((w) => w && !FILLER.has(w));
+const FILLER = new Set(['vol', 'volume', 'part', 'parte', 'the', 'a', 'an', 'and', 'e', 'o', 'de', 'of', 'episode', 'ep', 'scene', 'cena']);
+const isNum = (w: string) => /^\d+$/.test(w);
+function lev(a: string, b: string): number {
+  if (a === b) return 0;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+/** Palavras iguais ou com uma letra de diferença (palavras de 4+ letras; números só iguais). */
+const wordEq = (x: string, y: string) => x === y || (!isNum(x) && !isNum(y) && x.length >= 4 && y.length >= 4 && lev(x, y) <= 1);
+
+/**
+ * Semelhança entre dois títulos (0 a 1). Os números precisam ser os mesmos (parte/volume),
+ * senão é 0. Palavras com uma letra de diferença contam como iguais.
+ */
+export function similar(a: string, b: string): number {
+  const A = allWords(a);
+  const B = allWords(b);
+  if (!A.length || !B.length) return 0;
+  if (A.filter(isNum).join(',') !== B.filter(isNum).join(',')) return 0;
+  const used: boolean[] = [];
+  let hit = 0;
+  for (const x of A) {
+    for (let j = 0; j < B.length; j++)
+      if (!used[j] && wordEq(x, B[j])) {
+        used[j] = true;
+        hit++;
+        break;
+      }
+  }
+  return (2 * hit) / (A.length + B.length);
+}
+
+/** Pedaços do nome "Estúdio - Atriz - Título": o título é o último. */
+export function titlePart(name: string): string {
+  const segs = adultQuery(name)
+    .replace(/\((19|20)\d{2}\)/g, ' ')
+    .split(/\s+[-–|]\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return segs.length ? segs[segs.length - 1] : '';
+}
+
+function toInfo(best: Item, q: string, year?: number): TmdbInfo | null {
+  const poster = pick(best.posters) || best.poster || best.image;
+  const backdrop = pick(best.background) || best.image || poster;
+  if (!poster && !backdrop) return null;
+  const y = best.date ? Number(best.date.slice(0, 4)) : year;
+  return {
+    id: negId(String(best.id ?? best._id ?? best.title)),
+    type: 'movie',
+    title: best.title || q,
+    poster: poster || backdrop,
+    backdrop,
+    overview: best.description || undefined,
+    year: y && !isNaN(y) ? y : undefined,
+    performers: performersOfItem(best),
+  };
+}
+
+/**
+ * Procura o título na ThePornDB:
+ * 1) cena e filme pelo nome inteiro (modo "parse", que entende "Estúdio - Atriz - Título");
+ * 2) filme e cena só pelo título, aceitando nome bem parecido (ver `similar`).
+ * Se achar o conteúdo mas sem capa, devolve só as atrizes (a capa vira a foto delas).
+ */
 export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo | null> {
   const key = tpdbKey();
   if (!key) return null;
   const q = adultQuery(name);
   if (q.length < 3) return null;
+  let cast: Performer[] = [];
   for (const kind of ['scenes', 'movies']) {
     const r = await get(`/${kind}?parse=${encodeURIComponent(q)}&per_page=5`, key);
-    const list = r?.data ?? [];
     let best: Item | undefined;
     let score = 0;
-    for (const it of list) {
+    for (const it of r?.data ?? []) {
       const full = `${it.title ?? ''} ${it.site?.name ?? ''} ${(it.performers ?? []).map((p) => p.name ?? p.parent?.name ?? '').join(' ')}`;
       const sc = sameContent(q, full, 0.5) ? Math.max(overlap(q, full), overlap(it.title ?? '', q)) : 0;
       if (sc > score) {
@@ -157,36 +243,56 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
       }
     }
     if (best && score > 0) {
-      const poster = pick(best.posters) || best.poster || best.image;
-      const backdrop = pick(best.background) || best.image || poster;
-      if (!poster && !backdrop) continue;
-      const y = best.date ? Number(best.date.slice(0, 4)) : year;
-      return {
-        id: negId(String(best.id ?? best._id ?? best.title)),
-        type: 'movie',
-        title: best.title || q,
-        poster: poster || backdrop,
-        backdrop,
-        overview: best.description || undefined,
-        year: y && !isNaN(y) ? y : undefined,
-        performers: performersOfItem(best),
-      };
+      const info = toInfo(best, q, year);
+      if (info) return info;
+      if (!cast.length) cast = performersOfItem(best);
     }
   }
-  return null;
+  // Nome parecido: busca de texto só com o título (sem estúdio e atriz).
+  const t = titlePart(name);
+  if (allWords(t).length >= 2 || (allWords(t).length === 1 && t.length >= 6)) {
+    for (const kind of ['movies', 'scenes']) {
+      const r = await get(`/${kind}?q=${encodeURIComponent(t)}&per_page=10`, key);
+      let best: Item | undefined;
+      let score = 0;
+      for (const it of r?.data ?? []) {
+        const sc = similar(t, it.title ?? '');
+        // Ano diferente (quando os dois dizem) derruba.
+        const y = it.date ? Number(it.date.slice(0, 4)) : undefined;
+        if (year && y && Math.abs(year - y) > 1) continue;
+        if (sc > score) {
+          score = sc;
+          best = it;
+        }
+      }
+      if (best && score >= 0.8) {
+        const info = toInfo(best, t, year);
+        if (info) return info;
+        if (!cast.length) cast = performersOfItem(best);
+      }
+    }
+  }
+  return cast.length ? { id: negId('cast:' + q), type: 'movie', title: t || q, performers: cast } : null;
 }
 
-/** Foto de uma atriz pelo nome (para quem só aparece no título da lista). */
-export async function tpdbPerformer(name: string): Promise<Performer | null> {
-  const key = tpdbKey();
-  if (!key) return null;
-  const r = await get(`/performers?q=${encodeURIComponent(name)}&per_page=5`, key).catch(() => null);
-  const n = words(name).join(' ');
-  for (const it of (r?.data ?? []) as Perf[]) {
-    const p = toPerformer(it);
-    if (p && words(p.name).join(' ') === n) return p;
+// Atrizes já procuradas nesta sessão (o mesmo nome aparece em vários filmes).
+const perfMemo = new Map<string, Promise<Performer | null>>();
+
+/** Atriz pelo nome (aceita uma letra de diferença, ex.: "Kali Rose" × "Kali Roses"). */
+export function tpdbPerformer(name: string): Promise<Performer | null> {
+  const k = words(name).join(' ');
+  let p = perfMemo.get(k);
+  if (!p) {
+    p = (async () => {
+      const key = tpdbKey();
+      if (!key) return null;
+      const r = await get(`/performers?q=${encodeURIComponent(name)}&per_page=5`, key).catch(() => null);
+      const found = ((r?.data ?? []) as Perf[]).map(toPerformer).filter((x): x is Performer => !!x);
+      return found.find((x) => words(x.name).join(' ') === k) ?? found.find((x) => similar(name, x.name) === 1) ?? null;
+    })();
+    perfMemo.set(k, p);
   }
-  return null;
+  return p;
 }
 
 /** Confere a chave com uma busca pequena. */

@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.32.0)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.33.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -553,6 +553,13 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - **Atrizes** (só Filmes › categoria de adulto): `src/core/actresses.ts` (`namesInTitle`, `studiosOf`, `buildActresses`, `namesToVerify`) + `src/screens/Actresses.tsx` (`useActresses`, `ActressRow`, busca em janela). Fontes: `performers` das cenas da ThePornDB (`performersOfItem`, homens fora; foto = `face`) e nomes do título ("Estúdio - Atriz & Atriz - Título"; o 1º pedaço de títulos com 3+ partes é estúdio). Com token, nome do título só entra se `tpdbPerformer` (`/performers?q=`) confirmar (cache IDB `tpdbPerf`); sem token, entra o nome que aparece em 2+ títulos. Busca até 150 títulos novos por abertura (3 de cada vez); o resto vem do cache. Foco: ▲ da grade vai para a atriz escolhida (ou "Todas").
 - **Horário livre** (`parental.ts`): pref `freeHours` {on, from, to} (padrão ligado, 22 → 6; sincroniza na nuvem). Dentro do horário, `applyParental`, `catsLockedNow` e `isLocked` liberam tudo sem senha; um timer de 30 s revê quando vira a hora. Ajustes › Proteção › "Horário livre" (Ligado, "Libera às" 20–23/00, "Volta às" 00/05–08); qualquer mudança pede a senha.
 - Servidor falso: 4 títulos com atrizes inventadas (Ana Exemplo, Bia Modelo, Carla Teste; um com capa que dá 404), cenas com `performers` (inclui um ator, que não pode aparecer) e `/tpdb/performers`. Testes: `test/actresses.test.ts`.
+
+## 10av. Versão 0.33.0 — capa por nome parecido e capa com a foto da atriz (11/11)
+- Pedido do Samuel (com prints da ThePornDB): usar mais a ThePornDB, aceitar nome bem parecido "só se fizer sentido" e, sem capa, pôr a foto da atriz; várias atrizes → a capa troca após 3 s de foco/mouse; atriz do título é a padrão.
+- `tpdbLookup` (tpdb.ts): depois do `parse=` (cenas e filmes), busca `/movies?q=` e `/scenes?q=` só com `titlePart` (último pedaço de "Estúdio - Atriz - Título") e aceita `similar` ≥ 0,8 — palavras com 1 letra de diferença (4+ letras) contam iguais, "vol/part/the…" não contam, **os números precisam ser os mesmos** (volume 10 ≠ 11) e ano diferente (> 1) derruba. Achou o conteúdo sem capa → devolve só as atrizes.
+- `adultInfo` (tmdb.ts; cache `adult3|…`): ThePornDB › TMDB adulto › `actressCover`: atrizes da cena + nomes do título conferidos com `tpdbPerformer` (agora com memória da sessão e nome parecido), ordenadas pela ordem em que aparecem no título; capa = `portrait` (1º pôster da atriz › image › thumbnail › face). `TmdbInfo.actressCover`.
+- `PosterCard` (Vod.tsx): capa de atriz mostra o nome e pontinhos; com foco (`selected`) ou mouse por 3 s, troca a cada 3 s; ao sair volta para a principal.
+- Servidor falso: "Grande Festa 10/11" (só o 10 pega "Vol. 10") e "Bia Modelo & Carla Teste - Encontro Oito" (capa de atriz trocando); `/tpdb/performers` com Ana, Bia e Carla com pôsteres.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

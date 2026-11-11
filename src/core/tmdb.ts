@@ -3,7 +3,8 @@ import { idbGet, idbSet, prefGet } from './storage';
 import type { Channel } from './types';
 import { isAdultName } from './parental';
 import { isGenericLogo } from './vod';
-import { adultQuery, sameContent, tpdbKey, tpdbLookup, type Performer } from './tpdb';
+import { adultQuery, sameContent, titlePart, tpdbKey, tpdbLookup, tpdbPerformer, type Performer } from './tpdb';
+import { actressKey, namesInTitle } from './actresses';
 
 // TMDB (The Movie Database): capas, fundos, sinopse em português, trailer e
 // "Top 10 da semana". Precisa de uma chave gratuita (API v3) nos Ajustes.
@@ -22,6 +23,8 @@ export interface TmdbInfo {
   original?: string;
   /** Atrizes (ThePornDB, 0.32.0). */
   performers?: Performer[];
+  /** Sem capa do filme: a capa é a foto das atrizes (0.33.0). */
+  actressCover?: boolean;
 }
 
 const API = () => prefGet<string>('tmdbBase', 'https://api.themoviedb.org/3');
@@ -157,7 +160,7 @@ export async function lookup(item: Channel, logoBroken = false): Promise<TmdbInf
 export async function adultInfo(item: Channel): Promise<TmdbInfo | null> {
   const name = item.fullName ?? item.name;
   const { title, year } = searchTitle(adultQuery(name));
-  const key = `adult2|${tpdbKey() ? 'p' : ''}${tmdbKey() ? 't' : ''}|${norm(title)}|${year ?? item.year ?? ''}`;
+  const key = `adult3|${tpdbKey() ? 'p' : ''}${tmdbKey() ? 't' : ''}|${norm(title)}|${year ?? item.year ?? ''}`;
   const c = await loadCache();
   if (key in c) return c[key];
   if (!tmdbKey() && !tpdbKey()) return null;
@@ -165,11 +168,13 @@ export async function adultInfo(item: Channel): Promise<TmdbInfo | null> {
     let info: TmdbInfo | null = null;
     try {
       if (tpdbKey()) info = await tpdbLookup(name, year ?? item.year);
-      if (!info && tmdbKey()) {
+      if (!info?.poster && tmdbKey()) {
         const r = await call<{ results: Raw[] }>('/search/movie', { query: title, include_adult: 'true' });
         const hit = (r.results ?? []).find((x) => x.adult && x.poster_path && (sameContent(title, x.title ?? '') || sameContent(title, x.original_title ?? '')));
-        if (hit) info = toInfo(hit, 'movie');
+        if (hit) info = { ...toInfo(hit, 'movie'), performers: info?.performers };
       }
+      // Nada de capa: a foto das atrizes vira a capa (a do título primeiro).
+      if (!info?.poster && tpdbKey()) info = await actressCover(name, info);
     } catch {
       info = null;
     }
@@ -177,6 +182,39 @@ export async function adultInfo(item: Channel): Promise<TmdbInfo | null> {
     persist();
     return info;
   });
+}
+
+/**
+ * Capa com a foto das atrizes (0.33.0): as que a ThePornDB disse que estão no filme e/ou os nomes
+ * do título, conferidos lá. A atriz cujo nome está no título vem primeiro (é a capa padrão).
+ */
+async function actressCover(name: string, found: TmdbInfo | null): Promise<TmdbInfo | null> {
+  const inTitle = namesInTitle(name);
+  const cast = (found?.performers ?? []).slice();
+  for (const n of inTitle) if (!cast.some((p) => actressKey(p.name) === actressKey(n))) cast.push({ name: n });
+  const rank = (p: Performer) => {
+    const i = inTitle.findIndex((n) => actressKey(n) === actressKey(p.name));
+    return i < 0 ? 99 : i;
+  };
+  cast.sort((a, b) => rank(a) - rank(b));
+  const out: Performer[] = [];
+  for (const p of cast.slice(0, 5)) {
+    // Sem foto (ou só um nome do título): procura a atriz na ThePornDB.
+    const full = p.portrait ? p : await tpdbPerformer(p.name);
+    if (full?.portrait) out.push({ ...full, name: full.name || p.name });
+  }
+  if (!out.length) return found;
+  return {
+    id: found?.id ?? -Math.abs(name.length * 7919 + 1),
+    type: 'movie',
+    title: found?.title || titlePart(name) || name,
+    poster: out[0].portrait,
+    backdrop: out[0].portrait,
+    overview: found?.overview,
+    year: found?.year,
+    performers: out,
+    actressCover: true,
+  };
 }
 
 /** Trailer no YouTube (pt-BR; se não houver, em inglês). */
