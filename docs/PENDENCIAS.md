@@ -1,4 +1,4 @@
-# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.29.0)
+# PRISMA — Melhorias pendentes (atualizado em 11/11/2026, versão 0.30.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -17,14 +17,14 @@ visual premium III 0.22.0: 28 página do ator, 52 novidades/em breve ("Chegando 
 visual premium IV 0.23.0: 66 "Ainda está assistindo?", 63 aviso de novo episódio (selo + "Me avise"), busca nova (teclado em grade, ator, gênero), maratona de coleção, Dia de jogo no Início, guia com arte do programa, capa que cresce até o detalhe.
 pendências [1º] 0.24.0: 7 controle parental (senha para categorias +18 e qualquer categoria; o perfil infantil ficou de fora junto com o Perfil Kids descartado), 41 esconder canais e categorias, 15 começar do início, 70 lembrar áudio/legenda, 57 versões num só card, 62 marcar filme/série como visto, 64 série abre no próximo episódio, 76 tirar de Continuar assistindo, 81 busca tolerante, 38 várias listas, 39 painel da assinatura. (48, 53, 54 e 61 já estavam feitas.)
 
-**Itens tirados da lista pelo Samuel em 10/11 — não oferecer de novo:** 36 canal favorito ao abrir, 16 pausar o ao vivo, 40 diagnóstico do canal, 19 gravar programas, 17 multitela, logos de canais que faltam, 37 apagar histórico item a item, 18 picture-in-picture do sistema, 12 voz no app Android, 82 buscas recentes, 34 PIN por perfil, 35 tempo de tela infantil, 43 atalhos para apps oficiais, 13 assinatura digital do instalador.
+**Itens tirados da lista pelo Samuel em 10/11 — não oferecer de novo:** 36 canal favorito ao abrir, 16 pausar o ao vivo, 40 diagnóstico do canal, 19 gravar programas, 17 multitela, logos de canais que faltam, 37 apagar histórico item a item, 18 picture-in-picture do sistema, 12 voz no app Android, 82 buscas recentes, 34 PIN por perfil, 35 tempo de tela infantil, 43 atalhos para apps oficiais, 13 assinatura digital do instalador, 23 Chromecast.
 
 **Sugestões de design premium descartadas pelo Samuel (09/11) — não oferecer de novo:** Perfil Kids (rodada 3, nº 11); da rodada 4: Quem está assistindo? em tela cheia, Retrospectiva do mês, Trailer em tela cheia com som, Modo ambiente (Ambilight), Pular abertura/recapitulação como item de design, Legendas premium. (Os itens 65 Pular abertura e 69 Estilo da legenda da lista original continuam na lista abaixo.)
 centro de esportes 0.25.0–0.26.0: hub de Jogos, página de cada campeonato (calendário, tabela, chaves, times, destaques com artilheiros/assistências/sequências, forma dos últimos 5), Fórmula 1 completa, Semana do GP no Início, 31 placar flutuante em tela cheia.
 
 51 identidade visual por streaming (0.27.0 cores; 0.28.0 modo Marcante para os 18 streamings; três modos em Aparência).
 
-0.29.0: 80 filtros por ano e áudio, 68 velocidade, 69 estilo da legenda + legenda .srt/.vtt do aparelho, 34 avatar com foto.
+0.30.0: 9 nuvem (Gist), 11 ExoPlayer (Android, filmes/séries), 14 Roku básico; 80 filtros por ano e áudio, 68 velocidade, 69 estilo da legenda + legenda .srt/.vtt do aparelho, 34 avatar com foto.
 
 Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organizado nas seções pedidas pelo Samuel.
 
@@ -48,10 +48,10 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 - Logotipos de **Star+, Discovery+ e Hulu** (hoje tipográficos; o Samuel vai criar no ChatGPT).
 
 ## 6. Geral
-- **11 · Player mais completo no Android (ExoPlayer)** — áudio/legenda e estabilidade [Depois].
-- **9 · Sincronização automática pela nuvem** (hoje por arquivo) · **23 · Chromecast** · **14 · App para Roku** [Grande].
+- Nada pendente (0.30.0: 11 ExoPlayer para filmes/séries no Android, 9 nuvem por Gist do GitHub, 14 app básico para Roku). Chromecast (23) saiu da lista a pedido do Samuel (11/11). Próximos passos possíveis do Roku, se ele pedir: guia, favoritos e visual do app principal.
 
 ## Depende do Samuel
+- **0.30.0 nos aparelhos:** criar o token do GitHub (só "gist") e ligar a nuvem em cada aparelho (o 1º vira a base); no Android, abrir um filme e uma série no player novo (áudio/legendas na engrenagem); no Roku, instalar o PRISMA-Roku pelo modo desenvolvedor (roku/LEIAME.md) e testar login, ao vivo, filmes e séries.
 - ✅ Repositório público (08/11) e atualização dentro do app conferida no Windows pelo Samuel (09/11, 0.18.1 → 0.19.x).
 - ✅ Secret `TMDB_KEY` cadastrado (09/11): Tops com 223 listas (Netflix oficial em português, streamings, gêneros, gêneros por streaming, especiais).
 - **Jogos com a Goldcard**: conferir na TV/PC o centro de esportes (0.25–0.26): canais dos jogos e da F1 achados no guia (sem guia aparece "canal provável"), placar na tela em tela cheia. O "Guia de jogos" mostra diagnóstico se vier vazio — mandar print.

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- PRISMA para Roku: menu à esquerda, categorias no meio, lista à direita e o player por cima. -->
+<component name="MainScene" extends="Scene">
+  <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+  <children>
+    <Rectangle id="bg" width="1920" height="1080" color="#0B0B12" />
+    <Rectangle id="glow" width="1920" height="6" translation="[0,0]" color="#3DD6C4" />
+
+    <Label id="brand" text="PRISMA" translation="[80,60]" color="#F4F4F8">
+      <Font role="font" uri="font:BoldSystemFontFile" size="56" />
+    </Label>
+    <Label id="crumb" text="" translation="[300,78]" color="#A6A6B8">
+      <Font role="font" uri="font:MediumSystemFontFile" size="30" />
+    </Label>
+    <Label id="status" text="" translation="[80,1000]" width="1760" color="#A6A6B8">
+      <Font role="font" uri="font:MediumSystemFontFile" size="26" />
+    </Label>
+
+    <LabelList id="menu" translation="[80,190]" itemSize="[340,72]" itemSpacing="[0,8]" numRows="10"
+      color="#D6D6E0" focusedColor="#0B0B12" focusBitmapBlendColor="#F4F4F8" drawFocusFeedback="true">
+      <Font role="font" uri="font:MediumBoldSystemFontFile" size="32" />
+      <Font role="focusedFont" uri="font:MediumBoldSystemFontFile" size="32" />
+    </LabelList>
+
+    <LabelList id="cats" translation="[470,190]" itemSize="[520,62]" itemSpacing="[0,6]" numRows="12"
+      color="#D6D6E0" focusedColor="#0B0B12" focusBitmapBlendColor="#3DD6C4" drawFocusFeedback="true" vertFocusAnimationStyle="floatingFocus">
+      <Font role="font" uri="font:MediumSystemFontFile" size="28" />
+      <Font role="focusedFont" uri="font:MediumBoldSystemFontFile" size="28" />
+    </LabelList>
+
+    <LabelList id="items" translation="[1020,190]" itemSize="[600,62]" itemSpacing="[0,6]" numRows="12"
+      color="#F4F4F8" focusedColor="#0B0B12" focusBitmapBlendColor="#F4F4F8" drawFocusFeedback="true" vertFocusAnimationStyle="floatingFocus">
+      <Font role="font" uri="font:MediumSystemFontFile" size="28" />
+      <Font role="focusedFont" uri="font:MediumBoldSystemFontFile" size="28" />
+    </LabelList>
+
+    <Poster id="art" translation="[1650,190]" width="200" height="300" loadDisplayMode="scaleToFit" />
+
+    <Video id="video" width="1920" height="1080" visible="false" enableUI="true" />
+  </children>
+</component>

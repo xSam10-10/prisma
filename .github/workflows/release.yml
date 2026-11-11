@@ -43,12 +43,16 @@ jobs:
       - run: npm run build:webos
       - run: npx --yes es-check@8.0.2 es5 "dist-webos/assets/*.js"
       - run: npx --yes -p @webos-tools/cli ares-package dist-webos -o .
+      # Roku (0.30.0): app básico, instalado no modo desenvolvedor do Roku
+      - run: npx --yes brighterscript@0.65.27 --rootDir roku --createPackage false --copyToStaging false
+      - run: node scripts/roku-pack.mjs .
       - uses: actions/upload-artifact@v4
         with:
           name: webos
           path: |
             com.prisma.iptv_*.ipk
             dist-ota/prisma-webos-*.json
+            PRISMA-Roku-*.zip
 
   android:
     runs-on: ubuntu-latest
@@ -116,7 +120,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           case "$TAG" in v*) ;; *) TAG="v$(date +%Y.%m.%d-%H%M)";; esac
-          NOTES="Downloads: PRISMA-Setup (Windows), com.prisma.iptv (TV LG) e PRISMA-Android (celular e Google TV). prisma-update.json e prisma-webos-*.json são da atualização dentro do app. No Windows, na primeira vez: Mais informações › Executar assim mesmo."
+          NOTES="Downloads: PRISMA-Setup (Windows), com.prisma.iptv (TV LG), PRISMA-Android (celular e Google TV) e PRISMA-Roku (instalar no modo desenvolvedor do Roku — veja roku/LEIAME.md). prisma-update.json e prisma-webos-*.json são da atualização dentro do app. No Windows, na primeira vez: Mais informações › Executar assim mesmo."
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "PRISMA $TAG" --notes "$NOTES" --target "$GITHUB_SHA"
           gh release upload "$TAG" $(find out -maxdepth 1 -type f) --clobber
       # Atualização dentro do app: os apps leem releases/latest/download deste

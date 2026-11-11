@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.29.0)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.30.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -525,13 +525,18 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - A grade "Explore tudo/Tudo no…" continua com capas em pé em todos (mexer na VirtualGrid seria arriscado na TV). Fontes vêm do Google Fonts: sem internet, cai na Inter.
 - `scan-foco` passa por três streamings (em pé e deitadas); testes em `test/skin.test.ts`.
 
-## 10aq. Versão 0.29.0 — velocidade, legendas, filtros e foto (11/11)
+## 10aq. Versão 0.30.0 (parte 1, feita como 0.29.0 e publicada junto) — velocidade, legendas, filtros e foto (11/11)
 - Samuel tirou da lista (não oferecer de novo): canal favorito ao abrir, pausar o ao vivo, diagnóstico do canal, gravar, multitela, logos de canais, apagar histórico item a item, PiP do sistema, voz no Android, buscas recentes, PIN por perfil, tempo de tela infantil, atalhos para apps oficiais, assinatura do instalador.
 - Velocidade: botão no controle de filmes/séries (`RATES` em Player.tsx: 1, 1,25, 1,5, 0,75), volta a 1× ao trocar de título.
 - Legendas: `src/ui/subtitles.ts` — `applyCueStyle` (folha `#prisma-cue`, regra `video::cue`; ajustes `subSize`, `subColor`, `subBg`), `srtToVtt`, `loadSubtitleFile` (relê em Latin-1 se vier com acento quebrado) e `shiftTrack` (±0,5 s). O diálogo "Áudio e legendas" abre também sem trilhas ("Legendas") para carregar o arquivo (não na TV LG, sem seletor de arquivo). A legenda do arquivo vira `<track>` no `<video>`.
 - Filtros: `YEARS`/`LANGS` em Vod.tsx (botões "Ano ▾" e "Áudio ▾" ao lado de Recentes/A–Z/Nota; OK passa para a próxima opção; áudio pelo `audioTag`).
 - Foto no perfil: `Profile.photo` (JPEG 256×256 em data URL, `photoFromFile`), `ProfileAvatar` desenha a foto; botão do perfil no topo também. Fica só no aparelho onde foi escolhida (e vai no arquivo de Dados).
-- Pendentes grandes ainda a decidir com o Samuel: 11 ExoPlayer no Android, 9 nuvem, 23 Chromecast, 14 Roku.
+
+## 10ar. Versão 0.30.0 (parte 2) — nuvem, ExoPlayer e Roku (11/11)
+- Decisões do Samuel: ExoPlayer só para filmes e séries; nuvem por Gist privado do GitHub; Chromecast fora; Roku básico (ele tem um Roku para testar).
+- **Nuvem** (`src/core/cloud.ts`, `src/screens/CloudSync.tsx`): token do GitHub com escopo só "gist", digitado em Ajustes › Dados em cada aparelho e guardado só nele (`prisma.cloud`); Gist privado "PRISMA · sincronização (não apague)" com `prisma-sync.json`. `prefSet` grava a hora de cada mudança das chaves `SYNC_KEYS` (`prisma.syncStamps`); a mais nova vence por chave, empate (dados antigos) = vale a nuvem (o 1º aparelho é a base). Ao abrir (`cloudPullOnStart`, até 3,5 s, em main.tsx) puxa e aplica; com o app aberto só envia (a cada 5 min e ao sair da frente). Não sincroniza: `sources` (login da lista), chave do TMDB, layout/escala/margem/formato ao vivo. GitHub falso em `/gh/` no servidor de testes (token `teste-token-0123456789abcdef`, pref `cloudApi`).
+- **ExoPlayer** (Android): `NativePlayerActivity` (Media3 1.4.1, `PlayerView` com engrenagem de áudio/legendas/velocidade, ◀ ▶ = 10 s, português preferido) + `NativePlayerPlugin` (`NativePlayer.play` → posMs/durMs/ended/error). `App.playVod` usa o nativo para filmes/séries no Android (ajuste `androidPlayer`, padrão exo); ao voltar salva o progresso e, se o episódio acabou, segue a fila. APK compilado no workflow Android (branch de teste); não testado num aparelho.
+- **Roku** (`roku/`): SceneGraph/BrightScript — `MainScene` (menu › categorias › lista › episódios › Video), `XtreamTask` (rede), login com `StandardKeyboardDialog` guardado no registro do Roku. `scripts/roku-pack.mjs` gera `PRISMA-Roku-x.zip` (versão do manifest = package.json); a Release roda `brighterscript` (validação) e publica o zip. Instalação: `roku/LEIAME.md`. Não testado num Roku.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

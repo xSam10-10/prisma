@@ -1,0 +1,14 @@
+title=PRISMA
+major_version=0
+minor_version=30
+build_version=0
+mm_icon_focus_hd=pkg:/images/icon_hd.png
+mm_icon_side_hd=pkg:/images/icon_hd.png
+mm_icon_focus_fhd=pkg:/images/icon_fhd.png
+mm_icon_side_fhd=pkg:/images/icon_fhd.png
+splash_screen_hd=pkg:/images/splash_hd.png
+splash_screen_fhd=pkg:/images/splash_fhd.png
+splash_color=#0B0B12
+splash_min_time=800
+ui_resolutions=fhd
+supports_input_launch=1

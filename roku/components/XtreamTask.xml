@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Busca na API Xtream fora da tela (o Roku não deixa acessar a rede na thread da tela). -->
+<component name="XtreamTask" extends="Task">
+  <interface>
+    <field id="url" type="string" />
+    <field id="kind" type="string" />
+    <field id="result" type="assocarray" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/XtreamTask.brs" />
+</component>

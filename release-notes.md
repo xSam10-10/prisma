@@ -1,7 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
-## 0.29.0 — velocidade, legendas, filtros e foto no perfil
+## 0.30.0 — nuvem, player do Android, Roku, legendas e filtros
+- Sincronização pela nuvem: favoritos, Minha lista, seções, onde você parou, histórico, lembretes, perfis e ajustes iguais na TV, no computador e no celular (Ajustes › Dados, com um token do GitHub; fica num Gist privado seu)
+- Android: filmes e séries abrem no player do Android (ExoPlayer), com troca de áudio, legendas e velocidade na engrenagem; dá para voltar ao player do PRISMA em Ajustes › Player
+- Roku: app básico do PRISMA (canais ao vivo, filmes e séries), instalado no modo desenvolvedor — o arquivo PRISMA-Roku está na página de downloads
 - Filmes e séries: botão de velocidade no player (1×, 1,25×, 1,5× e 0,75×)
 - Legendas: tamanho (pequena a muito grande), cor e fundo em Ajustes › Player
 - Legenda de um arquivo .srt ou .vtt do aparelho (computador e celular), com "Adiantar/Atrasar 0,5 s" para acertar a sincronia
