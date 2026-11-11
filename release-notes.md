@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.32.0 — atrizes, senha com horário livre e capas
+- Categoria de adultos: fileira de atrizes acima dos filmes, com foto. Escolha uma e aparecem só os filmes dela ("Procurar" acha qualquer atriz). As fotos vêm da ThePornDB; sem o token, os nomes saem do título dos filmes
+- Senha com horário livre: antes das 22:00 o conteúdo protegido pede a senha; das 22:00 às 06:00 abre sem senha. Os horários mudam em Ajustes › Proteção, e mudar pede a senha
+- Capas da categoria de adultos: agora funcionam só com o token da ThePornDB (sem a chave do TMDB), também trocam capas da lista que não abrem e refazem as buscas quando o token chega pela nuvem
+
 ## 0.31.1
 - Star+, Discovery+ e Hulu ganharam os logotipos de verdade (coloridos e na versão branca), nos botões de Filmes e Séries e no destaque de cada streaming
 

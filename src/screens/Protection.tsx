@@ -2,11 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Playlist } from '../core/types';
 import { categoriesOf } from '../core/source';
 import {
-  catKey, catsUnlocked, checkPin, hasPin, hiddenCats, hiddenChannels, lockedCats, lockedIds, onParental, pinChanged, relockCats,
+  catKey, catsUnlocked, checkPin, freeHours, hasPin, hourLabel, inFreeHours, setFreeHours, hiddenCats, hiddenChannels, lockedCats, lockedIds, onParental, pinChanged, relockCats,
   setCatHidden, setCatLocked, setChannelHidden, setLocked, setPin, unlockCats,
 } from '../core/parental';
 import { PinDialog } from './ChannelBar';
 import { toast } from '../ui/premium2';
+import type { FreeHours } from '../core/parental';
+
+const FROM = [20, 21, 22, 23, 0];
+const TO = [0, 5, 6, 7, 8];
+const next = (l: number[], v: number) => l[(l.indexOf(v) + 1) % l.length];
 
 // Ajustes › Proteção: senha, categorias protegidas (pedem a senha), categorias e canais escondidos.
 
@@ -15,7 +20,15 @@ const KINDS: [('live' | 'movie' | 'series'), string][] = [['live', 'Ao vivo'], [
 export function ProtectionPanel({ playlist }: { playlist: Playlist }) {
   const [, tick] = useState(0);
   useEffect(() => onParental(() => tick((x) => x + 1)), []);
-  const [dlg, setDlg] = useState<null | 'create' | 'old' | 'new' | 'open' | 'unlockCh'>(null);
+  const [dlg, setDlg] = useState<null | 'create' | 'old' | 'new' | 'open' | 'unlockCh' | 'hours'>(null);
+  // Mudança do horário livre esperando a senha.
+  const [pendingHours, setPendingHours] = useState<FreeHours | null>(null);
+  const fh = freeHours();
+  const free = inFreeHours();
+  const askHours = (f: FreeHours) => {
+    setPendingHours(f);
+    setDlg('hours');
+  };
   const [chId, setChId] = useState('');
   const [kind, setKind] = useState<'live' | 'movie' | 'series'>('live');
   const [filter, setFilter] = useState<'all' | 'locked' | 'hidden'>('all');
@@ -37,7 +50,7 @@ export function ProtectionPanel({ playlist }: { playlist: Playlist }) {
           <b>Senha de 4 números</b>
           <span className="muted">
             {pin
-              ? `Ativa. ${locked.size} ${locked.size === 1 ? 'categoria protegida' : 'categorias protegidas'} e ${chLocked.length} ${chLocked.length === 1 ? 'canal bloqueado' : 'canais bloqueados'}. ${catsUnlocked() ? 'Liberadas até fechar o app.' : 'Protegidas somem do app até digitar a senha.'}`
+              ? `Ativa. ${locked.size} ${locked.size === 1 ? 'categoria protegida' : 'categorias protegidas'} e ${chLocked.length} ${chLocked.length === 1 ? 'canal bloqueado' : 'canais bloqueados'}. ${free ? `Horário livre agora: abre sem senha até ${hourLabel(fh.to)}.` : catsUnlocked() ? 'Liberadas até fechar o app.' : 'Protegidas somem do app até digitar a senha.'}`
               : 'Crie uma senha para proteger categorias (as de adulto ficam protegidas automaticamente) e bloquear canais.'}
           </span>
         </div>
@@ -48,6 +61,24 @@ export function ProtectionPanel({ playlist }: { playlist: Playlist }) {
           {pin && <button className="btn" data-nav="" onClick={() => setDlg('old')}>Trocar senha</button>}
         </div>
       </div>
+
+      {pin && (
+        <div className="prot-card">
+          <div className="prot-txt">
+            <b>Horário livre {fh.on ? `· das ${hourLabel(fh.from)} às ${hourLabel(fh.to)}` : '· desligado'}</b>
+            <span className="muted">
+              {fh.on
+                ? `Antes das ${hourLabel(fh.from)} a senha é pedida. Das ${hourLabel(fh.from)} até ${hourLabel(fh.to)} o conteúdo protegido abre sem senha. Para mudar, a senha é pedida.`
+                : 'A senha é pedida a qualquer hora.'}
+            </span>
+          </div>
+          <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap' }}>
+            <button className={'chip' + (fh.on ? ' on' : '')} data-nav="" onClick={() => askHours({ ...fh, on: !fh.on })}>{fh.on ? 'Ligado' : 'Desligado'}</button>
+            {fh.on && <button className="chip" data-nav="" onClick={() => askHours({ ...fh, from: next(FROM, fh.from) })}>Libera às {hourLabel(fh.from)} ▾</button>}
+            {fh.on && <button className="chip" data-nav="" onClick={() => askHours({ ...fh, to: next(TO, fh.to) })}>Volta às {hourLabel(fh.to)} ▾</button>}
+          </div>
+        </div>
+      )}
 
       <span className="prot-h">Categorias</span>
       <span className="muted" style={{ fontSize: 15 }}>🔒 Proteger: só aparece depois da senha · 👁 Esconder: some do app (volta aqui).</span>
@@ -120,9 +151,11 @@ export function ProtectionPanel({ playlist }: { playlist: Playlist }) {
 
       {dlg && (
         <PinDialog
-          title={dlg === 'create' ? 'Criar senha' : dlg === 'old' ? 'Senha atual' : dlg === 'new' ? 'Nova senha' : dlg === 'unlockCh' ? 'Desbloquear canal' : 'Liberar categorias protegidas'}
+          title={dlg === 'hours' ? 'Mudar o horário livre' : dlg === 'create' ? 'Criar senha' : dlg === 'old' ? 'Senha atual' : dlg === 'new' ? 'Nova senha' : dlg === 'unlockCh' ? 'Desbloquear canal' : 'Liberar categorias protegidas'}
           help={
-            dlg === 'create'
+            dlg === 'hours'
+              ? `Digite a senha para salvar: ${pendingHours?.on ? `livre das ${hourLabel(pendingHours.from)} às ${hourLabel(pendingHours.to)}` : 'senha a qualquer hora'}.`
+              : dlg === 'create'
               ? 'Escolha 4 números. A senha vale para este aparelho; guarde-a. As categorias de adulto passam a pedir a senha.'
               : dlg === 'old'
                 ? 'Digite a senha atual.'
@@ -132,7 +165,10 @@ export function ProtectionPanel({ playlist }: { playlist: Playlist }) {
                     ? 'Digite a senha para tirar o bloqueio do canal.'
                     : 'Digite a senha. As categorias protegidas aparecem até fechar o app.'
           }
-          onClose={() => setDlg(null)}
+          onClose={() => {
+            setDlg(null);
+            setPendingHours(null);
+          }}
           onSubmit={(p) => {
             if (dlg === 'create' || dlg === 'new') {
               setPin(p);
@@ -142,7 +178,12 @@ export function ProtectionPanel({ playlist }: { playlist: Playlist }) {
               return null;
             }
             if (!checkPin(p)) return 'Senha incorreta.';
-            if (dlg === 'old') setDlg('new');
+            if (dlg === 'hours') {
+              if (pendingHours) setFreeHours(pendingHours);
+              setPendingHours(null);
+              toast('Horário livre salvo', '🕙');
+              setDlg(null);
+            } else if (dlg === 'old') setDlg('new');
             else if (dlg === 'unlockCh') {
               setLocked(chId, false);
               pinChanged();

@@ -25,6 +25,39 @@ interface Item {
   posters?: Img;
   background?: Img;
   site?: { name?: string };
+  performers?: Perf[];
+}
+type Gender = { gender?: string };
+interface Perf {
+  name?: string;
+  image?: string;
+  face?: string;
+  thumbnail?: string;
+  extra?: Gender;
+  extras?: Gender;
+  parent?: { name?: string; image?: string; face?: string; thumbnail?: string; extras?: Gender; extra?: Gender };
+}
+
+/** Atriz do resultado (0.32.0): nome e foto do rosto. Homens ficam de fora. */
+export interface Performer {
+  name: string;
+  photo?: string;
+}
+function toPerformer(p: Perf): Performer | null {
+  const name = (p.name || p.parent?.name || '').trim();
+  if (!name) return null;
+  const g = (p.extra?.gender || p.extras?.gender || p.parent?.extras?.gender || p.parent?.extra?.gender || '').toLowerCase();
+  if (g && !/female|woman|trans/.test(g)) return null;
+  const photo = p.face || p.parent?.face || p.image || p.parent?.image || p.thumbnail || p.parent?.thumbnail || undefined;
+  return { name, photo };
+}
+export function performersOfItem(it: { performers?: Perf[] }): Performer[] {
+  const out: Performer[] = [];
+  for (const p of it.performers ?? []) {
+    const x = toPerformer(p);
+    if (x && !out.some((o) => o.name === x.name)) out.push(x);
+  }
+  return out;
 }
 
 function pick(i: Img): string | undefined {
@@ -116,7 +149,7 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
     let best: Item | undefined;
     let score = 0;
     for (const it of list) {
-      const full = `${it.title ?? ''} ${it.site?.name ?? ''}`;
+      const full = `${it.title ?? ''} ${it.site?.name ?? ''} ${(it.performers ?? []).map((p) => p.name ?? p.parent?.name ?? '').join(' ')}`;
       const sc = sameContent(q, full, 0.5) ? Math.max(overlap(q, full), overlap(it.title ?? '', q)) : 0;
       if (sc > score) {
         score = sc;
@@ -136,8 +169,22 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
         backdrop,
         overview: best.description || undefined,
         year: y && !isNaN(y) ? y : undefined,
+        performers: performersOfItem(best),
       };
     }
+  }
+  return null;
+}
+
+/** Foto de uma atriz pelo nome (para quem só aparece no título da lista). */
+export async function tpdbPerformer(name: string): Promise<Performer | null> {
+  const key = tpdbKey();
+  if (!key) return null;
+  const r = await get(`/performers?q=${encodeURIComponent(name)}&per_page=5`, key).catch(() => null);
+  const n = words(name).join(' ');
+  for (const it of (r?.data ?? []) as Perf[]) {
+    const p = toPerformer(it);
+    if (p && words(p.name).join(' ') === n) return p;
   }
   return null;
 }

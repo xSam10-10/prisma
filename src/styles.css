@@ -1605,3 +1605,19 @@ html.lite .feat-art > img.feat-blur { -webkit-filter: none; filter: none; opacit
 .sr-all-head { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: space-between; justify-content: space-between; margin: 6px 0 16px; }
 .sr-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; padding: 10px 0 0 10px; }
 .sec-col > .sec { -webkit-flex-shrink: 0; flex-shrink: 0; }
+
+/* Atrizes da categoria de adultos (0.32.0) */
+.act-row { -webkit-flex-shrink: 0; flex-shrink: 0; margin-top: 10px; padding: 4px 2px 6px; }
+.act { display: -webkit-inline-flex; display: inline-flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-flex-shrink: 0; flex-shrink: 0; margin-right: 12px; padding: 6px 4px 8px; border-radius: 14px; background: transparent; border: 0; color: inherit; cursor: pointer; }
+.act .act-face { position: relative; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12); -webkit-transition: -webkit-transform 0.15s, box-shadow 0.15s; transition: transform 0.15s, box-shadow 0.15s; }
+.act .act-face.all { background: rgba(255, 255, 255, 0.08); }
+.act .act-face img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+.act .act-face b { color: #fff; font-weight: 800; }
+.act .act-name { margin-top: 6px; max-width: 100%; font-size: 14px; font-weight: 700; line-height: 1.2; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act .act-count { font-size: 12px; opacity: 0.6; }
+.act.on .act-face { box-shadow: 0 0 0 3px #fff; }
+.act:focus { outline: none; }
+.act:focus .act-face { -webkit-transform: scale(1.1); transform: scale(1.1); box-shadow: 0 0 0 3px #fff, 0 6px 18px rgba(0, 0, 0, 0.5); }
+.act:focus .act-name { color: #fff; }
+.act-grid { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; max-height: 60vh; margin-top: 12px; padding: 4px; }
+.act-grid .act { margin-bottom: 8px; }

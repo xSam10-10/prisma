@@ -3,7 +3,7 @@ import { idbGet, idbSet, prefGet } from './storage';
 import type { Channel } from './types';
 import { isAdultName } from './parental';
 import { isGenericLogo } from './vod';
-import { adultQuery, sameContent, tpdbKey, tpdbLookup } from './tpdb';
+import { adultQuery, sameContent, tpdbKey, tpdbLookup, type Performer } from './tpdb';
 
 // TMDB (The Movie Database): capas, fundos, sinopse em português, trailer e
 // "Top 10 da semana". Precisa de uma chave gratuita (API v3) nos Ajustes.
@@ -20,6 +20,8 @@ export interface TmdbInfo {
   trailer?: string; // id do YouTube
   /** Título original (para cruzar com a lista). */
   original?: string;
+  /** Atrizes (ThePornDB, 0.32.0). */
+  performers?: Performer[];
 }
 
 const API = () => prefGet<string>('tmdbBase', 'https://api.themoviedb.org/3');
@@ -117,11 +119,12 @@ async function slot<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /** Encontra o título no TMDB (com cache). */
-export async function lookup(item: Channel): Promise<TmdbInfo | null> {
+export async function lookup(item: Channel, logoBroken = false): Promise<TmdbInfo | null> {
   if (item.kind === 'live') return null;
   // Adultos (0.31.0): só procura quando a capa da lista é a genérica; aí tenta o TMDB com
   // conteúdo adulto e, se não achar, a ThePornDB. Capa de verdade da lista fica como está.
-  if (isAdultName(item.group)) return isGenericLogo(item.logo) ? adultLookup(item) : null;
+  // 0.32.0: capa da lista que não abre (link quebrado) também conta como genérica.
+  if (isAdultName(item.group)) return isGenericLogo(item.logo) || logoBroken ? adultInfo(item) : null;
   if (!tmdbKey()) return null;
   const type = item.kind === 'movie' ? 'movie' : 'tv';
   const { title, year } = searchTitle(item.fullName ?? item.name);
@@ -146,23 +149,27 @@ export async function lookup(item: Channel): Promise<TmdbInfo | null> {
   });
 }
 
-/** Título de adulto com capa genérica: TMDB (só resultado marcado como adulto e com o título batendo) › ThePornDB. */
-async function adultLookup(item: Channel): Promise<TmdbInfo | null> {
+/**
+ * Título de adulto: ThePornDB (capa + atrizes) › TMDB (só resultado marcado como adulto e com o título batendo).
+ * 0.32.0: a ThePornDB vem primeiro (traz as atrizes) e o cache separa "com token" de "sem token", para
+ * que o token que chega pela nuvem refaça as buscas que antes deram em nada.
+ */
+export async function adultInfo(item: Channel): Promise<TmdbInfo | null> {
   const name = item.fullName ?? item.name;
   const { title, year } = searchTitle(adultQuery(name));
-  const key = `adult|${norm(title)}|${year ?? item.year ?? ''}`;
+  const key = `adult2|${tpdbKey() ? 'p' : ''}${tmdbKey() ? 't' : ''}|${norm(title)}|${year ?? item.year ?? ''}`;
   const c = await loadCache();
   if (key in c) return c[key];
   if (!tmdbKey() && !tpdbKey()) return null;
   return slot(async () => {
     let info: TmdbInfo | null = null;
     try {
-      if (tmdbKey()) {
+      if (tpdbKey()) info = await tpdbLookup(name, year ?? item.year);
+      if (!info && tmdbKey()) {
         const r = await call<{ results: Raw[] }>('/search/movie', { query: title, include_adult: 'true' });
         const hit = (r.results ?? []).find((x) => x.adult && x.poster_path && (sameContent(title, x.title ?? '') || sameContent(title, x.original_title ?? '')));
         if (hit) info = toInfo(hit, 'movie');
       }
-      if (!info) info = await tpdbLookup(name, year ?? item.year);
     } catch {
       info = null;
     }

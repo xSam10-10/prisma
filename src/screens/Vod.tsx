@@ -25,6 +25,8 @@ import { Modal } from '../ui/Dialog';
 import { fuzzyMatch } from '../core/fuzzy';
 import { hasEpAlert, newEpisodeOf, onNewEpisodes, toggleEpAlert } from '../core/newEpisodes';
 import { ZoomFrom } from '../ui/premium4';
+import { isAdultName } from '../core/parental';
+import { ActressRow, useActresses } from './Actresses';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
 // grade de capas com busca; OK abre o detalhe (sinopse, elenco, episódios).
@@ -39,7 +41,10 @@ function norm(s: string) {
 export function PosterCard({ item, w, selected, rank }: { item: Channel; w: number; selected?: boolean; rank?: number }) {
   const [broken, setBroken] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const tm = useTmdb(item);
+  // Capa da lista que não abre: pede a oficial (0.32.0). Fica marcada até trocar de título.
+  const [logoBad, setLogoBad] = useState(false);
+  useEffect(() => setLogoBad(false), [item.id]);
+  const tm = useTmdb(item, logoBad);
   const img = tm?.poster || item.logo;
   useEffect(() => {
     setBroken(false);
@@ -64,7 +69,7 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
             )}
           </div>
         )}
-        {img && !broken && <img className={'fade-img' + (loaded ? ' in' : '')} src={img} alt="" loading="lazy" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => setBroken(true)} />}
+        {img && !broken && <img className={'fade-img' + (loaded ? ' in' : '')} src={img} alt="" loading="lazy" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => { setBroken(true); if (img === item.logo) setLogoBad(true); }} />}
         {badges.length > 0 && (
           <span className="pbadges">
             {badges.map((b) => (
@@ -128,6 +133,8 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   // Filtros (0.29.0): ano e áudio/idioma. OK no botão passa para a próxima opção.
   const [yearF, setYearF] = useState(0);
   const [langF, setLangF] = useState(0);
+  // Atriz escolhida (0.32.0, só na categoria de adultos).
+  const [actress, setActress] = useState('');
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<Channel | null>(null);
   const gridRef = useRef<VirtualGridHandle>(null);
@@ -233,6 +240,11 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     return [...launch, ...(rec ? [{ name: RECENT, count: rec, label: 'Últimos adicionados' }] : []), ...rest];
   }, [inStream]);
   const q = norm(query.trim());
+  const adultCat = !!cat && cat !== RECENT && isAdultName(cat) && tab === 'filmes';
+  const catItems = useMemo(() => (adultCat ? inStream.filter((i) => i.group === cat) : []), [adultCat, inStream, cat]);
+  const acts = useActresses(catItems, adultCat);
+  const actSel = adultCat && actress ? acts.list.find((a) => a.key === actress) : undefined;
+  useEffect(() => setActress(''), [cat, stream, tab]);
   const list = useMemo(() => {
     if (!q && topMode) return [];
     let l = q
@@ -250,9 +262,10 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     else l = [...l].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
     if (yearF) l = l.filter((i) => YEARS[yearF].test(i.year));
     if (langF) l = l.filter((i) => LANGS[langF].test(audioTag(i)));
+    if (actSel) l = l.filter((i) => actSel.ids.has(i.id));
     // Mesmo título em várias versões (Dublado, Legendado, 4K): uma capa só; a versão escolhe no detalhe.
     return collapseVersions(l);
-  }, [all, inStream, cat, q, sort, topMode, yearF, langF]);
+  }, [all, inStream, cat, q, sort, topMode, yearF, langF, actSel]);
   const openTop = () => {
     setStream(TOPS);
     setCat('');
@@ -269,7 +282,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     setDetail(it);
   };
 
-  useEffect(() => setIndex(0), [stream, cat, q, sort, yearF, langF]);
+  useEffect(() => setIndex(0), [stream, cat, q, sort, yearF, langF, actress]);
   useEffect(() => {
     requestAnimationFrame(() => gridRef.current?.focus());
   }, [tab]);
@@ -419,11 +432,12 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
         </div>
         {!stacked && <div className="muted caps" style={{ fontSize: 14, fontWeight: 600, margin: '10px 4px 0', display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {q ? `Busca: “${query.trim()}”` : topMode ? 'Top' : cat === RECENT ? `Últimos adicionados · os ${RECENT_MAX} mais novos da lista` : cat || (st ? st.name : `Todos os ${kindLabel}`)}
+            {q ? `Busca: “${query.trim()}”` : topMode ? 'Top' : actSel ? `${cat} · ${actSel.name}` : cat === RECENT ? `Últimos adicionados · os ${RECENT_MAX} mais novos da lista` : cat || (st ? st.name : `Todos os ${kindLabel}`)}
           </span>
           <span>{list.length.toLocaleString('pt-BR')} {kindLabel}</span>
         </div>}
         {mobile && !noLeft && !q && cats.length > 0 && catChips}
+        {adultCat && !q && !stacked && <ActressRow list={acts.list} busy={acts.busy} selected={actress} onSelect={setActress} mobile={mobile} />}
         {topMode && !q && !topsReady && !rows.length ? (
           <div style={{ flexGrow: 1, minHeight: 0, marginTop: 8, marginLeft: -L.px, marginRight: -L.px, overflow: 'hidden' }}>
             <SkeletonRow />

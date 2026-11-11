@@ -1,6 +1,7 @@
 // Bloquear canal (cadeado da barra do canal): o canal só abre com a senha
 // de 4 números. A senha vale para o aparelho; os canais bloqueados são de
 // cada perfil. Desbloqueado uma vez, o canal fica liberado até fechar o app.
+// No horário livre (padrão 22:00–06:00) nada pede a senha.
 
 import { prefGet, prefSet } from './storage';
 import type { Channel, Playlist } from './types';
@@ -21,7 +22,7 @@ export function lockedIds(): string[] {
   return prefGet<string[]>('locked', []);
 }
 export function isLocked(id: string): boolean {
-  return lockedIds().includes(id) && !unlocked.has(id);
+  return lockedIds().includes(id) && !unlocked.has(id) && !inFreeHours();
 }
 export function isLockMarked(id: string): boolean {
   return lockedIds().includes(id);
@@ -65,6 +66,50 @@ export function parentalVersion(): number {
 }
 
 let catsOpen = false;
+
+// ---------------------------------------------------------------- Horário livre (0.32.0)
+// Antes do horário (padrão 22:00) a senha vale; das 22:00 até o fim (padrão 06:00) as categorias
+// protegidas e os canais bloqueados abrem sem senha. Mudar o horário sempre pede a senha.
+export interface FreeHours {
+  on: boolean;
+  /** Hora em que libera (0–23). */
+  from: number;
+  /** Hora em que volta a pedir a senha (0–23; 0 = meia-noite). */
+  to: number;
+}
+export function freeHours(): FreeHours {
+  return { on: true, from: 22, to: 6, ...prefGet<Partial<FreeHours>>('freeHours', {}) };
+}
+export function setFreeHours(f: FreeHours): void {
+  prefSet('freeHours', f);
+  lastFree = inFreeHours();
+  bumpVer();
+}
+/** Agora está no horário livre? */
+export function inFreeHours(d: Date = new Date()): boolean {
+  const f = freeHours();
+  if (!f.on || f.from === f.to) return false;
+  const h = d.getHours();
+  return f.from < f.to ? h >= f.from && h < f.to : h >= f.from || h < f.to;
+}
+const hh = (h: number) => (h === 0 ? '00:00' : (h < 10 ? '0' : '') + h + ':00');
+export function hourLabel(h: number): string {
+  return hh(h);
+}
+// Vira o horário com o app aberto: mostra (ou esconde de novo) as categorias sozinho.
+let lastFree = inFreeHours();
+if (typeof window !== 'undefined')
+  window.setInterval(() => {
+    const now = inFreeHours();
+    if (now !== lastFree) {
+      lastFree = now;
+      bumpVer();
+    }
+  }, 30000);
+/** As categorias protegidas estão abertas agora (senha digitada ou horário livre)? */
+function openNow(): boolean {
+  return catsOpen || inFreeHours();
+}
 /** Lista salva de categorias protegidas (null = ainda não mexeu: usa as de adulto). */
 function savedLocked(): string[] | null {
   return prefGet<string[] | null>('lockedCats', null);
@@ -83,7 +128,7 @@ export function setCatLocked(items: Channel[], key: string, on: boolean): void {
 }
 /** Há categorias protegidas fechadas agora? */
 export function catsLockedNow(items: Channel[]): number {
-  return hasPin() && !catsOpen ? lockedCats(items).length : 0;
+  return hasPin() && !openNow() ? lockedCats(items).length : 0;
 }
 export function unlockCats(): void {
   catsOpen = true;
@@ -127,7 +172,7 @@ export function closedCats(): number {
 export function applyParental(pl: Playlist): Playlist {
   const hc = new Set(hiddenCats());
   const hi = new Set(hiddenChannels().map((c) => c.id));
-  const lc = new Set(hasPin() && !catsOpen ? lockedCats(pl.items) : []);
+  const lc = new Set(hasPin() && !openNow() ? lockedCats(pl.items) : []);
   closedCount = lc.size;
   if (!hc.size && !hi.size && !lc.size) return pl;
   const items = pl.items.filter((i) => {

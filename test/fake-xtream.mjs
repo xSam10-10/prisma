@@ -51,6 +51,10 @@ const vods = Array.from({ length: 64 }, (_, i) => ({
 ['Estudio Teste - Filme Adulto Um (2024)', 'Estudio Teste - Cena Adulta Dois', 'Titulo Sem Capa Tres'].forEach((name, k) =>
   vods.push({ name, stream_id: 3950 + k, stream_icon: `http://127.0.0.1:${PORT}/poster/generica.svg`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000000 + k), year: '2024' }),
 );
+// Atrizes (0.32.0): nomes inventados no título; a "Noite Quatro" tem capa quebrada.
+[['Estudio Teste - Ana Exemplo - Noite Quatro', 'quebrada-404.svg'], ['Estudio Teste - Ana Exemplo & Bia Modelo - Tarde Cinco', 'a5.svg'], ['Outro Estudio - Bia Modelo - Manha Seis', 'a6.svg'], ['Outro Estudio - Carla Teste - Sete', 'a7.svg']].forEach(([name, img], k) =>
+  vods.push({ name, stream_id: 3960 + k, stream_icon: `http://127.0.0.1:${PORT}/poster/${img}`, category_id: '107', container_extension: 'mp4', rating: '6.0', added: String(1789000100 + k), year: '2024' }),
+);
 // Mesmo filme em outras versões (para "versões num só card")
 vods.push({ name: 'Rota 66 [LEG] (2019)', stream_id: 3900, stream_icon: `http://127.0.0.1:${PORT}/poster/m10.svg`, category_id: '105', container_extension: 'mp4', rating: '7.0', added: String(1789990000), year: '2019' });
 vods.push({ name: 'Rota 66 4K (2019)', stream_id: 3901, stream_icon: `http://127.0.0.1:${PORT}/poster/m10.svg`, category_id: '104', container_extension: 'mp4', rating: '7.0', added: String(1789990001), year: '2019' });
@@ -217,8 +221,18 @@ createServer((req, res) => {
     if (req.method === 'OPTIONS') return res.writeHead(204, cors).end();
     if (req.headers.authorization !== 'Bearer tpdb-teste') return res.writeHead(401, cors).end('{}');
     const p = (u.searchParams.get('parse') || '').toLowerCase();
+    const face = (n) => `http://127.0.0.1:${PORT}/poster/rosto-${n}.svg`;
+    const ana = { name: 'Ana Exemplo', face: face('ana'), parent: { extras: { gender: 'Female' } } };
+    const joao = { name: 'Joao Ator', face: face('joao'), parent: { extras: { gender: 'Male' } } };
+    if (u.pathname === '/tpdb/performers') {
+      const qn = (u.searchParams.get('q') || '').toLowerCase();
+      const perf = qn === 'bia modelo' ? [{ name: 'Bia Modelo', face: face('bia'), extras: { gender: 'Female' } }] : [];
+      return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: perf }));
+    }
+    if (u.pathname === '/tpdb/scenes' && p.includes('noite quatro'))
+      return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ id: 's4', title: 'Noite Quatro', site: { name: 'Estudio Teste' }, date: '2024-06-01', performers: [ana, joao], posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-noite.svg` } }] }));
     const data = u.pathname === '/tpdb/scenes' && p.includes('cena adulta dois')
-      ? [{ id: 's2', title: 'Cena Adulta Dois', site: { name: 'Estudio Teste' }, date: '2024-05-01', posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-cena.svg` }, background: { large: `http://127.0.0.1:${PORT}/poster/tpdb-cena-b.svg` } }]
+      ? [{ id: 's2', title: 'Cena Adulta Dois', site: { name: 'Estudio Teste' }, date: '2024-05-01', performers: [ana, joao], posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-cena.svg` }, background: { large: `http://127.0.0.1:${PORT}/poster/tpdb-cena-b.svg` } }]
       : u.pathname === '/tpdb/scenes' && p === 'test' ? [] : [];
     return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data }));
   }
@@ -421,6 +435,7 @@ createServer((req, res) => {
     return createReadStream(f).pipe(res);
   }
   if (u.pathname.startsWith('/poster/')) {
+    if (u.pathname.includes('quebrada-404')) return res.writeHead(404).end();
     return res.writeHead(200, { 'content-type': 'image/svg+xml' }).end(poster(u.pathname.slice(8).replace('.svg', '')));
   }
   // Filmes e episódios: MP4 com suporte a Range (avançar/voltar)

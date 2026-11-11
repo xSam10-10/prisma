@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.31.1)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.32.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -547,6 +547,12 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 
 ## 10at. Versão 0.31.1 — logotipos de Star+, Discovery+ e Hulu (11/11)
 - Pacote do Samuel (PNG 2048×1024 transparentes, versões para fundo escuro) em `scripts/streaming-src/{star,discovery,hulu}.png`. `public/streaming/color|mono` gerados com o navegador (recorte, altura 144; branco com vão no contorno claro do "D" do Discovery+). `logo { w, h }` atualizados em vod.ts. O servidor falso ganhou as categorias Star+, Discovery+ e Hulu.
+
+## 10au. Versão 0.32.0 — atrizes, horário livre da senha e correção das capas (11/11)
+- Samuel ligou o token da ThePornDB (teste OK) mas nenhuma capa trocou. Causas corrigidas: `useTmdb` não buscava nada sem a chave do TMDB (agora basta `tmdbKey` **ou** `tpdbKey`); capa da lista com link quebrado não contava como genérica (`PosterCard` marca `logoBad` no erro da imagem e `lookup(item, logoBroken)`); o cache guardava "sem capa" de antes do token (chave nova `adult2|<p><t>|…`, separada por token ligado). `adultInfo` (exportada; antes `adultLookup`) tenta a ThePornDB primeiro (traz as atrizes) e depois o TMDB adulto.
+- **Atrizes** (só Filmes › categoria de adulto): `src/core/actresses.ts` (`namesInTitle`, `studiosOf`, `buildActresses`, `namesToVerify`) + `src/screens/Actresses.tsx` (`useActresses`, `ActressRow`, busca em janela). Fontes: `performers` das cenas da ThePornDB (`performersOfItem`, homens fora; foto = `face`) e nomes do título ("Estúdio - Atriz & Atriz - Título"; o 1º pedaço de títulos com 3+ partes é estúdio). Com token, nome do título só entra se `tpdbPerformer` (`/performers?q=`) confirmar (cache IDB `tpdbPerf`); sem token, entra o nome que aparece em 2+ títulos. Busca até 150 títulos novos por abertura (3 de cada vez); o resto vem do cache. Foco: ▲ da grade vai para a atriz escolhida (ou "Todas").
+- **Horário livre** (`parental.ts`): pref `freeHours` {on, from, to} (padrão ligado, 22 → 6; sincroniza na nuvem). Dentro do horário, `applyParental`, `catsLockedNow` e `isLocked` liberam tudo sem senha; um timer de 30 s revê quando vira a hora. Ajustes › Proteção › "Horário livre" (Ligado, "Libera às" 20–23/00, "Volta às" 00/05–08); qualquer mudança pede a senha.
+- Servidor falso: 4 títulos com atrizes inventadas (Ana Exemplo, Bia Modelo, Carla Teste; um com capa que dá 404), cenas com `performers` (inclui um ator, que não pode aparecer) e `/tpdb/performers`. Testes: `test/actresses.test.ts`.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
