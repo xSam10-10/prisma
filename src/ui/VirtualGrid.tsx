@@ -67,7 +67,15 @@ function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, 
   }, [index, cols, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const t = Math.min(top, maxTop);
-  const scrolled = top > 4;
+  // Fileira mais alta que a grade (poucas capas depois de um filtro, 0.34.5): não há o que rolar,
+  // então avisa como se tivesse rolado para o que fica em cima se recolher. Só no controle/teclado;
+  // ▲ na 1ª fileira (ou a rodinha para cima) mostra de novo, e o próximo ▲ sai da grade.
+  const [cramped, setCramped] = useState(false);
+  const tooTall = cellH + pad * 2 > size.h + 1;
+  const checkCramped = () => {
+    if (tooTall && document.documentElement.classList.contains('kbd')) setCramped(true);
+  };
+  const scrolled = top > 4 || cramped;
   useEffect(() => onScrolled?.(scrolled), [scrolled]); // eslint-disable-line react-hooks/exhaustive-deps
   const firstRow = Math.max(0, Math.floor((t - pad) / step) - 1);
   const lastRow = Math.min(rows - 1, Math.ceil((t + size.h) / step) + 1);
@@ -75,6 +83,12 @@ function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const d = dirOf(e);
     const col = index % cols;
+    if (d === 'up' && cramped && index < cols) {
+      e.preventDefault();
+      setCramped(false);
+      return;
+    }
+    if (d && !cramped && !(d === 'up' && index < cols)) checkCramped();
     let next = -1;
     if (d === 'left' && col > 0) next = index - 1;
     else if (d === 'right' && col < cols - 1 && index < items.length - 1) next = index + 1;
@@ -130,7 +144,12 @@ function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, 
       data-nav=""
       aria-label={label}
       onKeyDown={onKeyDown}
-      onWheel={(e) => setTop((v) => Math.max(0, Math.min(maxTop, v + e.deltaY)))}
+      onFocus={(e) => { if (e.target === e.currentTarget) checkCramped(); }}
+      onBlur={(e) => { if (e.target === e.currentTarget) setCramped(false); }}
+      onWheel={(e) => {
+        if (e.deltaY < 0 && cramped) setCramped(false);
+        setTop((v) => Math.max(0, Math.min(maxTop, v + e.deltaY)));
+      }}
       onTouchStart={(e) => (touch.current = { y: e.touches[0].clientY, top: t, moved: false })}
       onTouchMove={(e) => {
         const st = touch.current;

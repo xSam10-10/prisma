@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.34.5 — capas inteiras no filtro de atriz e produtora
+- Categoria de adultos: filtrando por atriz ou produtora, com poucas capas na tela, elas ficavam cortadas embaixo e paradas. Agora, ao descer para as capas, as fileiras de atrizes e produtoras se recolhem e a capa aparece inteira; ▲ na primeira fileira mostra os filtros de novo
+
 ## 0.34.4 — dublado ou legendado, F1 e mostrar os tokens
 - Filmes e Séries: todo título mostra se é Dublado ou Legendado (selo na capa e etiqueta no detalhe); Nacional conta como dublado e o filtro de áudio ficou só Dublado/Legendado
 - Jogos: o cartão da Fórmula 1 não passa mais da tela quando está em foco
