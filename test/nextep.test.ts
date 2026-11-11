@@ -61,6 +61,16 @@ describe('dublado / legendado', () => {
     expect(audioTag(c('Resident Evil', 'DUBLAGEM NAO OFICIAL'))).toBe('dub');
     expect(audioTag(c('Legião Urbana'))).toBeUndefined();
   });
+  it('selo: Nacional e sem marca contam como dublado (fora ao vivo e adultos)', async () => {
+    const { audioShown } = await import('../src/core/vod');
+    expect(audioShown(c('Tropa de Elite', 'Nacionais'))).toBe('dub');
+    expect(audioShown(c('Resident Evil', 'Top Lançamentos 2026'))).toBe('dub');
+    expect(audioShown(c('Ben Is Back Legendado', 'Drama'))).toBe('leg');
+    expect(audioShown(c('Pousando no Amor', 'Doramas Legendados'))).toBe('leg');
+    expect(audioShown(c('Cena Qualquer', 'Adultos [+18]'))).toBeUndefined();
+    expect(audioShown(c('Cena Qualquer', 'Adultos [LEGENDADO]'))).toBe('leg');
+    expect(audioShown({ ...c('Globo SP'), kind: 'live' as const })).toBeUndefined();
+  });
   it('versões iguais mostram a categoria', () => {
     expect(versionLabels([c('RE', 'Cinema [MANUTENÇAO]'), c('RE', 'FILMES | LANÇAMENTOS')])).toEqual(['HD · Cinema [MANUTENÇAO]', 'HD · LANÇAMENTOS']);
   });

@@ -1076,6 +1076,7 @@ html:not(.kbd) .now-card:hover { background: rgba(255, 255, 255, 0.12); }
 .vd-pill { padding: 4px 11px; border-radius: 999px; font-size: 14px; font-weight: 700; color: #f4f4f8; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.14); }
 .vd-pill.rate { color: #f5b83d; }
 .vd-pill.ghost { background: transparent; color: #a6a6b8; }
+.vd-pill.audio { color: #0b0b10; background: #f4f4f8; border-color: #f4f4f8; }
 .vd-plot { -webkit-line-clamp: 4; font-size: 18px; line-height: 1.55; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6); }
 .vd-sec { margin-top: 34px; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
 .vd-sec-wide { margin-top: 6px; }

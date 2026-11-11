@@ -246,6 +246,7 @@ Atrizes guardadas sem foto em pé são conferidas de novo.
 a lista de descartados está no topo de `docs/PENDENCIAS.md`.
 
 **Testes que dependem do Samuel** (cópia de `docs/PENDENCIAS.md`):
+- **0.34.4:** filmes e séries mostram Dublado/Legendado na capa e no detalhe; conferir se algum legendado aparece como Dublado (na Goldcard, sem marca = dublado) e mandar o nome. Em Jogos, o cartão da F1 em foco cabe na tela.
 - **0.34.4:** em Ajustes › Serviços, tocar em "Mostrar" no campo da ThePornDB e ver o token; em Ajustes › Dados e limpeza, com a nuvem ligada, "Mostrar token" mostra o token do GitHub do aparelho.
 - **0.34.3:** filme de cena "FansDB" sem capa nem foto da atriz deve mostrar a imagem do OnlyFans.
 - **0.34.2:** abrir o PRISMA na TV/Windows numa versão antiga e ver o aviso "baixado"; no Android,

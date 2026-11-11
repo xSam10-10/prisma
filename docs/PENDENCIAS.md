@@ -47,6 +47,7 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 - Nada pendente (0.30.0: 11 ExoPlayer para filmes/séries no Android, 9 nuvem por Gist do GitHub, 14 app básico para Roku). Chromecast (23) saiu da lista a pedido do Samuel (11/11). Próximos passos possíveis do Roku, se ele pedir: guia, favoritos e visual do app principal.
 
 ## Depende do Samuel
+- **0.34.4:** filmes e séries mostram Dublado/Legendado na capa e no detalhe; conferir se algum legendado aparece como Dublado (na Goldcard, sem marca = dublado) e mandar o nome. Em Jogos, o cartão da F1 em foco cabe na tela.
 - **0.34.4:** em Ajustes › Serviços, tocar em "Mostrar" no campo da ThePornDB e ver o token; em Ajustes › Dados e limpeza, com a nuvem ligada, "Mostrar token" mostra o token do GitHub do aparelho.
 - **0.34.3:** filme de cena "FansDB" sem capa nem foto da atriz deve mostrar a imagem do OnlyFans.
 - **0.34.2:** abrir o PRISMA na TV/Windows numa versão antiga e ver o aviso "baixado" sozinho; no Android, "Atualizar agora". Ver se a lista de atrizes cresce a cada abertura.

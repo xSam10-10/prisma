@@ -3,7 +3,7 @@ import { useSettings } from '../core/settings';
 import { applyStreamSkin } from '../ui/themes';
 import { styleOf, type SkinMode } from '../ui/streamStyle';
 import type { Channel, ItemKind, Playlist } from '../core/types';
-import { ANIME, STREAMINGS, audioTag, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, isGenericLogo, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
+import { ANIME, STREAMINGS, audioShown, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, isGenericLogo, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
 import { Symbol, colorFor, initials, rgba } from '../ui/bits';
 import { PreviewBackdrop, SkeletonRow, TitleLogo, badgesOf, setPreview } from '../ui/premium';
@@ -136,12 +136,11 @@ export const YEARS: { label: string; test: (y?: number) => boolean }[] = [
   { label: 'Anos 90', test: (y) => !!y && y >= 1990 && y < 2000 },
   { label: 'Clássicos', test: (y) => !!y && y < 1990 },
 ];
-/** Filtro de áudio/idioma pelo que a lista informa (DUB, LEG, Dual, Nacional). */
+/** Filtro de áudio pelo que a lista informa (Nacional e sem marca contam como dublado; ver audioShown). */
 export const LANGS: { label: string; test: (t?: string) => boolean }[] = [
   { label: 'Todos', test: () => true },
   { label: 'Dublado', test: (t) => t === 'dub' || t === 'dual' },
   { label: 'Legendado', test: (t) => t === 'leg' || t === 'dual' },
-  { label: 'Nacional', test: (t) => t === 'nac' },
 ];
 /** Botão "Top" na fileira de streamings. */
 const TOPS = '__top__';
@@ -305,7 +304,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     else if (sort === 'rating') l = [...l].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else l = [...l].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
     if (yearF) l = l.filter((i) => YEARS[yearF].test(i.year));
-    if (langF) l = l.filter((i) => LANGS[langF].test(audioTag(i)));
+    if (langF) l = l.filter((i) => LANGS[langF].test(audioShown(i)));
     if (actSel) l = l.filter((i) => actSel.ids.has(i.id));
     if (stSel) l = l.filter((i) => stSel.ids.has(i.id));
     // Mesmo título em várias versões (Dublado, Legendado, 4K): uma capa só; a versão escolhe no detalhe.
@@ -708,7 +707,7 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
   // Paleta do título: cor dominante do pôster no brilho do fundo e no botão principal.
   const tint = useDominantColor(tm?.poster, colorFor(item.name));
   const rating = info?.rating ?? item.rating ?? tm?.rating;
-  const badges = badgesOf(item).filter((b) => b.k !== 'newep');
+  const badges = badgesOf(item, Date.now(), 3).filter((b) => b.k !== 'newep');
   const epH = mobile ? 92 : 112;
   return (
     <div className="vod-detail screen-in" data-nav-scope="" ref={box}>
@@ -724,7 +723,13 @@ export function VodDetail({ playlist, item: initial, onClose, onPlay }: { playli
             {cert && <CertBadge c={cert} />}
             {rating ? <span className="vd-pill rate">★ {rating.toFixed(1).replace('.', ',')}</span> : null}
             {meta.map((m) => <span key={String(m)} className="vd-pill">{m}</span>)}
-            {badges.map((b) => <span key={b.t} className={'pbadge ' + b.k}>{b.t}</span>)}
+            {badges.map((b) =>
+              b.k === 'l' ? (
+                <span key={b.t} className="vd-pill audio">{b.t === 'LEG' ? 'Legendado' : b.t === 'DUAL' ? 'Dual áudio' : 'Dublado'}</span>
+              ) : (
+                <span key={b.t} className={'pbadge ' + b.k}>{b.t}</span>
+              ),
+            )}
             <span className="vd-pill ghost">{item.group}</span>
           </div>
           {(() => {

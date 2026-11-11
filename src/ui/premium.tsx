@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Channel } from '../core/types';
-import { audioTag, getProgress } from '../core/vod';
+import { audioShown, getProgress } from '../core/vod';
 import { logoOf, type TmdbInfo } from '../core/tmdb';
 import { newEpisodeOf } from '../core/newEpisodes';
 import { colorFor, rgba } from './bits';
@@ -83,15 +83,15 @@ export function PreviewBackdrop({ strength = 0.42 }: { strength?: number }) {
 const WEEK = 7 * 86400000;
 
 /** Selos da capa: 4K, DUB, LEG, NOVO (entrou na lista nos últimos 7 dias). */
-export function badgesOf(item: Channel, now = Date.now()): { t: string; k: string }[] {
+export function badgesOf(item: Channel, now = Date.now(), max = 2): { t: string; k: string }[] {
   const s = `${item.fullName ?? item.name} ${item.group}`;
   const out: { t: string; k: string }[] = [];
   if (item.kind === 'series' && newEpisodeOf(item.seriesId ?? item.id)) out.push({ t: 'NOVO EP.', k: 'newep' });
   else if (item.added && now - item.added < WEEK) out.push({ t: 'NOVO', k: 'new' });
   if (/\b(4k|uhd|2160p?)\b/i.test(s)) out.push({ t: '4K', k: 'q' });
-  const at = audioTag(item);
-  if (at) out.push({ t: at === 'leg' ? 'LEG' : at === 'dual' ? 'DUAL' : at === 'nac' ? 'NAC' : 'DUB', k: 'l' });
-  return out.slice(0, 2);
+  const at = audioShown(item);
+  if (at) out.push({ t: at === 'leg' ? 'LEG' : at === 'dual' ? 'DUAL' : 'DUB', k: 'l' });
+  return out.slice(0, max);
 }
 
 // ---------------------------------------------------------------- Ranking (número atrás da capa)

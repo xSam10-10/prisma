@@ -588,7 +588,9 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Pedido do Samuel: as cenas cujo site na ThePornDB é "FansDB: Fulana" (página da atriz no OnlyFans) saíram das produtoras na 0.34.2; quando não houver mais nada, usar a imagem delas como capa.
 - `fansOf(site)` (tpdb.ts) → `TmdbInfo.fans {name, image}` (poster › logo › favicon do site). `adultInfo`: ThePornDB › TMDB adulto › foto da atriz › imagem do OnlyFans › genérica. Cache `adult5|…`.
 
-## 10ba. Versão 0.34.4 — mostrar os tokens (11/11, primeira versão da conta nova do Claude)
+## 10ba. Versão 0.34.4 — dublado/legendado, F1 e mostrar os tokens (11/11, primeira versão da conta nova do Claude)
+- Dublado/legendado: na Goldcard só os legendados vêm marcados (nome "… Legendado", categorias "Doramas Legendados", "Adultos [LEGENDADO]"); conferido na lista guardada no PC. `audioShown(c)` (vod.ts): Nacional → dub; sem marca → dub, menos ao vivo e categorias de adulto (`isAdultName`). Usado no selo (`badgesOf`, agora com `max`; o detalhe mostra até 3) e no filtro `LANGS` (saiu "Nacional"). `audioTag` continua dizendo só o que a lista informa (rótulos das versões). No detalhe, o áudio vira a etiqueta `.vd-pill.audio` ("Dublado", "Legendado", "Dual áudio").
+- F1 no hub de Jogos: o `.f1card` ocupa a fileira toda e o `scale(1.06)` do foco passava da tela, cortando o nome do GP. Sem crescer nem respirar no foco (sports.css), só o contorno.
 - Pedido do Samuel: os campos de token mostravam só pontinhos e não havia como ver o que estava salvo.
 - `TpdbRow` (Settings.tsx): botão "Mostrar/Ocultar" troca o campo entre `password` e `text`. `CloudRows` (CloudSync.tsx): o mesmo no campo do token antes de conectar e, com a nuvem ligada, "Mostrar token" exibe `cfg.token`. A chave do TMDB já aparecia em texto.
 - Feito na branch `feat/mostrar-tokens`.

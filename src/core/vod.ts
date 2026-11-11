@@ -1,6 +1,7 @@
 import { prefGet, prefSet } from './storage';
 import type { Channel } from './types';
 import { norm, searchTitle } from './tmdb';
+import { isAdultName } from './parental';
 
 // Filmes, séries e anime: streamings, progresso, Minha lista e "continuar".
 
@@ -201,12 +202,24 @@ function tagOf(s: string): 'leg' | 'dub' | 'dual' | 'nac' | undefined {
 export function audioTag(c: Channel): 'leg' | 'dub' | 'dual' | 'nac' | undefined {
   return tagOf(c.fullName ?? c.name) ?? tagOf(c.group);
 }
+/**
+ * Áudio que o app mostra (selo DUB/LEG/DUAL e filtro de áudio). Nacional conta como dublado.
+ * Sem marca no nome nem na categoria, o filme ou a série conta como dublado: na Goldcard só os
+ * legendados vêm marcados ("… Legendado", "Doramas Legendados", "[LEGENDADO]"). Ao vivo e a
+ * categoria de adultos ficam sem selo quando a lista não diz nada.
+ */
+export function audioShown(c: Channel): 'leg' | 'dub' | 'dual' | undefined {
+  const a = audioTag(c);
+  if (a === 'nac') return 'dub';
+  if (a) return a;
+  return c.kind !== 'live' && !isAdultName(c.group) ? 'dub' : undefined;
+}
 export function versionLabel(c: Channel): string {
   const s = `${c.fullName ?? c.name} ${c.group}`;
   const parts: string[] = [];
   if (/\b(4k|uhd|2160p?)\b/i.test(s)) parts.push('4K');
   const a = audioTag(c);
-  if (a) parts.push(a === 'leg' ? 'Legendado' : a === 'dub' ? 'Dublado' : a === 'dual' ? 'Dual áudio' : 'Nacional');
+  if (a) parts.push(a === 'leg' ? 'Legendado' : a === 'dual' ? 'Dual áudio' : 'Dublado');
   if (!parts.length) parts.push(/\b(fhd|1080p?)\b/i.test(s) ? 'Full HD' : /\bsd\b/i.test(s) ? 'SD' : 'HD');
   return parts.join(' · ');
 }

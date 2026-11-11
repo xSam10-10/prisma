@@ -238,3 +238,7 @@ html:not(.kbd) .tile:focus .f1card-art { box-shadow: inset 0 1px 0 rgba(255, 255
 html:not(.lite) .scorebug.goal { -webkit-animation: sbPulse 0.9s ease-in-out 5; animation: sbPulse 0.9s ease-in-out 5; }
 @-webkit-keyframes sbPulse { 50% { -webkit-transform: scale(1.06); } }
 @keyframes sbPulse { 50% { transform: scale(1.06); } }
+
+/* 0.34.4: o cartão da F1 ocupa a largura toda da fileira; crescer no foco fazia ele passar da tela
+   e cortar o nome do GP. Fica do mesmo tamanho e mostra só o contorno. */
+html.kbd [data-nav].grow.f1card:focus, html.kbd[data-theme] [data-nav].grow.f1card:focus { -webkit-animation: none !important; animation: none !important; -webkit-transform: none !important; transform: none !important; }

@@ -1,7 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
-## 0.34.4 — mostrar os tokens
+## 0.34.4 — dublado ou legendado, F1 e mostrar os tokens
+- Filmes e Séries: todo título mostra se é Dublado ou Legendado (selo na capa e etiqueta no detalhe); Nacional conta como dublado e o filtro de áudio ficou só Dublado/Legendado
+- Jogos: o cartão da Fórmula 1 não passa mais da tela quando está em foco
 - Ajustes: botão "Mostrar" no token da ThePornDB e no token do GitHub (nuvem), para ver o que está salvo no aparelho; com a nuvem ligada, "Mostrar token" em Dados e limpeza
 
 ## 0.34.3 — capa do OnlyFans
