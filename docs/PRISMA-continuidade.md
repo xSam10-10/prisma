@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (10/11/2026 · versão 0.28.0)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.29.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor) e navegador.
 
@@ -524,6 +524,14 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - `src/screens/StreamHero.tsx`: `StreamHero` (destaque grande: arte do TMDB w1280, logo do título ou nome na fonte da marca, meta, sinopse, Assistir/Detalhes/Minha lista, gira entre até 5 títulos do Top 10 a cada 10 s fora da TV antiga; encolhe para uma faixa ao descer) e `WideTile` (capa 16:9). `StackedRows` ganhou `wide` e `heroH` (372/74 na TV); com o destaque, encolhe já na 1ª fileira e realinha a fileira depois da animação.
 - A grade "Explore tudo/Tudo no…" continua com capas em pé em todos (mexer na VirtualGrid seria arriscado na TV). Fontes vêm do Google Fonts: sem internet, cai na Inter.
 - `scan-foco` passa por três streamings (em pé e deitadas); testes em `test/skin.test.ts`.
+
+## 10aq. Versão 0.29.0 — velocidade, legendas, filtros e foto (11/11)
+- Samuel tirou da lista (não oferecer de novo): canal favorito ao abrir, pausar o ao vivo, diagnóstico do canal, gravar, multitela, logos de canais, apagar histórico item a item, PiP do sistema, voz no Android, buscas recentes, PIN por perfil, tempo de tela infantil, atalhos para apps oficiais, assinatura do instalador.
+- Velocidade: botão no controle de filmes/séries (`RATES` em Player.tsx: 1, 1,25, 1,5, 0,75), volta a 1× ao trocar de título.
+- Legendas: `src/ui/subtitles.ts` — `applyCueStyle` (folha `#prisma-cue`, regra `video::cue`; ajustes `subSize`, `subColor`, `subBg`), `srtToVtt`, `loadSubtitleFile` (relê em Latin-1 se vier com acento quebrado) e `shiftTrack` (±0,5 s). O diálogo "Áudio e legendas" abre também sem trilhas ("Legendas") para carregar o arquivo (não na TV LG, sem seletor de arquivo). A legenda do arquivo vira `<track>` no `<video>`.
+- Filtros: `YEARS`/`LANGS` em Vod.tsx (botões "Ano ▾" e "Áudio ▾" ao lado de Recentes/A–Z/Nota; OK passa para a próxima opção; áudio pelo `audioTag`).
+- Foto no perfil: `Profile.photo` (JPEG 256×256 em data URL, `photoFromFile`), `ProfileAvatar` desenha a foto; botão do perfil no topo também. Fica só no aparelho onde foi escolhida (e vai no arquivo de Dados).
+- Pendentes grandes ainda a decidir com o Samuel: 11 ExoPlayer no Android, 9 nuvem, 23 Chromecast, 14 Roku.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

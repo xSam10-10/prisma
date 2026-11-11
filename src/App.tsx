@@ -650,8 +650,8 @@ function SideRail({ tab, onTab, L }: { tab: Tab; onTab: (t: Tab) => void; L: Lay
 function ProfileButton({ onClick }: { onClick: () => void }) {
   const p = currentProfile();
   return (
-    <button className="round avatar" data-nav="" aria-label={`Perfil ${p.name} e ajustes`} onClick={onClick} style={{ background: p.color }}>
-      {p.name.slice(0, 1).toUpperCase()}
+    <button className="round avatar" data-nav="" aria-label={`Perfil ${p.name} e ajustes`} onClick={onClick} style={p.photo ? { background: `${p.color} url(${p.photo}) center / cover no-repeat`, fontSize: 0 } : { background: p.color }}>
+      {p.photo ? "" : p.name.slice(0, 1).toUpperCase()}
     </button>
   );
 }

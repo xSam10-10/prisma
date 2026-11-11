@@ -181,6 +181,29 @@ export function Settings({
           onChange={set('osdSeconds')}
         />
         <Choice
+          label="Tamanho da legenda"
+          help="Vale para as legendas dos filmes, séries e canais, inclusive as carregadas de um arquivo."
+          value={st.subSize}
+          options={[{ v: 'p', label: 'Pequena' }, { v: 'm', label: 'Média' }, { v: 'g', label: 'Grande' }, { v: 'gg', label: 'Muito grande' }]}
+          onChange={set('subSize')}
+        />
+        <Choice
+          label="Cor e fundo da legenda"
+          help="Contorno deixa a letra legível sem tampar a imagem; faixa preta ajuda em cenas claras."
+          value={st.subColor + '|' + st.subBg}
+          options={[
+            { v: 'white|shadow', label: 'Branca com contorno' },
+            { v: 'yellow|shadow', label: 'Amarela com contorno' },
+            { v: 'white|box', label: 'Branca em faixa preta' },
+            { v: 'yellow|box', label: 'Amarela em faixa preta' },
+            { v: 'white|none', label: 'Branca simples' },
+          ]}
+          onChange={(v: string) => {
+            const [c, b] = v.split('|');
+            update({ subColor: c as 'white' | 'yellow', subBg: b as 'none' | 'shadow' | 'box' });
+          }}
+        />
+        <Choice
           label="Formato do vídeo"
           help="Ajustar mostra a imagem inteira (pode sobrar faixa preta, comum em ultrawide). Preencher ocupa a tela toda cortando as bordas. Esticar deforma a imagem."
           value={st.videoFit}

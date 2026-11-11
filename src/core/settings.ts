@@ -37,6 +37,10 @@ export interface Settings {
   streamLogos: 'color' | 'mono';
   /** Dentro de cada streaming: Marcante (o mais perto do app oficial, 0.28.0), Cores (só o tema, 0.27.0) ou Desligado. */
   streamSkin: 'marcante' | 'cores' | 'off';
+  /** Legendas (0.29.0): tamanho, cor e fundo. */
+  subSize: 'p' | 'm' | 'g' | 'gg';
+  subColor: 'white' | 'yellow';
+  subBg: 'none' | 'shadow' | 'box';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -55,6 +59,9 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'apple',
   streamLogos: 'color',
   streamSkin: 'marcante',
+  subSize: 'm',
+  subColor: 'white',
+  subBg: 'shadow',
 };
 
 export function loadSettings(): Settings {

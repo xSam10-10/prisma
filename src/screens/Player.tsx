@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Engine } from '../core/engine';
 import { IS_ANDROID, IS_WEBOS } from '../core/platform';
 import { useSettings } from '../core/settings';
+import { applyCueStyle, loadSubtitleFile, shiftTrack } from '../ui/subtitles';
 import { SectionPicker } from './Sections';
 import { fmtDuration, myList, saveProgress, vodRecents } from '../core/vod';
 import type { Tracks } from '../core/engine';
@@ -72,6 +73,9 @@ const MAX_PIPS = 1;
 const FIT_LABEL: Record<string, string> = { contain: 'Normal', fill: 'Esticar', cover: 'Zoom' };
 const FIT_NEXT: Record<string, 'contain' | 'fill' | 'cover'> = { contain: 'fill', fill: 'cover', cover: 'contain' };
 
+/** Velocidades de filmes e séries (OK no botão passa para a próxima). */
+const RATES = [1, 1.25, 1.5, 0.75];
+
 export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav, toggleFav, onMode, onZap, lastChannel, startAt, nextEp, onNext, pips = [], onPips, onSwapPip, onPickList, onPlayVod }: Props) {
   const vod = !!channel && channel.kind !== 'live';
   // Reconexão automática
@@ -107,6 +111,19 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     if (changed) setTracks(engine.current.tracks());
   }, [tracks, channel?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [trackDlg, setTrackDlg] = useState(false);
+  // Velocidade (filmes e séries) e legenda carregada do aparelho (0.29.0)
+  const [rate, setRate] = useState(1);
+  const [extSub, setExtSub] = useState<{ name: string; url: string } | null>(null);
+  const [subShift, setSubShift] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    setRate(1);
+    setExtSub(null);
+    setSubShift(0);
+  }, [channel?.id]);
+  useEffect(() => {
+    if (videoRef.current && videoRef.current.playbackRate !== rate) videoRef.current.playbackRate = rate;
+  });
   // Lembrar áudio e legenda por série (todas as temporadas) ou por canal/filme.
   const trackKey = (c?: Channel | null) => (c ? c.seriesId ?? c.id : '');
   const tracksApplied = useRef('');
@@ -140,6 +157,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const overlay = overlayKind !== false;
   const setOverlay = (v: boolean) => setOverlayKind(v ? 'controls' : false);
   const { settings: S, update: updateSettings } = useSettings();
+  useEffect(() => applyCueStyle(S.subSize, S.subColor, S.subBg), [S.subSize, S.subColor, S.subBg]);
   // Barra clássica: menu aberto acima de um ícone, painel de informações, senha, velocidade.
   const [menu, setMenu] = useState<string | null>(null);
   const menuRef = useRef<string | null>(null);
@@ -844,7 +862,9 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
         autoPlay
         style={{ objectFit: S.videoFit }}
         onClick={() => (full ? (overlayKind === 'controls' ? setOverlay(false) : showOverlay(true)) : onMode('full'))}
-      />
+      >
+        {extSub && <track key={extSub.url} kind="subtitles" src={extSub.url} label={`Arquivo: ${extSub.name}`} srcLang="pt" default />}
+      </video>
 
       {status === 'loading' && mode !== 'off' && (
         <div className="gy-12" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -906,7 +926,19 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
                 </button>
                 <button className="pbtn" data-nav="" aria-label="Avançar 10 segundos" onClick={() => seek(10)}>10s ⟳</button>
                 <div style={{ flexGrow: 1 }} />
-                {hasTracks && <button className="pbtn" data-nav="" onClick={() => setTrackDlg(true)}>Áudio e legendas</button>}
+                <button
+                  className="pbtn"
+                  data-nav=""
+                  aria-label="Velocidade"
+                  onClick={() => {
+                    const next = RATES[(RATES.indexOf(rate) + 1) % RATES.length];
+                    setRate(next);
+                    toast(next === 1 ? 'Velocidade normal' : `Velocidade ${String(next).replace('.', ',')}×`, '⏩');
+                  }}
+                >
+                  {String(rate).replace('.', ',')}×
+                </button>
+                <button className="pbtn" data-nav="" onClick={() => setTrackDlg(true)}>{hasTracks ? 'Áudio e legendas' : 'Legendas'}</button>
                 {nextEp && <button className="pbtn" data-nav="" onClick={() => onNext?.()}>Próximo episódio ›</button>}
                 <button className="pbtn" data-nav="" onClick={() => onMode('preview')}>Sair</button>
               </div>
@@ -1136,22 +1168,76 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
 
       {picker && channel && <SectionPicker ch={channel} live={allLive} onClose={() => { setPicker(false); showOverlay(true); }} />}
 
-      {trackDlg && tracks && (
+      {trackDlg && (
         <Modal title="Áudio e legendas" onClose={() => { setTrackDlg(false); showOverlay(true); }} width={560}>
-          {tracks.audio.length > 0 && <span className="muted" style={{ fontSize: 15, fontWeight: 700 }}>ÁUDIO</span>}
-          {tracks.audio.map((t) => (
-            <button key={'a' + t.id} className={'pick-row' + (t.id === tracks.audioId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setAudio(t.id); setTracks(engine.current?.tracks() ?? null); saveTrackPref({ a: t.label }); }}>
-              <span className="pick-check">{t.id === tracks.audioId ? '✓' : ''}</span>
+          {tracks && tracks.audio.length > 0 && <span className="muted" style={{ fontSize: 15, fontWeight: 700 }}>ÁUDIO</span>}
+          {tracks?.audio.map((t) => (
+            <button key={'a' + t.id} className={'pick-row' + (t.id === tracks?.audioId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setAudio(t.id); setTracks(engine.current?.tracks() ?? null); saveTrackPref({ a: t.label }); }}>
+              <span className="pick-check">{t.id === tracks?.audioId ? '✓' : ''}</span>
               <span className="sec-name">{t.label}</span>
             </button>
           ))}
           <span className="muted" style={{ fontSize: 15, fontWeight: 700 }}>LEGENDAS</span>
-          {[{ id: -1, label: 'Desligadas' }, ...tracks.text].map((t) => (
-            <button key={'t' + t.id} className={'pick-row' + (t.id === tracks.textId ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setText(t.id); setTracks(engine.current?.tracks() ?? null); saveTrackPref({ t: t.id === -1 ? 'off' : t.label }); }}>
-              <span className="pick-check">{t.id === tracks.textId ? '✓' : ''}</span>
+          {[{ id: -1, label: 'Desligadas' }, ...(tracks?.text ?? [])].map((t) => (
+            <button key={'t' + t.id} className={'pick-row' + (t.id === (tracks?.textId ?? -1) ? ' on' : '')} data-nav="" onClick={() => { engine.current?.setText(t.id); setTracks(engine.current?.tracks() ?? null); saveTrackPref({ t: t.id === -1 ? 'off' : t.label }); }}>
+              <span className="pick-check">{t.id === (tracks?.textId ?? -1) ? '✓' : ''}</span>
               <span className="sec-name">{t.label}</span>
             </button>
           ))}
+          {extSub && (
+            <div className="wrap-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span className="muted" style={{ fontSize: 14 }}>Sincronia da legenda do arquivo: {subShift > 0 ? '+' : ''}{subShift.toFixed(1).replace('.', ',')} s</span>
+              {[-0.5, 0.5].map((d) => (
+                <button
+                  key={d}
+                  className="btn"
+                  data-nav=""
+                  onClick={() => {
+                    const vid = videoRef.current;
+                    if (!vid) return;
+                    for (let i = 0; i < vid.textTracks.length; i++) if (vid.textTracks[i].label.indexOf('Arquivo:') === 0) shiftTrack(vid.textTracks[i], d);
+                    setSubShift((x) => x + d);
+                  }}
+                >
+                  {d < 0 ? 'Adiantar 0,5 s' : 'Atrasar 0,5 s'}
+                </button>
+              ))}
+            </div>
+          )}
+          {!IS_WEBOS && (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".srt,.vtt,text/vtt,application/x-subrip"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!f) return;
+                  try {
+                    const url = await loadSubtitleFile(f);
+                    setSubShift(0);
+                    setExtSub({ name: f.name.replace(/\.(srt|vtt)$/i, ''), url });
+                    // A trilha nova aparece no vídeo logo depois: liga só ela.
+                    setTimeout(() => {
+                      const vid = videoRef.current;
+                      if (vid) for (let i = 0; i < vid.textTracks.length; i++) vid.textTracks[i].mode = vid.textTracks[i].label.indexOf('Arquivo:') === 0 ? 'showing' : 'disabled';
+                      setTracks(engine.current?.tracks() ?? null);
+                    }, 300);
+                    toast('Legenda carregada', '💬');
+                  } catch {
+                    toast('Não consegui ler esse arquivo de legenda', '✕');
+                  }
+                }}
+              />
+              <button className="pick-row" data-nav="" onClick={() => fileRef.current?.click()}>
+                <span className="pick-check">📄</span>
+                <span className="sec-name">{extSub ? `Trocar a legenda do arquivo (${extSub.name})` : 'Carregar legenda do aparelho (.srt ou .vtt)'}</span>
+              </button>
+            </>
+          )}
+          <span className="muted" style={{ fontSize: 13 }}>Tamanho, cor e fundo da legenda: Ajustes › Player.</span>
           <div className="wrap-row" style={{ display: 'flex' }}>
             <button className="btn primary" data-nav="" onClick={() => { setTrackDlg(false); showOverlay(true); }}>Concluir</button>
           </div>

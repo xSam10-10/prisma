@@ -1,6 +1,13 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.29.0 — velocidade, legendas, filtros e foto no perfil
+- Filmes e séries: botão de velocidade no player (1×, 1,25×, 1,5× e 0,75×)
+- Legendas: tamanho (pequena a muito grande), cor e fundo em Ajustes › Player
+- Legenda de um arquivo .srt ou .vtt do aparelho (computador e celular), com "Adiantar/Atrasar 0,5 s" para acertar a sincronia
+- Filtros em Filmes e Séries: por ano (lançamentos, por década, clássicos) e por áudio (dublado, legendado, nacional)
+- Foto no perfil: escolha uma foto do aparelho em Ajustes › Perfis (fica no lugar da ilustração)
+
 ## 0.28.0 — modo Marcante dos streamings
 - Em Filmes e Séries, cada streaming fica com cara de app oficial: destaque grande no topo com a arte, o logo do título, sinopse e os botões no estilo da marca ("98% relevante" na Netflix, "Incluído no Prime", botão "＋" no Disney+…), girando entre os títulos do Top 10
 - Capas em pé ou deitadas conforme o streaming (Netflix e Globoplay em pé; Disney+, HBO Max, Prime Video, Apple TV e outros deitadas) e o foco do controle de cada um: cresce, sobe, anel na cor da marca ou brilho

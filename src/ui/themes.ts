@@ -96,7 +96,7 @@ export function applyTheme(t: Theme): void {
   const sheets = document.styleSheets;
   for (let i = 0; i < sheets.length; i++) {
     const sh = sheets[i];
-    if (sh.ownerNode && /^prisma-(theme|skin)$/.test((sh.ownerNode as HTMLElement).id)) continue;
+    if (sh.ownerNode && /^prisma-(theme|skin|cue)$/.test((sh.ownerNode as HTMLElement).id)) continue;
     let rules: CSSRuleList;
     try {
       rules = sh.cssRules;

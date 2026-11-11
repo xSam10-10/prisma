@@ -3,7 +3,7 @@ import { useSettings } from '../core/settings';
 import { applyStreamSkin } from '../ui/themes';
 import { styleOf, type SkinMode } from '../ui/streamStyle';
 import type { Channel, ItemKind, Playlist } from '../core/types';
-import { ANIME, STREAMINGS, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
+import { ANIME, STREAMINGS, audioTag, getProgress, inMyList, isWatched, nextToWatch, removeFromContinue, setWatched, collapseVersions, versionLabels, versionsOf, logoSize, logoUrl, myList, streamingsIn, toggleMyList, type Streaming } from '../core/vod';
 import { seriesInfo, vodInfo, type Episode, type SeriesDetails, type VodDetails } from '../core/xtream';
 import { Symbol, colorFor, initials, rgba } from '../ui/bits';
 import { PreviewBackdrop, SkeletonRow, TitleLogo, badgesOf, setPreview } from '../ui/premium';
@@ -83,6 +83,25 @@ export function PosterCard({ item, w, selected, rank }: { item: Channel; w: numb
 }
 
 type Sort = 'recent' | 'az' | 'rating';
+
+const THIS_YEAR = new Date().getFullYear();
+/** Filtro de ano: todos, lançamentos (este ano e o passado) e por década. */
+export const YEARS: { label: string; test: (y?: number) => boolean }[] = [
+  { label: 'Todos', test: () => true },
+  { label: 'Lançamentos', test: (y) => !!y && y >= THIS_YEAR - 1 },
+  { label: 'Anos 2020', test: (y) => !!y && y >= 2020 },
+  { label: 'Anos 2010', test: (y) => !!y && y >= 2010 && y < 2020 },
+  { label: 'Anos 2000', test: (y) => !!y && y >= 2000 && y < 2010 },
+  { label: 'Anos 90', test: (y) => !!y && y >= 1990 && y < 2000 },
+  { label: 'Clássicos', test: (y) => !!y && y < 1990 },
+];
+/** Filtro de áudio/idioma pelo que a lista informa (DUB, LEG, Dual, Nacional). */
+export const LANGS: { label: string; test: (t?: string) => boolean }[] = [
+  { label: 'Todos', test: () => true },
+  { label: 'Dublado', test: (t) => t === 'dub' || t === 'dual' },
+  { label: 'Legendado', test: (t) => t === 'leg' || t === 'dual' },
+  { label: 'Nacional', test: (t) => t === 'nac' },
+];
 /** Botão "Top" na fileira de streamings. */
 const TOPS = '__top__';
 // Número grande só em ranking de verdade (Top 10 de streaming/gênero/especial), em sequência 1, 2, 3…
@@ -106,6 +125,9 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const [cat, setCat] = useState<string>('');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<Sort>('recent');
+  // Filtros (0.29.0): ano e áudio/idioma. OK no botão passa para a próxima opção.
+  const [yearF, setYearF] = useState(0);
+  const [langF, setLangF] = useState(0);
   const [index, setIndex] = useState(0);
   const [detail, setDetail] = useState<Channel | null>(null);
   const gridRef = useRef<VirtualGridHandle>(null);
@@ -226,9 +248,11 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     if (sort === 'az') l = [...l].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     else if (sort === 'rating') l = [...l].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else l = [...l].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
+    if (yearF) l = l.filter((i) => YEARS[yearF].test(i.year));
+    if (langF) l = l.filter((i) => LANGS[langF].test(audioTag(i)));
     // Mesmo título em várias versões (Dublado, Legendado, 4K): uma capa só; a versão escolhe no detalhe.
     return collapseVersions(l);
-  }, [all, inStream, cat, q, sort, topMode]);
+  }, [all, inStream, cat, q, sort, topMode, yearF, langF]);
   const openTop = () => {
     setStream(TOPS);
     setCat('');
@@ -245,7 +269,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     setDetail(it);
   };
 
-  useEffect(() => setIndex(0), [stream, cat, q, sort]);
+  useEffect(() => setIndex(0), [stream, cat, q, sort, yearF, langF]);
   useEffect(() => {
     requestAnimationFrame(() => gridRef.current?.focus());
   }, [tab]);
@@ -277,6 +301,12 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
           {s === 'recent' ? 'Recentes' : s === 'az' ? 'A–Z' : 'Nota'}
         </button>
       ))}
+      <button className={'chip' + (yearF ? ' on' : '')} data-nav="" aria-label="Filtrar por ano" style={{ marginLeft: 10 }} onClick={() => setYearF((x) => (x + 1) % YEARS.length)}>
+        {yearF ? YEARS[yearF].label : 'Ano'} ▾
+      </button>
+      <button className={'chip' + (langF ? ' on' : '')} data-nav="" aria-label="Filtrar por áudio" onClick={() => setLangF((x) => (x + 1) % LANGS.length)}>
+        {langF ? LANGS[langF].label : 'Áudio'} ▾
+      </button>
     </div>
   );
   const catChips = (

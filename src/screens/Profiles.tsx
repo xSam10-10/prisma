@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { PROFILE_COLORS, addProfile, lastWatchedOf, askOnStart, currentProfile, profiles, removeProfile, setAskOnStart, switchProfile, updateProfile, type Profile } from '../core/profiles';
+import { toast } from '../ui/premium2';
+import { IS_WEBOS } from '../core/platform';
+import { PROFILE_COLORS, addProfile, lastWatchedOf, askOnStart, currentProfile, profiles, removeProfile, setAskOnStart, switchProfile, updateProfile, type Profile, photoFromFile } from '../core/profiles';
 import { Ambient, Brand } from '../ui/bits';
 import { ConfirmButton, NameDialog } from '../ui/Dialog';
 import { useLayout } from '../ui/layout';
@@ -89,6 +91,40 @@ export function ProfilesPanel() {
             >
               Avatar
             </button>
+            {!IS_WEBOS && (
+              <label className="btn" data-nav="" tabIndex={0} aria-label="Escolher foto do avatar" onKeyDown={(e) => { if (e.key === 'Enter' || e.keyCode === 13) (e.currentTarget.querySelector('input') as HTMLInputElement | null)?.click(); }}>
+                📷 Foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!f) return;
+                    try {
+                      updateProfile(p.id, { photo: await photoFromFile(f) });
+                      refresh();
+                      toast('Foto do perfil trocada', '📷');
+                    } catch {
+                      toast('Não consegui abrir essa imagem', '✕');
+                    }
+                  }}
+                />
+              </label>
+            )}
+            {p.photo && (
+              <button
+                className="btn"
+                data-nav=""
+                onClick={() => {
+                  updateProfile(p.id, { photo: undefined });
+                  refresh();
+                }}
+              >
+                Tirar foto
+              </button>
+            )}
             {list.length > 1 && (
               <ConfirmButton
                 label="Apagar"

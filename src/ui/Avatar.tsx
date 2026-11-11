@@ -92,7 +92,16 @@ export function ProfileAvatar({ profile, size }: { profile: Profile; size: numbe
       <rect width="100" height="100" rx="24" fill={profile.color} />
       <rect width="100" height="100" rx="24" fill={`url(#${gid})`} />
       <rect width="100" height="100" rx="24" fill={`url(#${gid}g)`} />
-      {ART[avatarIndex(profile)](profile.id)}
+      {profile.photo ? (
+        <>
+          <clipPath id={gid + 'c'}>
+            <rect width="100" height="100" rx="24" />
+          </clipPath>
+          <image href={profile.photo} xlinkHref={profile.photo} width="100" height="100" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${gid}c)`} />
+        </>
+      ) : (
+        ART[avatarIndex(profile)](profile.id)
+      )}
     </svg>
   );
 }

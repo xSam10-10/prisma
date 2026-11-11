@@ -9,6 +9,8 @@ export interface Profile {
   color: string;
   /** Ilustração do avatar (src/ui/Avatar.tsx). */
   avatar?: number;
+  /** Foto do avatar (0.29.0): imagem quadrada pequena (JPEG em data URL), no lugar da ilustração. */
+  photo?: string;
 }
 
 /** O que o perfil viu por último (sem trocar de perfil): filme/série em andamento ou "canais ao vivo". */
@@ -89,4 +91,28 @@ export function chosenThisSession(): boolean {
   } catch {
     return true;
   }
+}
+
+/** Prepara a foto do avatar: recorta o centro em quadrado e reduz para 256×256 (JPEG). */
+export function photoFromFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.naturalWidth, img.naturalHeight);
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 256;
+      const ctx = c.getContext('2d');
+      if (!ctx) return reject(new Error('sem canvas'));
+      ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 256, 256);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('imagem inválida'));
+    };
+    img.src = url;
+  });
 }
