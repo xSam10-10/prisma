@@ -1,6 +1,13 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.35.3 — capas e filtros de adultos guardados
+- Adultos: capa baixada uma vez fica guardada no aparelho (sem limite) e não é baixada de novo; o app só busca as capas genéricas que ainda não foram procuradas
+- Filtros de atrizes e produtoras aparecem na hora ao abrir a categoria, com tudo o que já foi visto; depois só completa com os títulos novos
+- Sem internet (ou servidor ocupado) o título não fica marcado como "sem capa": tenta de novo na próxima vez
+- Trocar a chave do TMDB ou da ThePornDB nos Ajustes não apaga mais as capas já achadas
+- Capa já guardada aparece direto, sem piscar a capa genérica antes
+
 ## 0.35.2 — só atrizes, capas inteiras e mais ícones
 - Adultos: o filtro e as fotos da capa mostram só atrizes (homens saem, mesmo quando o cadastro da cena não diz o sexo). Na capa vem primeiro a capa oficial; com o cursor parado 3 segundos, passa para as fotos das atrizes, na ordem do título
 - Capa com imagem deitada (cena do filme) aparece inteira, com fundo desfocado, em vez de cortada

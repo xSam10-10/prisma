@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import type { Channel } from '../core/types';
 import { actressKey, buildActresses, namesToVerify, type Actress } from '../core/actresses';
 import { buildStudios, studioKey, studiosToVerify, type SiteInfo, type Studio } from '../core/studios';
-import { adultInfo } from '../core/tmdb';
+import { adultCached, adultInfo } from '../core/tmdb';
 import { tpdbKey, tpdbPerformer, tpdbSite, type Performer } from '../core/tpdb';
 import { idbGet, idbSet } from '../core/storage';
 import { colorFor, initials, rgba } from '../ui/bits';
@@ -59,27 +59,31 @@ export function useAdultFilters(items: Channel[], on: boolean): { actresses: Act
     void (async () => {
       const ver = await perfStore.load();
       const sv = await siteStore.load();
-      if (alive) {
-        setVerified(new Map(ver));
-        setSitesOk(new Map(sv));
-      }
-      if (!withKey) return;
-      setBusy(true);
-      // Mais novos primeiro; o cache faz os já vistos voltarem na hora.
-      const pool = [...items].sort((a, b) => (b.added ?? 0) - (a.added ?? 0)).slice(0, ENRICH * 4);
-      let fresh = 0;
-      let n = 0;
-      let next = 0;
+      // 0.35.3: o que já foi baixado entra na hora (atrizes e produtoras de todos os títulos já
+      // vistos, sem internet); depois só vai buscar os títulos que ainda faltam.
+      const { hit, miss } = await adultCached(items);
+      if (!alive) return;
+      hit.forEach((info, id) => {
+        if (info?.performers?.length) per.set(id, info.performers);
+        if (info?.studio) sites.set(id, info.studio);
+      });
       const push = () => {
         setPerfOf(new Map(per));
         setSiteOf(new Map(sites));
       };
+      push();
+      setVerified(new Map(ver));
+      setSitesOk(new Map(sv));
+      if (!withKey) return;
+      setBusy(true);
+      // Mais novos primeiro; até ENRICH novos por vez (na próxima abertura continua de onde parou).
+      const pool = miss.sort((a, b) => (b.added ?? 0) - (a.added ?? 0)).slice(0, ENRICH);
+      let n = 0;
+      let next = 0;
       const worker = async () => {
-        while (alive && next < pool.length && fresh < ENRICH) {
+        while (alive && next < pool.length) {
           const it = pool[next++];
-          const t0 = Date.now();
           const info = await adultInfo(it).catch(() => null);
-          if (Date.now() - t0 > 30) fresh++; // foi buscar na internet
           if (!alive) return;
           if (info?.performers?.length) per.set(it.id, info.performers);
           if (info?.studio) sites.set(it.id, info.studio);
@@ -97,16 +101,25 @@ export function useAdultFilters(items: Channel[], on: boolean): { actresses: Act
       const vworker = async () => {
         while (alive && ni < names.length) {
           const name = names[ni++];
-          ver.set(actressKey(name), await tpdbPerformer(name).catch(() => null));
-          if (++done % 20 === 0 && alive) setVerified(new Map(ver));
+          // Falha de rede não fica guardada como "não é atriz": confere de novo na próxima vez.
+          const p = await tpdbPerformer(name).then((x) => ({ x }), () => null);
+          if (p) ver.set(actressKey(name), p.x);
+          if (++done % 20 === 0 && alive) {
+            setVerified(new Map(ver));
+            perfStore.save();
+          }
         }
       };
       await Promise.all([vworker(), vworker(), vworker()]);
       perfStore.save();
       if (alive) setVerified(new Map(ver));
+      const site = async (name: string) => {
+        const r = await tpdbSite(name).then((x) => ({ x }), () => null);
+        if (r) sv.set(studioKey(name), r.x);
+      };
       for (const name of studiosToVerify(items, sv)) {
         if (!alive) break;
-        sv.set(studioKey(name), await tpdbSite(name).catch(() => null));
+        await site(name);
       }
       // Produtora que veio da cena, mas sem logotipo: procura o logotipo pelo nome.
       const noLogo: string[] = [];
@@ -115,7 +128,7 @@ export function useAdultFilters(items: Channel[], on: boolean): { actresses: Act
       });
       for (const name of noLogo.slice(0, 20)) {
         if (!alive) break;
-        sv.set(studioKey(name), await tpdbSite(name).catch(() => null));
+        await site(name);
       }
       siteStore.save();
       if (alive) {
@@ -126,6 +139,9 @@ export function useAdultFilters(items: Channel[], on: boolean): { actresses: Act
     return () => {
       alive = false;
       setBusy(false);
+      // Saiu no meio: o que já conferiu fica guardado.
+      perfStore.save();
+      siteStore.save();
     };
   }, [ids, on]); // eslint-disable-line react-hooks/exhaustive-deps
   const actresses = useMemo(() => (on ? buildActresses(items, perfOf, verified, !!tpdbKey()) : []), [items, perfOf, verified, on]);
@@ -256,7 +272,7 @@ export function FilterRow({ kind, list, busy, selected, onSelect, mobile }: { ki
   return (
     <>
       <div ref={setRow} className={'act-row' + (kind === 'studio' ? ' st-row' : '')} data-nav-group="" aria-label={fem ? 'Atrizes' : 'Produtoras'}>
-        <TextButton kind={kind} d={d} big="Todas" label="Todas" sub={busy ? 'buscando…' : `${list.length} ${word}`} on={!selected} active={!selected} onClick={() => onSelect('')} />
+        <TextButton kind={kind} d={d} big="Todas" label="Todas" sub={busy && !list.length ? 'buscando…' : `${list.length} ${word}`} on={!selected} active={!selected} onClick={() => onSelect('')} />
         {shown.map((p) => (
           <PickButton key={p.key} p={p} kind={kind} d={d} on={p.key === selected} active={p.key === selected} onPick={() => onSelect(p.key === selected ? '' : p.key)} />
         ))}

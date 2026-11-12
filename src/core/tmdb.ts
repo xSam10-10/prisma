@@ -116,19 +116,152 @@ function hit(c: Record<string, TmdbInfo | null>, key: string): TmdbInfo | null {
 /** Títulos guardados no máximo (0.35.0): antes crescia sem fim e era regravado inteiro a cada 2 s.
  *  0.35.2: 3.000 era pouco para listas grandes (as capas voltavam a ser buscadas na internet); sai o menos usado. */
 const CACHE_MAX = 6000;
-function persist() {
+let tmdbDirty = false;
+function flushTmdb() {
   clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(() => {
-    if (!cache) return;
-    // Os menos usados saem primeiro (a ordem das chaves é a do último uso, ver hit).
-    const keys = Object.keys(cache);
-    for (let i = 0; i < keys.length - CACHE_MAX; i++) delete cache[keys[i]];
-    void idbSet('tmdb', cache);
-  }, 10000);
+  if (!cache || !tmdbDirty) return;
+  tmdbDirty = false;
+  // Os menos usados saem primeiro (a ordem das chaves é a do último uso, ver hit).
+  const keys = Object.keys(cache);
+  for (let i = 0; i < keys.length - CACHE_MAX; i++) delete cache[keys[i]];
+  void idbSet('tmdb', cache);
 }
+function persist() {
+  tmdbDirty = true;
+  clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(flushTmdb, 10000);
+}
+/** Chave nova (TMDB ou ThePornDB): procura de novo o que ficou sem capa. As capas de adultos achadas ficam. */
 export function clearTmdbCache(): void {
   cache = {};
   idbSet('tmdb', {});
+  void loadAdult().then((m) => {
+    m.forEach((e, k) => {
+      if (!e.v) {
+        m.delete(k);
+        dirty[shardOf(k)] = true;
+      }
+    });
+    saveAdult();
+  });
+}
+
+// ---- Capas de adultos guardadas sem prazo (0.35.3) ----
+// Pedido do Samuel: capa de adulto baixada uma vez não é baixada de novo. Antes dividiam o cache
+// do TMDB (6.000 títulos para filmes, séries e adultos; a categoria tem 10 mil) e falha de rede
+// ficava guardada como "sem capa". Agora: guardadas à parte, sem limite, em 16 pedaços (só o
+// pedaço que mudou é regravado) e gravadas também quando o app sai da tela.
+interface AdultEntry {
+  /** O que achou (null = procurou e não tem). */
+  v: TmdbInfo | null;
+  /** Com que chaves procurou: "p" ThePornDB, "t" TMDB. Chave nova refaz só as que não tinham. */
+  f: string;
+}
+const SHARDS = 16;
+let adultMap: Map<string, AdultEntry> | null = null;
+let adultLoading: Promise<Map<string, AdultEntry>> | null = null;
+const dirty: boolean[] = [];
+let adultTimer: number | undefined;
+function shardOf(k: string): number {
+  let h = 0;
+  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) | 0;
+  return Math.abs(h) % SHARDS;
+}
+function flushAdult(): void {
+  clearTimeout(adultTimer);
+  if (!adultMap) return;
+  const out: Record<string, Record<string, AdultEntry>> = {};
+  for (let i = 0; i < SHARDS; i++) if (dirty[i]) out[i] = {};
+  if (!Object.keys(out).length) return;
+  adultMap.forEach((e, k) => {
+    const s = out[shardOf(k)];
+    if (s) s[k] = e;
+  });
+  for (const i of Object.keys(out)) {
+    dirty[+i] = false;
+    void idbSet('adultc' + i, out[i]);
+  }
+}
+function saveAdult(): void {
+  clearTimeout(adultTimer);
+  adultTimer = window.setTimeout(flushAdult, 3000);
+}
+function loadAdult(): Promise<Map<string, AdultEntry>> {
+  if (adultMap) return Promise.resolve(adultMap);
+  if (!adultLoading)
+    adultLoading = (async () => {
+      const m = new Map<string, AdultEntry>();
+      const parts = await Promise.all(Array.from({ length: SHARDS }, (_, i) => idbGet<Record<string, AdultEntry>>('adultc' + i)));
+      for (const p of parts) if (p) for (const k of Object.keys(p)) m.set(k, p[k]);
+      // Da 0.35.2 (cache do TMDB, "adult6|pt|título|ano"): passam para cá as que acharam capa.
+      const c = await loadCache();
+      let moved = false;
+      for (const k of Object.keys(c)) {
+        const mm = /^adult6\|([pt]*)\|(.*)$/.exec(k);
+        if (!mm) continue;
+        if (c[k] && !m.has(mm[2])) {
+          m.set(mm[2], { v: c[k], f: mm[1] });
+          dirty[shardOf(mm[2])] = true;
+        }
+        delete c[k];
+        moved = true;
+      }
+      adultMap = m;
+      if (moved) {
+        persist();
+        saveAdult();
+      }
+      // Saiu do app (TV desligada, botão Home): grava na hora o que falta.
+      const out = () => {
+        flushAdult();
+        flushTmdb();
+      };
+      document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && out());
+      window.addEventListener('pagehide', out);
+      return m;
+    })();
+  return adultLoading;
+}
+const adultFlags = () => (tpdbKey() ? 'p' : '') + (tmdbKey() ? 't' : '');
+/** A busca guardada já usou todas as chaves que o aparelho tem agora? */
+const covers = (had: string, now: string) => now.split('').every((ch) => had.indexOf(ch) >= 0);
+function adultKey(item: Channel): string {
+  const { title, year } = searchTitle(adultQuery(item.fullName ?? item.name));
+  return `${norm(title)}|${year ?? item.year ?? ''}`;
+}
+function adultHit(item: Channel): TmdbInfo | null | undefined {
+  const e = adultMap?.get(adultKey(item));
+  return e && covers(e.f, adultFlags()) ? e.v : undefined;
+}
+
+/**
+ * O que já foi baixado (sem internet): `hit` por id do título; `miss` são os que ainda faltam.
+ * Os filtros de atrizes e produtoras aparecem na hora com isso (0.35.3).
+ */
+export async function adultCached(items: Channel[]): Promise<{ hit: Map<string, TmdbInfo | null>; miss: Channel[] }> {
+  await loadAdult();
+  const hit = new Map<string, TmdbInfo | null>();
+  const miss: Channel[] = [];
+  for (const it of items) {
+    const v = adultHit(it);
+    if (v === undefined) miss.push(it);
+    else hit.set(it.id, v);
+  }
+  return { hit, miss };
+}
+
+/** Já está na memória? (a capa aparece na hora, sem esperar). undefined = ainda não sabe. */
+export function cachedInfo(item: Channel, logoBroken = false): TmdbInfo | null | undefined {
+  if (item.kind === 'live') return null;
+  if (isAdultName(item.group)) return isGenericLogo(item.logo) || logoBroken ? adultHit(item) : null;
+  if (!cache || !tmdbKey()) return undefined;
+  const key = tmdbCacheKey(item);
+  return key in cache ? cache[key] : undefined;
+}
+function tmdbCacheKey(item: Channel): string {
+  const type = item.kind === 'movie' ? 'movie' : 'tv';
+  const { title, year } = searchTitle(item.fullName ?? item.name);
+  return `${type}|${norm(title)}|${year ?? item.year ?? ''}`;
 }
 
 /** Fila: no máximo 3 buscas ao mesmo tempo (a grade pede várias capas). */
@@ -155,7 +288,7 @@ export async function lookup(item: Channel, logoBroken = false): Promise<TmdbInf
   if (!tmdbKey()) return null;
   const type = item.kind === 'movie' ? 'movie' : 'tv';
   const { title, year } = searchTitle(item.fullName ?? item.name);
-  const key = `${type}|${norm(title)}|${year ?? item.year ?? ''}`;
+  const key = tmdbCacheKey(item);
   const c = await loadCache();
   if (key in c) return hit(c, key);
   return slot(async () => {
@@ -182,32 +315,49 @@ export async function lookup(item: Channel, logoBroken = false): Promise<TmdbInf
  * que o token que chega pela nuvem refaça as buscas que antes deram em nada.
  */
 export async function adultInfo(item: Channel): Promise<TmdbInfo | null> {
+  const key = adultKey(item);
+  const m = await loadAdult();
+  const f = adultFlags();
+  const e = m.get(key);
+  // Já baixada (ou já procurada com as mesmas chaves): não vai à internet.
+  if (e && covers(e.f, f)) return e.v;
+  if (!f) return e ? e.v : null;
+  // O mesmo título pedido pela grade e pelos filtros ao mesmo tempo: uma busca só.
+  let p = inflight.get(key);
+  if (!p) {
+    p = slot(() => fetchAdult(item, key, f, e?.v ?? null));
+    inflight.set(key, p);
+    void p.then(() => inflight.delete(key));
+  }
+  return p;
+}
+const inflight = new Map<string, Promise<TmdbInfo | null>>();
+
+async function fetchAdult(item: Channel, key: string, f: string, old: TmdbInfo | null): Promise<TmdbInfo | null> {
   const name = item.fullName ?? item.name;
   const { title, year } = searchTitle(adultQuery(name));
-  const key = `adult6|${tpdbKey() ? 'p' : ''}${tmdbKey() ? 't' : ''}|${norm(title)}|${year ?? item.year ?? ''}`;
-  const c = await loadCache();
-  if (key in c) return hit(c, key);
-  if (!tmdbKey() && !tpdbKey()) return null;
-  return slot(async () => {
-    let info: TmdbInfo | null = null;
-    try {
-      if (tpdbKey()) info = await tpdbLookup(name, year ?? item.year);
-      if (!info?.poster && tmdbKey()) {
-        const r = await call<{ results: Raw[] }>('/search/movie', { query: title, include_adult: 'true' });
-        const hit = (r.results ?? []).find((x) => x.adult && x.poster_path && (sameContent(title, x.title ?? '') || sameContent(title, x.original_title ?? '')));
-        if (hit) info = { ...toInfo(hit, 'movie'), performers: info?.performers, studio: info?.studio, fans: info?.fans };
-      }
-      // Nada de capa: a foto das atrizes vira a capa (a do título primeiro).
-      if (!info?.poster && tpdbKey()) info = await actressCover(name, info);
-      // Último recurso antes da capa genérica: a imagem da página dela no OnlyFans (FansDB).
-      if (info && !info.poster && info.fans?.image) info = { ...info, poster: info.fans.image, backdrop: info.backdrop || info.fans.image };
-    } catch {
-      info = null;
+  let info: TmdbInfo | null = null;
+  try {
+    if (tpdbKey()) info = await tpdbLookup(name, year ?? item.year);
+    if (!info?.poster && tmdbKey()) {
+      const r = await call<{ results: Raw[] }>('/search/movie', { query: title, include_adult: 'true' });
+      const hit = (r.results ?? []).find((x) => x.adult && x.poster_path && (sameContent(title, x.title ?? '') || sameContent(title, x.original_title ?? '')));
+      if (hit) info = { ...toInfo(hit, 'movie'), performers: info?.performers, studio: info?.studio, fans: info?.fans };
     }
-    c[key] = info;
-    persist();
-    return info;
-  });
+    // Nada de capa: a foto das atrizes vira a capa (a do título primeiro).
+    if (!info?.poster && tpdbKey()) info = await actressCover(name, info);
+    // Último recurso antes da capa genérica: a imagem da página dela no OnlyFans (FansDB).
+    if (info && !info.poster && info.fans?.image) info = { ...info, poster: info.fans.image, backdrop: info.backdrop || info.fans.image };
+  } catch {
+    // Sem internet / servidor ocupado: não guarda nada, tenta de novo na próxima vez.
+    return old;
+  }
+  // Achou menos que antes (uma chave a mais não trouxe capa): fica a que já tinha.
+  if (!info?.poster && old?.poster) info = { ...old, performers: info?.performers?.length ? info.performers : old.performers };
+  adultMap!.set(key, { v: info, f });
+  dirty[shardOf(key)] = true;
+  saveAdult();
+  return info;
 }
 
 /**

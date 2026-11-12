@@ -103,22 +103,30 @@ function pick(i: Img): string | undefined {
   return i.large || i.full || i.medium || i.small || undefined;
 }
 
-/** GET com a chave (XMLHttpRequest na TV/Windows; rede nativa no Android). */
+/** Falha de rede ou servidor ocupado (0.35.3): não é "não achei", então nada fica guardado e tenta de novo depois. */
+export class TpdbFail extends Error {}
+const busy = (s: number) => s === 429 || s >= 500 || s === 0;
+
+/** GET com a chave (XMLHttpRequest na TV/Windows; rede nativa no Android). Falha de rede: TpdbFail. */
 async function get(path: string, key: string): Promise<{ data?: Item[] } | null> {
   const url = API() + path;
   if (IS_ANDROID) {
     const { CapacitorHttp } = await import('@capacitor/core');
-    const r = await CapacitorHttp.request({ url, method: 'GET', headers: { Authorization: 'Bearer ' + key, Accept: 'application/json' }, connectTimeout: 15000, readTimeout: 15000 });
+    const r = await CapacitorHttp.request({ url, method: 'GET', headers: { Authorization: 'Bearer ' + key, Accept: 'application/json' }, connectTimeout: 15000, readTimeout: 15000 }).catch(() => {
+      throw new TpdbFail('rede');
+    });
+    if (busy(r.status)) throw new TpdbFail('servidor ' + r.status);
     if (r.status < 200 || r.status >= 300) return null;
     return (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as { data?: Item[] };
   }
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
     x.open('GET', url, true);
     x.timeout = 15000;
     x.setRequestHeader('Authorization', 'Bearer ' + key);
     x.setRequestHeader('Accept', 'application/json');
     x.onload = () => {
+      if (busy(x.status)) return reject(new TpdbFail('servidor ' + x.status));
       if (x.status < 200 || x.status >= 300) return resolve(null);
       try {
         resolve(JSON.parse(x.responseText) as { data?: Item[] });
@@ -126,8 +134,8 @@ async function get(path: string, key: string): Promise<{ data?: Item[] } | null>
         resolve(null);
       }
     };
-    x.onerror = () => resolve(null);
-    x.ontimeout = () => resolve(null);
+    x.onerror = () => reject(new TpdbFail('rede'));
+    x.ontimeout = () => reject(new TpdbFail('tempo'));
     x.send();
   });
 }
@@ -325,12 +333,14 @@ function profileOf(name: string): Promise<Perf | null> {
     p = (async () => {
       const key = tpdbKey();
       if (!key) return null;
-      const r = await get(`/performers?q=${encodeURIComponent(name)}&per_page=5`, key).catch(() => null);
+      const r = await get(`/performers?q=${encodeURIComponent(name)}&per_page=5`, key);
       const all = ((r?.data ?? []) as Perf[]).filter((x) => (x.name || x.parent?.name || '').trim());
       const nm = (x: Perf) => x.name || x.parent?.name || '';
       return all.find((x) => words(nm(x)).join(' ') === k) ?? all.find((x) => similar(name, nm(x)) === 1) ?? null;
     })();
     perfMemo.set(k, p);
+    // Falhou a rede: esquece, para procurar de novo na próxima vez.
+    p.catch(() => perfMemo.delete(k));
   }
   return p;
 }
@@ -352,7 +362,8 @@ export async function onlyWomen(list: Performer[]): Promise<Performer[]> {
       out.push(p);
       continue;
     }
-    const prof = await profileOf(p.name).catch(() => null);
+    // Falha de rede sobe (a busca não fica guardada com alguém que não deu para conferir).
+    const prof = await profileOf(p.name);
     const g = prof ? genderOf(prof) : '';
     if (g && !isFemale(g)) continue;
     out.push(g ? { ...p, female: true } : p);
@@ -372,11 +383,12 @@ export function tpdbSite(name: string): Promise<StudioInfo | null> {
     p = (async () => {
       const key = tpdbKey();
       if (!key || !k) return null;
-      const r = (await get(`/sites?q=${encodeURIComponent(name)}&per_page=10`, key).catch(() => null)) as { data?: Site[] } | null;
+      const r = (await get(`/sites?q=${encodeURIComponent(name)}&per_page=10`, key)) as { data?: Site[] } | null;
       const list = (r?.data ?? []).map(toStudio).filter((x): x is StudioInfo => !!x);
       return list.find((x) => flat(x.name) === k) ?? list.find((x) => similar(name, x.name) === 1) ?? null;
     })();
     siteMemo.set(k, p);
+    p.catch(() => siteMemo.delete(k));
   }
   return p;
 }

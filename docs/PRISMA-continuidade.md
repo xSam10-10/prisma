@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.2)
+## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.3)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10bg (0.10.0 → 0.35.2). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bh (0.10.0 → 0.35.3). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -635,6 +635,12 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - `tmdb.ts`: cache 6.000 títulos e sai o menos usado (`hit` move para o fim); antes 3.000 por ordem de entrada fazia as capas voltarem à internet. `tops.ts`: espera 5 min depois de falhar. `highlights.ts`: um programa por canal e horário (chave repetida no React).
 - Ícones: pacotes `PRISMA-faltantes-lote-2/3/4/5.zip` (126 novos, 318 arquivos); `tcm canal 10 rn` deixou de ser bloqueio. Controle: 296 aplicados, 15 revisar, 193 pendentes (ver `docs/icones/LEIA-ME.md`).
 - `test/fake-xtream.mjs`: CORS liberado (build da TV no navegador) e "Jesus Teste" (homem com sexo em branco na cena).
+## 10bh. Versão 0.35.3 — capas e filtros de adultos guardados (12/11)
+- Pedido do Samuel: capa de adulto baixada não é baixada de novo; filtros de atrizes e produtoras gravados.
+- `tmdb.ts`: cache próprio dos adultos (`adultMap`, chave `título|ano`, sem limite) em 16 pedaços no IndexedDB (`adultc0`…`adultc15`; só o pedaço alterado é regravado, 3 s depois ou ao sair da tela: `visibilitychange`/`pagehide`). Cada entrada guarda com que chaves procurou (`f`: p/t); chave nova refaz só as que não tinham. As `adult6|` da 0.35.2 com capa migram para lá. `inflight` evita busca dupla do mesmo título. `clearTmdbCache` (chave nova nos Ajustes) só tira as sem capa. `cachedInfo` (síncrono) deixa `useTmdb` mostrar a capa guardada na hora.
+- `tpdb.ts`: `TpdbFail` em falha de rede, tempo esgotado, 429 e 5xx (antes virava "não achei" e ficava guardado); perfis e produtoras que falharam saem da memória da sessão.
+- `Actresses.tsx`: `adultCached` monta os filtros com o que já foi baixado antes de ir à internet; depois busca só os que faltam (`ENRICH` = 250 por abertura). Lista de atrizes/produtoras gravada a cada 20 e ao sair. "buscando…" só com a fileira vazia.
+- Teste (fake-xtream): 1ª abertura 104 pedidos à ThePornDB; 2ª, depois de recarregar, 0 pedidos e filtros/capas em 1,2 s. Com a ThePornDB fora do ar nada é gravado; ao voltar, busca e acha.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.
