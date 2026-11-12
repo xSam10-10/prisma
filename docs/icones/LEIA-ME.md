@@ -35,9 +35,15 @@ Regra do app (0.34.6): meu ícone só passa na frente do logo oficial quando cas
 | 2 | 12/11/2026 | 34 (32 marcas) | 177 | 8 | 319 | 0.34.7 |
 | 4 | 12/11/2026 | 23 | 199 | 9 | 296 | 0.35.2 |
 | pacotes 2, 3 e 5 | 12/11/2026 | 22 + 63 + 18 | 296 | 15 | 193 | 0.35.2 |
+| pacotes 6 e 7 | 12/11/2026 | 9 + 12 | 315 | 17 | 172 | 0.35.4 |
 
 Nome dos pacotes × lotes daqui: o "lote 2" daqui é o `PRISMA-faltantes-lote-1.zip`; o "4" é o `PRISMA-faltantes-lote-4.zip`.
 Do pacote 2 em diante o controle grava `pacote lote-N (data)` em `LoteIntegracao`.
+
+**Pacotes 6 e 7** (21 ícones): 42 linhas da TV ao vivo com ícone novo (VTV SBT, Disney Clássico, X-Men, Pica-Pau, Corrida Maluca, Filhos da Anarquia e outros desenhos e séries 24H), todas carregadas em 256 px, nenhuma falha; nenhum status anterior mudou.
+- Revisar: Castlevania (letras vermelho-escuras e finas) e Sakura Card (letras pequenas).
+- Faltam 172: 153 não geradas e 19 por confirmar identidade.
+- Do pacote só entram `lista-256/` e os três arquivos de controle (`mapa-prisma.json`, `mapa-prisma-completo-atualizado.json`, `relacao-completa-atualizada.csv`); no lote 7 isso é ~0,6 MB de 31,8 MB. As outras pastas (`prisma-512`, `grande-1024`, `originais`, `fontes`, `lista-96`, `webp-256`) não são usadas.
 
 **Pacotes 2, 3 e 5** (103 ícones): 306 linhas da TV ao vivo com ícone novo, todas carregadas em 256 px, nenhuma falha;
 nenhum status anterior mudou. Cobrem emissoras (TV Aracati, IMPD, Petrópolis, Globo Cabo Branco, Rede Gospel, Ideal TV,

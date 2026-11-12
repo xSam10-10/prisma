@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.35.4 — mais 21 ícones de canais
+- TV ao vivo: 21 ícones novos (pacotes 6 e 7) em 42 canais — VTV SBT, Disney Clássico, X-Men, Pica-Pau, Corrida Maluca, Filhos da Anarquia, Castlevania, Homem de Ferro, Popeye, Irmão do Jorel, Shaman King, She-Ra, Yu Yu Hakusho, Sakura Card, Carmen Sandiego, Caverna do Dragão, Scooby-Doo 13 Fantasmas, Steven Universe, Team Galaxy, Wolverine e os X-Men e Xena
+- Agora são 339 ícones próprios
+
 ## 0.35.3 — capas e filtros de adultos guardados
 - Adultos: capa baixada uma vez fica guardada no aparelho (sem limite) e não é baixada de novo; o app só busca as capas genéricas que ainda não foram procuradas
 - Filtros de atrizes e produtoras aparecem na hora ao abrir a categoria, com tudo o que já foi visto; depois só completa com os títulos novos
