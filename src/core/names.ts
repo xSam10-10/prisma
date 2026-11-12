@@ -36,7 +36,8 @@ const ALT_MARK = /\[[^\]]*\b(alt|alternativ[oa]|backup|bkp|reserva|op[cç][aã]o
 
 /** Chave para juntar fontes do mesmo canal: o nome completo sem as marcas de fonte reserva/codec. */
 export function sameChannelKey(full: string): string {
-  return full.replace(ALT_MARK, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase();
+  // "+" faz parte da marca: "HBO+" não é fonte reserva da "HBO" (0.34.6; os 7 sinais da HBO+ sumiam).
+  return full.replace(ALT_MARK, ' ').replace(/\+/g, ' plus ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase();
 }
 
 /** Servidor (host:porta) de uma URL; "" se não der para ler. */

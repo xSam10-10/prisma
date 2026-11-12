@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.5)
+## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.6)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10bb (0.10.0 → 0.34.5). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bc (0.10.0 → 0.34.6). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -600,6 +600,13 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Causa: as fileiras de atrizes/produtoras só se recolhem quando a grade rola (`onScrolled` → `gridDown`). Com poucas capas há uma fileira só, mais alta que a grade (195 px de grade para 325 px de capa no teste), e nada para rolar.
 - `VirtualGrid`: estado `cramped` — com a grade em foco no controle/teclado (`html.kbd`) e a fileira mais alta que a grade, avisa `onScrolled(true)` e as fileiras se recolhem. ▲ na 1ª fileira (ou rodinha para cima) desfaz, o próximo ▲ sai da grade; perder o foco também desfaz. No mouse/toque não muda nada.
 - Na mesma conversa: lista dos canais ao vivo da Goldcard para o Samuel gerar ícones no ChatGPT (504 ícones, CSV/TXT na pasta Downloads, fora do repositório). Os ícones vão para `public/logos/custom/` + `meus-logos.json` (chave = `logoKey` do nome; numerados e afiliadas usam a chave curta, porque `lookup` tira palavras do fim).
+
+## 10bc. Versão 0.34.6 — ícones premium da TV ao vivo, lote 1 (11/11)
+- Pedido do Samuel: trocar os logos da lista por ícones gerados por ele no ChatGPT, em lotes, com controle. Processo e histórico em `docs/icones/LEIA-ME.md`; controle das 504 entradas em `docs/icones/controle-icones.csv` (`StatusIntegracao` aplicado/revisar/pendente, só "aplicado" depois de visto no app).
+- Lote 1: 159 PNGs 256×256 em `public/logos/custom/` + `meus-logos.json`; 147 aplicados, 4 revisar (contraste: Sabor & Arte, CNN Brasil Money, Paramount+), 353 pendentes.
+- `logos.ts`: `lookup` devolve quantas palavras casaram; meu logo só vence o oficial quando é tão específico quanto ele (preserva oficiais como "record rj"); valor `""` em `meus-logos.json` bloqueia a herança por prefixo e também o oficial menos específico (`tcm canal 10 rn`, `tv gazeta maceio`). `setLogoCatalogs` para testes.
+- `names.ts` `sameChannelKey`: "+" vira " plus " — antes "HBO+ FHD" virava fonte reserva da "HBO FHD" e os 7 sinais da HBO+ sumiam.
+- Conferência: servidor de teste com os nomes reais da Goldcard (sem vídeo/credenciais) e Playwright percorrendo a TV ao vivo; 1.011 linhas com ícone novo, 0 falhas.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

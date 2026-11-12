@@ -18,6 +18,22 @@ describe('nomes de canais e categorias', () => {
   });
 });
 
+describe('meus logos x oficiais', async () => {
+  const { setLogoCatalogs, logoCandidates } = await import('../src/core/logos');
+  setLogoCatalogs({ record: 'record-br.png', 'record rj': 'record-rj-br.png', tcm: 'tcm-br.png' }, { record: 'record.png', 'espn 2': 'espn-2.png', espn: 'espn.png', tcm: 'tcm.png', 'tcm canal 10 rn': '' });
+  const first = (n: string) => logoCandidates(n, 'lista.png', false)[0];
+  it('meu logo vence o oficial do mesmo nível', () => expect(first('RECORD SP FHD')).toBe('logos/custom/record.png'));
+  it('oficial mais específico é preservado', () => expect(first('RECORD RJ HD')).toBe('logos/br/record-rj-br.png'));
+  it('variante numerada', () => {
+    expect(first('ESPN 2 FHD')).toBe('logos/custom/espn-2.png');
+    expect(first('ESPN 1 FHD')).toBe('logos/custom/espn.png');
+  });
+  it('bloqueio: não herda o logo de nome mais curto', () => {
+    expect(first('TCM canal 10-RN')).toBe('lista.png');
+    expect(first('TCM HD')).toBe('logos/custom/tcm.png');
+  });
+});
+
 describe('nome curto do canal', () => {
   it('corta o que vem depois da qualidade', () => {
     expect(simplifyName('GLOBO RJ HD [ALT]')).toBe('GLOBO RJ HD');
@@ -71,5 +87,7 @@ describe('canais numerados não viram um só', () => {
     expect(sameChannelKey('ADULTOS HD 01')).not.toBe(sameChannelKey('ADULTOS HD 02'));
     expect(sameChannelKey('Venus (1)')).not.toBe(sameChannelKey('Venus (2)'));
     expect(sameChannelKey('GLOBO RJ HD')).not.toBe(sameChannelKey('GLOBO RJ SD'));
+    expect(sameChannelKey('HBO+ FHD')).not.toBe(sameChannelKey('HBO FHD'));
+    expect(sameChannelKey('HBO+ FHD [ALT]')).toBe(sameChannelKey('HBO+ FHD'));
   });
 });

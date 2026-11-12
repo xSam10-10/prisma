@@ -98,11 +98,20 @@ function index(cat: Catalog, folder: string): Map<string, string> {
   const m = new Map<string, string>();
   for (const [k, file] of Object.entries(cat)) {
     const key = logoKey(k);
-    const url = `logos/${folder}/${file}`;
+    // Arquivo vazio = bloqueio: o canal não herda o logo de um nome mais curto (0.34.6;
+    // ex.: "TCM canal 10-RN" não é a TCM).
+    const url = file ? `logos/${folder}/${file}` : '';
     m.set(key, url);
     m.set(key.replace(/ /g, ''), url); // "rede tv" também casa com "redetv"
   }
   return m;
+}
+
+/** Só para os testes: troca os catálogos sem baixar nada. */
+export function setLogoCatalogs(o: Catalog, c: Catalog): void {
+  loaded = true;
+  official = index(o, 'br');
+  mine = index(c, 'custom');
 }
 
 /** Carrega os catálogos (uma vez). */
@@ -122,17 +131,25 @@ export async function loadLogoCatalogs(): Promise<void> {
   mine = index(c, 'custom');
 }
 
-function lookup(m: Map<string, string>, key: string): string | undefined {
+type Hit = { url: string; words: number };
+
+function get(m: Map<string, string>, k: string): string | undefined {
+  return m.has(k) ? m.get(k) : m.get(k.replace(/ /g, ''));
+}
+
+/** Logo do catálogo e quantas palavras do nome casaram (para saber qual é mais específico).
+ *  url vazia = bloqueio. */
+function lookup(m: Map<string, string>, key: string): Hit | undefined {
   if (!key) return undefined;
-  const hit = m.get(key) ?? m.get(key.replace(/ /g, ''));
-  if (hit) return hit;
-  // "globo sp" → "globo"; "premiere 5" → "premiere" (tira palavras do fim).
   const words = key.split(' ');
+  const hit = get(m, key);
+  if (hit !== undefined) return { url: hit, words: words.length };
+  // "globo sp" → "globo"; "premiere 5" → "premiere" (tira palavras do fim).
   for (let n = words.length - 1; n >= 1; n--) {
     const k = words.slice(0, n).join(' ');
     if (k.length < 3) break;
-    const h = m.get(k) ?? m.get(k.replace(/ /g, ''));
-    if (h) return h;
+    const h = get(m, k);
+    if (h !== undefined) return { url: h, words: n };
   }
   return undefined;
 }
@@ -143,8 +160,13 @@ function lookup(m: Map<string, string>, key: string): string | undefined {
  */
 export function logoCandidates(name: string, listLogo: string | undefined, preferList: boolean): string[] {
   const key = logoKey(name);
-  const own = lookup(mine, key);
-  const off = lookup(official, key);
+  const ownHit = lookup(mine, key);
+  const offHit = lookup(official, key);
+  // Meu logo só passa na frente do oficial quando é tão específico quanto ele: "Record" genérico
+  // não cobre o oficial da "Record RJ" (0.34.6). Um bloqueio meu tira também o oficial menos específico.
+  const mineWins = !!ownHit && (!offHit || ownHit.words >= offHit.words);
+  const own = mineWins ? ownHit!.url || undefined : undefined;
+  const off = mineWins && !ownHit!.url ? undefined : offHit?.url;
   const out: string[] = [];
   if (own) out.push(own);
   if (preferList) {
@@ -154,5 +176,6 @@ export function logoCandidates(name: string, listLogo: string | undefined, prefe
     if (off) out.push(off);
     if (listLogo) out.push(listLogo);
   }
+  if (ownHit?.url && !mineWins) out.push(ownHit.url); // reserva, se as outras imagens falharem
   return out.filter((v, i) => out.indexOf(v) === i);
 }

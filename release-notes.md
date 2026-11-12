@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.34.6 — ícones novos na TV ao vivo
+- TV ao vivo: 147 canais ganharam ícones novos em alta qualidade (Globo, Record, Band, SBT, ESPN, HBO, Telecine, Discovery, notícias, religiosos e outros), no lugar do que vem da lista; os demais continuam como estavam
+- Os canais HBO+ voltaram a aparecer na lista (eram juntados à HBO)
+
 ## 0.34.5 — capas inteiras no filtro de atriz e produtora
 - Categoria de adultos: filtrando por atriz ou produtora, com poucas capas na tela, elas ficavam cortadas embaixo e paradas. Agora, ao descer para as capas, as fileiras de atrizes e produtoras se recolhem e a capa aparece inteira; ▲ na primeira fileira mostra os filtros de novo
 

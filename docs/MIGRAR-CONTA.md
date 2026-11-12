@@ -247,6 +247,7 @@ a lista de descartados está no topo de `docs/PENDENCIAS.md`.
 
 **Testes que dependem do Samuel** (cópia de `docs/PENDENCIAS.md`):
 - **0.34.4:** filmes e séries mostram Dublado/Legendado na capa e no detalhe; conferir se algum legendado aparece como Dublado (na Goldcard, sem marca = dublado) e mandar o nome. Em Jogos, o cartão da F1 em foco cabe na tela.
+- **0.34.6:** na TV ao vivo, conferir os ícones novos (Globo, Record, Band, SBT, ESPN 1–6, HBO e HBO+, Telecine…) na TV e no celular; Sabor & Arte, CNN Brasil Money e Paramount+ estão marcados para revisar (contraste). Os canais HBO+ devem aparecer na categoria HBO.
 - **0.34.5:** na categoria de adultos, filtrar por uma atriz com poucos filmes e descer para as capas: as fileiras de atrizes e produtoras somem e a capa aparece inteira; ▲ mostra os filtros de novo.
 - **0.34.4:** em Ajustes › Serviços, tocar em "Mostrar" no campo da ThePornDB e ver o token; em Ajustes › Dados e limpeza, com a nuvem ligada, "Mostrar token" mostra o token do GitHub do aparelho.
 - **0.34.3:** filme de cena "FansDB" sem capa nem foto da atriz deve mostrar a imagem do OnlyFans.
