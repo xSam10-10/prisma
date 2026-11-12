@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.4)
+## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.5)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10bi (0.10.0 → 0.35.4). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bj (0.10.0 → 0.35.5). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -645,6 +645,10 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - 21 PNGs novos em `public/logos/custom/` (339 no total, todos 256×256) e 21 chaves novas em `meus-logos.json` (340). Conferidos no app: 42 canais carregando, 0 falhas.
 - Controle (`docs/icones/controle-icones.csv`): 315 aplicados, 17 revisar (entraram Castlevania e Sakura Card), 172 pendentes.
 - Dos pacotes só se usa `lista-256/` + `mapa-prisma.json`, `mapa-prisma-completo-atualizado.json` e `relacao-completa-atualizada.csv` (cerca de 2% do zip); o resto (512, 1024, 96, WebP, originais, fontes, prévia) pode deixar de vir.
+## 10bj. Versão 0.35.5 — pacote 8 de ícones (12/11)
+- 23 PNGs novos em `public/logos/custom/` (362 no total) e 23 chaves novas em `meus-logos.json` (363). Conferidos no app: 66 canais carregando, 0 falhas.
+- O pacote veio só com `lista-256/`; o mapa saiu da `relacao-completa-atualizada.csv` do lote 7 (nomes de arquivo batem).
+- Controle: 337 aplicados, 18 revisar (entrou BRTV Max Rodeio), 149 pendentes.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

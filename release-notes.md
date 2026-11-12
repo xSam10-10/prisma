@@ -1,6 +1,10 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.35.5 — mais 23 ícones de canais
+- TV ao vivo: 23 ícones novos (pacote 8) em 66 canais — A Grande Família, Detetives do Prédio Azul, Vai que Cola, Escolinha do Professor Raimundo, Sítio do Picapau Amarelo, Luluzinha, Pantera Cor de Rosa, Ursinhos Carinhosos, Digimon Savers, Jiraya, MegaMan, Rambo, Shinzo, Shurato, Simon, Superman, Wally Gator, Marília Mendonça, Simone e Simaria, Eduardo Costa, Trio Parada Dura, BRTV Max Rodeio e TV Super Gospel
+- Agora são 362 ícones próprios
+
 ## 0.35.4 — mais 21 ícones de canais
 - TV ao vivo: 21 ícones novos (pacotes 6 e 7) em 42 canais — VTV SBT, Disney Clássico, X-Men, Pica-Pau, Corrida Maluca, Filhos da Anarquia, Castlevania, Homem de Ferro, Popeye, Irmão do Jorel, Shaman King, She-Ra, Yu Yu Hakusho, Sakura Card, Carmen Sandiego, Caverna do Dragão, Scooby-Doo 13 Fantasmas, Steven Universe, Team Galaxy, Wolverine e os X-Men e Xena
 - Agora são 339 ícones próprios

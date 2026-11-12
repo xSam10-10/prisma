@@ -36,9 +36,15 @@ Regra do app (0.34.6): meu ícone só passa na frente do logo oficial quando cas
 | 4 | 12/11/2026 | 23 | 199 | 9 | 296 | 0.35.2 |
 | pacotes 2, 3 e 5 | 12/11/2026 | 22 + 63 + 18 | 296 | 15 | 193 | 0.35.2 |
 | pacotes 6 e 7 | 12/11/2026 | 9 + 12 | 315 | 17 | 172 | 0.35.4 |
+| pacote 8 | 12/11/2026 | 23 | 337 | 18 | 149 | 0.35.5 |
 
 Nome dos pacotes × lotes daqui: o "lote 2" daqui é o `PRISMA-faltantes-lote-1.zip`; o "4" é o `PRISMA-faltantes-lote-4.zip`.
 Do pacote 2 em diante o controle grava `pacote lote-N (data)` em `LoteIntegracao`.
+
+**Pacote 8** (`PRISMA-faltantes-lote-8-lista-256.zip`, 23 ícones): 66 linhas da TV ao vivo com ícone novo (A Grande Família 1–14, Detetives do Prédio Azul 1–14, Vai que Cola, Sítio do Picapau Amarelo, Jiraya, Shurato, Ursinhos Carinhosos e outros desenhos e séries 24H; shows de Marília Mendonça, Simone e Simaria, Eduardo Costa e Trio Parada Dura; BRTV Max Rodeio e TV Super Gospel), todas carregadas em 256 px, nenhuma falha; nenhum status anterior mudou.
+- Veio só a `lista-256/`, sem os arquivos de controle: o mapa foi montado pela `relacao-completa-atualizada.csv` do lote 7 (os 23 nomes de arquivo batem com linhas "nao_gerado").
+- Revisar: BRTV Max Rodeio (letras verde-escuras somem no fundo escuro).
+- Faltam 149: 130 não geradas e 19 por confirmar identidade.
 
 **Pacotes 6 e 7** (21 ícones): 42 linhas da TV ao vivo com ícone novo (VTV SBT, Disney Clássico, X-Men, Pica-Pau, Corrida Maluca, Filhos da Anarquia e outros desenhos e séries 24H), todas carregadas em 256 px, nenhuma falha; nenhum status anterior mudou.
 - Revisar: Castlevania (letras vermelho-escuras e finas) e Sakura Card (letras pequenas).
