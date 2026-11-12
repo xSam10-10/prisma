@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.0)
+## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.1)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10be (0.10.0 → 0.35.0). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bf (0.10.0 → 0.35.1). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -623,6 +623,10 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - `storage.ts` `prefRead` (leitura com cache, só consulta) em `getProgress`, `isWatched`, `isLocked`; `profileId` com cache. TMDB: no máximo 3.000 títulos, gravado a cada 10 s.
 - Modo leve sem `.sb-aurora`/`.sb-sweep` animados; player de filme redesenha 1×/s. Saiu a "Lista de teste" (`public/demo` → `test/demo`, usado pelo `fake-xtream`; `tsconfig` exclui `test/demo`). Removidos `clearGamesCache`, `catsLockedNow`, `nextEpisodeOf`, `Soon`.
 - **Pendente:** a TV atualizada só pelo app não recebe imagens novas (ícones dos lotes 1 e 2 em `public/logos/custom`); ideia: buscar no GitHub (repositório público) os ícones que faltarem.
+## 10bf. Versão 0.35.1 — ícones novos na TV atualizada pelo app (12/11)
+- Resolve o pendente da 0.35.0. `logos.ts`: quando a TV roda código mais novo que o .ipk (`window.__PRISMA_OTA__`) ou com a pref `logosCdn` (teste no PC), lê o `meus-logos.json` desta versão em `cdn.jsdelivr.net/gh/xSam10-10/prisma@<commit>/public/logos/custom/` e usa essa lista; imagem com o mesmo arquivo do .ipk fica local, o resto vem da jsDelivr (`mergeCustom`, com teste).
+- Commit gravado no build: `__APP_COMMIT__` (`GITHUB_SHA` no Actions, senão `git rev-parse HEAD`; `vite.config.ts`). A jsDelivr manda cache "imutável" para endereço com commit. Lista guardada em `prisma.logosRemote` (sem internet usa a última).
+- Teste: TV simulada com lista local vazia e PNG locais em 404 → Globo SP, DAZN e HBO 2 vieram da jsDelivr em 256 px (13 pedidos). Detalhes em `docs/icones/LEIA-ME.md`.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

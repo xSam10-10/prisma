@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import legacy from '@vitejs/plugin-legacy';
@@ -9,11 +10,24 @@ import { prismaProxyPlugin } from './server/proxy.mjs';
 // via file://) e código compatível com o Chromium antigo das TVs
 // (webOS 3.5 = Chrome 38 — a OLED B7 de 2017 —, webOS 4 = 53, webOS 5 = 68). Só scripts "legacy" (sem
 // type=module), porque módulos ES não carregam via file:// na TV.
+/** Commit do código (na publicação vem do GitHub Actions). */
+function commit(): string {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
+  try {
+    return execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    return '';
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const webos = mode === 'webos';
   return {
     base: webos ? './' : '/',
-    define: { __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version) },
+    define: {
+      __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version),
+      __APP_COMMIT__: JSON.stringify(commit()),
+    },
     plugins: [
       react(),
       prismaProxyPlugin(),

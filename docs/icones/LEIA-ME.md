@@ -46,3 +46,12 @@ Regra do app (0.34.6): meu ícone só passa na frente do logo oficial quando cas
 - Chaves corrigidas: `us` → `us nfl network`, `tv santa` → `tv santa cruz`, `tv grande` → `tv grande rio`, `red` → `red bull tv`.
 - O controle foi refeito a partir de `relacao-completa-atualizada.csv` do pacote, preservando o `LoteIntegracao` dos já aplicados. As colunas `StatusAnterior`, `StatusIntegracao` e `ArquivoPNG512` do pacote não entram (o status vale o que foi visto no app).
 - Faltam 319: 45 do grupo prioritário, 4 que já tinham logo (Globo TV Cabo Branco, Rede Gospel, Ideal TV, TCM canal 10-RN), 209 canais 24H e 61 adultos.
+
+## Ícones na TV LG (0.35.1)
+
+A atualização dentro do app da TV troca só o código (`prisma-webos-<v>.json`); as imagens e o `meus-logos.json`
+continuam os do `.ipk` instalado. Por isso, quando a TV roda um código mais novo que o `.ipk` (`window.__PRISMA_OTA__`),
+ela lê o `meus-logos.json` **desta versão** pela jsDelivr (`cdn.jsdelivr.net/gh/xSam10-10/prisma@<commit>/public/logos/custom/`,
+commit gravado no build como `__APP_COMMIT__`) e busca lá só as imagens que não tem. As imagens ficam no cache da TV
+(a jsDelivr manda "imutável" para endereço com commit). Sem internet, usa a última lista guardada (`prisma.logosRemote`).
+Para testar no PC: `localStorage['prisma.logosCdn'] = 'true'`. Um lote novo de ícones chega à TV na próxima publicação, sem reinstalar.

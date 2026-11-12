@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.35.1 — ícones novos também na TV LG
+- TV LG: os ícones novos da TV ao vivo aparecem mesmo quando o app foi atualizado por dentro (sem reinstalar). A TV busca só os ícones que ainda não tem e guarda para as próximas vezes
+
 ## 0.35.0 — mais leve e mais robusto
 - Se uma tela falhar, aparece um aviso com "Voltar ao início" em vez de a tela inteira ficar preta
 - Menos uso de internet e memória: o placar ao vivo só é consultado com "Meus times"; os canais .ts não acumulam vídeo na memória; o guia é lido sem travar a tela; as capas e o player desenham menos vezes

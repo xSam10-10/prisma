@@ -1,4 +1,6 @@
 import { fetchText } from './net';
+import { IS_WEBOS } from './platform';
+import { prefGet, prefSet } from './storage';
 
 // Logotipos dos canais. Prioridade:
 //  1. meus logos  (public/logos/custom/meus-logos.json) — escolhidos pelo usuário
@@ -94,13 +96,13 @@ let official: Map<string, string> = new Map();
 let mine: Map<string, string> = new Map();
 let loaded = false;
 
-function index(cat: Catalog, folder: string): Map<string, string> {
+function index(cat: Catalog, folder: string, urlOf?: (file: string) => string): Map<string, string> {
   const m = new Map<string, string>();
   for (const [k, file] of Object.entries(cat)) {
     const key = logoKey(k);
     // Arquivo vazio = bloqueio: o canal não herda o logo de um nome mais curto (0.34.6;
     // ex.: "TCM canal 10-RN" não é a TCM).
-    const url = file ? `logos/${folder}/${file}` : '';
+    const url = file ? (urlOf ? urlOf(file) : `logos/${folder}/${file}`) : '';
     m.set(key, url);
     m.set(key.replace(/ /g, ''), url); // "rede tv" também casa com "redetv"
   }
@@ -112,6 +114,41 @@ export function setLogoCatalogs(o: Catalog, c: Catalog): void {
   loaded = true;
   official = index(o, 'br');
   mine = index(c, 'custom');
+}
+
+// ---- Meus logos na TV atualizada pelo próprio app (0.35.1) ----
+// A atualização da TV troca só o código (prisma-webos-<v>.json); as imagens e o meus-logos.json
+// continuam os do .ipk instalado. Então a TV lê a lista desta versão no GitHub (pela jsDelivr,
+// fixada no commit que gerou o código) e busca lá só as imagens que não tem.
+
+/** Commit que gerou este código ('' em desenvolvimento sem git). */
+const COMMIT: string = typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : '';
+const CDN = (commit: string) => `https://cdn.jsdelivr.net/gh/xSam10-10/prisma@${commit}/public/logos/custom/`;
+
+/** Junta o catálogo local com o desta versão: arquivo igual fica local; o resto vem da internet. */
+export function mergeCustom(local: Catalog, remote: Catalog, base: string): { cat: Catalog; urls: Record<string, string> } {
+  const urls: Record<string, string> = {};
+  for (const [k, f] of Object.entries(remote)) if (f && local[k] !== f) urls[f] = base + f;
+  return { cat: remote, urls };
+}
+
+/** A TV está rodando um código mais novo que os arquivos instalados? (ou forçado em Ajustes ocultos, para teste) */
+function needsRemoteLogos(): boolean {
+  if (!COMMIT) return false;
+  if (prefGet<boolean>('logosCdn', false)) return true;
+  return IS_WEBOS && !!(window as unknown as { __PRISMA_OTA__?: string }).__PRISMA_OTA__;
+}
+
+async function remoteCustom(): Promise<Catalog | null> {
+  const saved = prefGet<{ commit: string; cat: Catalog } | null>('logosRemote', null);
+  if (saved && saved.commit === COMMIT) return saved.cat;
+  try {
+    const cat = JSON.parse(await fetchText(CDN(COMMIT) + 'meus-logos.json', 15000)) as Catalog;
+    prefSet('logosRemote', { commit: COMMIT, cat });
+    return cat;
+  } catch {
+    return saved?.cat ?? null; // sem internet: usa a última lista que deu certo
+  }
 }
 
 /** Carrega os catálogos (uma vez). */
@@ -129,6 +166,13 @@ export async function loadLogoCatalogs(): Promise<void> {
   const [o, c] = await Promise.all([get('br/catalogo.json'), get('custom/meus-logos.json')]);
   official = index(o, 'br');
   mine = index(c, 'custom');
+  if (needsRemoteLogos()) {
+    const remote = await remoteCustom();
+    if (remote) {
+      const { cat, urls } = mergeCustom(c, remote, CDN(COMMIT));
+      mine = index(cat, 'custom', (f) => urls[f] ?? `logos/custom/${f}`);
+    }
+  }
 }
 
 type Hit = { url: string; words: number };

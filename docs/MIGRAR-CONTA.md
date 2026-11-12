@@ -247,6 +247,7 @@ a lista de descartados está no topo de `docs/PENDENCIAS.md`.
 
 **Testes que dependem do Samuel** (cópia de `docs/PENDENCIAS.md`):
 - **0.34.4:** filmes e séries mostram Dublado/Legendado na capa e no detalhe; conferir se algum legendado aparece como Dublado (na Goldcard, sem marca = dublado) e mandar o nome. Em Jogos, o cartão da F1 em foco cabe na tela.
+- **0.35.1:** na TV LG, abrir o PRISMA uma vez (baixa a 0.35.1), fechar e abrir de novo; na TV ao vivo devem aparecer os ícones novos (Globo, Record, ESPN, HBO, DAZN, CazéTV…). Na primeira vez pode levar alguns segundos.
 - **0.35.0:** abrir o app na TV, no celular e no PC e conferir: abre sem atraso, fontes iguais às de antes, canais HLS e .ts tocando por bastante tempo sem travar, guia aparece sem congelar a tela, Jogos e Ajustes abrindo normalmente. A "Lista de teste" não existe mais.
 - **0.34.7:** na TV ao vivo, conferir os ícones do lote 2 (DAZN, CazéTV, GOAT, Max, NFL, UFC, Fórmula 1, Viva, TV Escola, Tooncast…); Central TV, TV Pampa e TV Clube estão marcados para revisar (contraste).
 - **0.34.6:** na TV ao vivo, conferir os ícones novos (Globo, Record, Band, SBT, ESPN 1–6, HBO e HBO+, Telecine…) na TV e no celular; Sabor & Arte, CNN Brasil Money e Paramount+ estão marcados para revisar (contraste). Os canais HBO+ devem aparecer na categoria HBO.

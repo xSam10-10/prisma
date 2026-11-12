@@ -34,6 +34,18 @@ describe('meus logos x oficiais', async () => {
   });
 });
 
+describe('ícones da TV atualizada pelo app', async () => {
+  const { mergeCustom } = await import('../src/core/logos');
+  it('o que a TV já tem fica local; o novo vem da internet', () => {
+    const r = mergeCustom({ globo: 'globo.png' }, { globo: 'globo.png', dazn: 'dazn.png', 'tcm canal 10 rn': '' }, 'https://cdn/x/');
+    expect(r.urls).toEqual({ 'dazn.png': 'https://cdn/x/dazn.png' });
+    expect(r.cat['tcm canal 10 rn']).toBe('');
+  });
+  it('arquivo trocado com o mesmo nome de chave vem da internet', () => {
+    expect(mergeCustom({ sbt: 'sbt-velho.png' }, { sbt: 'sbt.png' }, 'B/').urls).toEqual({ 'sbt.png': 'B/sbt.png' });
+  });
+});
+
 describe('nome curto do canal', () => {
   it('corta o que vem depois da qualidade', () => {
     expect(simplifyName('GLOBO RJ HD [ALT]')).toBe('GLOBO RJ HD');
