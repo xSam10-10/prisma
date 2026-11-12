@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (11/11/2026 · versão 0.34.6)
+## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.34.7)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10bc (0.10.0 → 0.34.6). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bd (0.10.0 → 0.34.7). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -607,6 +607,10 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - `logos.ts`: `lookup` devolve quantas palavras casaram; meu logo só vence o oficial quando é tão específico quanto ele (preserva oficiais como "record rj"); valor `""` em `meus-logos.json` bloqueia a herança por prefixo e também o oficial menos específico (`tcm canal 10 rn`, `tv gazeta maceio`). `setLogoCatalogs` para testes.
 - `names.ts` `sameChannelKey`: "+" vira " plus " — antes "HBO+ FHD" virava fonte reserva da "HBO FHD" e os 7 sinais da HBO+ sumiam.
 - Conferência: servidor de teste com os nomes reais da Goldcard (sem vídeo/credenciais) e Playwright percorrendo a TV ao vivo; 1.011 linhas com ícone novo, 0 falhas.
+
+## 10bd. Versão 0.34.7 — ícones premium, lote 2 (12/11)
+- Pacote `PRISMA-faltantes-lote-1.zip` do Samuel: 34 entradas (32 marcas), 33 arquivos novos em `public/logos/custom/` (256×256). Chaves curtas corrigidas: `us` → `us nfl network`, `tv santa` → `tv santa cruz`, `tv grande` → `tv grande rio`, `red` → `red bull tv`.
+- Controle (`docs/icones/controle-icones.csv`) refeito a partir de `relacao-completa-atualizada.csv` do pacote, preservando o lote dos já aplicados: 177 aplicados, 8 revisar (contraste: + Central TV ×2, TV Pampa, TV Clube), 319 pendentes. Conferido na TV ao vivo com os nomes reais: 1.098 linhas com ícone novo, 0 falhas.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

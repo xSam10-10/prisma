@@ -32,6 +32,7 @@ Regra do app (0.34.6): meu ícone só passa na frente do logo oficial quando cas
 | Lote | Data | Imagens no pacote | Aplicados | Revisar | Pendentes | Versão |
 |---|---|---:|---:|---:|---:|---|
 | 1 | 11/11/2026 | 151 + 9 variantes | 147 | 4 | 353 | 0.34.6 |
+| 2 | 12/11/2026 | 34 (32 marcas) | 177 | 8 | 319 | 0.34.7 |
 
 **Lote 1:** 159 arquivos, 1.011 linhas da TV ao vivo verificadas com o ícone novo e nenhuma falha de carregamento.
 - Revisar (contraste no fundo escuro, já aparecem no app): Sabor & Arte, CNN Brasil Money, Paramount+ (2 linhas do CSV: PARAMOUNT e PARAMOUNT+).
@@ -39,3 +40,9 @@ Regra do app (0.34.6): meu ícone só passa na frente do logo oficial quando cas
 - Bloqueios: `tcm canal 10 rn` (não é a TCM) e `tv gazeta maceio` (falta a identidade local).
 - Achado no caminho: os 7 sinais da HBO+ sumiam do app (juntados à HBO). Corrigido.
 - Faltam 353: 66 + 11 do grupo prioritário, 6 que já tinham logo, 209 canais 24H e 61 adultos.
+
+**Lote 2** (pacote `PRISMA-faltantes-lote-1.zip`, 34 entradas novas): 33 arquivos novos (`red.png` é igual a `red-bull-tv.png`), 1.098 linhas da TV ao vivo com ícone novo e nenhuma falha; nenhum status do lote 1 mudou.
+- Revisar (contraste no fundo escuro, já aparecem no app): Central TV Brasil e Web - Central TV Brasil, TV Pampa, TV Clube Piauí.
+- Chaves corrigidas: `us` → `us nfl network`, `tv santa` → `tv santa cruz`, `tv grande` → `tv grande rio`, `red` → `red bull tv`.
+- O controle foi refeito a partir de `relacao-completa-atualizada.csv` do pacote, preservando o `LoteIntegracao` dos já aplicados. As colunas `StatusAnterior`, `StatusIntegracao` e `ArquivoPNG512` do pacote não entram (o status vale o que foi visto no app).
+- Faltam 319: 45 do grupo prioritário, 4 que já tinham logo (Globo TV Cabo Branco, Rede Gospel, Ideal TV, TCM canal 10-RN), 209 canais 24H e 61 adultos.

@@ -1,6 +1,9 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.34.7 — mais ícones novos na TV ao vivo
+- TV ao vivo: mais 32 canais com ícones novos, como DAZN, CazéTV, GOAT, Max, NFL, OneFootball, UFC, Fórmula 1, Red Bull TV, Viva, Syfy, Universal, TV Escola, Tooncast e emissoras regionais e religiosas (agora são 177 no padrão novo)
+
 ## 0.34.6 — ícones novos na TV ao vivo
 - TV ao vivo: 147 canais ganharam ícones novos em alta qualidade (Globo, Record, Band, SBT, ESPN, HBO, Telecine, Discovery, notícias, religiosos e outros), no lugar do que vem da lista; os demais continuam como estavam
 - Os canais HBO+ voltaram a aparecer na lista (eram juntados à HBO)
