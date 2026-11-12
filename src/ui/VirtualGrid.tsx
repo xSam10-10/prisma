@@ -49,7 +49,17 @@ function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, 
 
   const pad = 10; // folga para o card em foco crescer
   const inner = size.w - pad * 2;
-  const cols = Math.max(1, Math.floor((inner + gap) / (minCellW + gap)));
+  const baseCols = Math.max(1, Math.floor((inner + gap) / (minCellW + gap)));
+  // Fileira mais alta que a grade (poucas capas depois de um filtro, 0.34.5; ou a 1ª fileira, 0.35.2):
+  // avisa como se tivesse rolado para o que fica em cima se recolher. Só no controle/teclado;
+  // ▲ na 1ª fileira (ou a rodinha para cima) mostra de novo, e o próximo ▲ sai da grade.
+  const [cramped, setCramped] = useState(false);
+  const tooTall = Math.round(((inner - gap * (baseCols - 1)) / baseCols) * ratio + extraH) + pad * 2 > size.h + 1;
+  // Recolhido e ainda não cabe (ex.: grade do streaming na TV, 0.35.2): capas um pouco menores
+  // (até 72% da largura mínima) para a capa e o título aparecerem inteiros.
+  let cols = baseCols;
+  const fitW = Math.floor((size.h - pad * 2 - extraH) / ratio);
+  if (tooTall && (!onScrolled || cramped || top > 4) && fitW >= minCellW * 0.72) cols = Math.max(cols, Math.ceil((inner + gap) / (fitW + gap)));
   const cellW = Math.floor((inner - gap * (cols - 1)) / cols);
   const cellH = Math.round(cellW * ratio + extraH);
   const step = cellH + gap;
@@ -67,14 +77,13 @@ function GridInner<T>({ items, index, onIndex, onPick, render, minCellW, ratio, 
   }, [index, cols, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const t = Math.min(top, maxTop);
-  // Fileira mais alta que a grade (poucas capas depois de um filtro, 0.34.5): não há o que rolar,
-  // então avisa como se tivesse rolado para o que fica em cima se recolher. Só no controle/teclado;
-  // ▲ na 1ª fileira (ou a rodinha para cima) mostra de novo, e o próximo ▲ sai da grade.
-  const [cramped, setCramped] = useState(false);
-  const tooTall = cellH + pad * 2 > size.h + 1;
   const checkCramped = () => {
     if (tooTall && document.documentElement.classList.contains('kbd')) setCramped(true);
   };
+  // A grade já estava em foco quando deixou de caber (abriu com o foco nela, ou o que fica em cima terminou de carregar).
+  useEffect(() => {
+    if (tooTall && document.activeElement === box.current) checkCramped();
+  }, [tooTall]); // eslint-disable-line react-hooks/exhaustive-deps
   const scrolled = top > 4 || cramped;
   useEffect(() => onScrolled?.(scrolled), [scrolled]); // eslint-disable-line react-hooks/exhaustive-deps
   const firstRow = Math.max(0, Math.floor((t - pad) / step) - 1);

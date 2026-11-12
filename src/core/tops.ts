@@ -86,6 +86,9 @@ export function topsStatus(): { data: TopsData | null; error: string } {
   return { data: mem, error: lastError };
 }
 
+/** Última falha ao baixar: cada tela que mostra tops pedia de novo (0.35.2); espera 5 min. */
+let failAt = 0;
+
 /** Dados dos tops: memória › IndexedDB (até 6 h) › internet. Sem internet, usa o último baixado. */
 export function loadTops(force = false): Promise<TopsData | null> {
   if (!force && mem && Date.now() - mem.at < MAX_AGE) return Promise.resolve(mem);
@@ -97,6 +100,7 @@ export function loadTops(force = false): Promise<TopsData | null> {
       listeners.forEach((f) => f());
     }
     if (!force && cached && Date.now() - cached.at < MAX_AGE) return cached;
+    if (!force && Date.now() - failAt < 5 * 60 * 1000) return cached;
     try {
       const d = JSON.parse(await fetchText(topsUrl() + '?t=' + Date.now(), 30000)) as TopsData;
       if (!d || !Array.isArray(d.lists)) throw new Error('arquivo inválido');
@@ -108,6 +112,7 @@ export function loadTops(force = false): Promise<TopsData | null> {
       return d;
     } catch (e) {
       lastError = (e as Error).message || 'sem conexão';
+      failAt = Date.now();
       return cached;
     }
   })();

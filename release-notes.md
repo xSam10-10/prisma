@@ -1,6 +1,14 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 0.35.2 — só atrizes, capas inteiras e mais ícones
+- Adultos: o filtro e as fotos da capa mostram só atrizes (homens saem, mesmo quando o cadastro da cena não diz o sexo). Na capa vem primeiro a capa oficial; com o cursor parado 3 segundos, passa para as fotos das atrizes, na ordem do título
+- Capa com imagem deitada (cena do filme) aparece inteira, com fundo desfocado, em vez de cortada
+- Grade dos streamings na TV: a fileira de capas cabe inteira na tela, com o título; o título da capa em foco não fica mais apagado
+- Capas carregam mais rápido em listas grandes (o app guarda mais capas e não descarta as que você mais usa)
+- TV ao vivo: mais 126 canais com ícones novos (NBA, A Fazenda, desenhos e séries 24H, shows, emissoras regionais), agora são 318 no padrão novo
+- Correções: programa repetido nos destaques do Início e pedidos repetidos dos Tops quando o servidor falha
+
 ## 0.35.1 — ícones novos também na TV LG
 - TV LG: os ícones novos da TV ao vivo aparecem mesmo quando o app foi atualizado por dentro (sem reinstalar). A TV busca só os ícones que ainda não tem e guarda para as próximas vezes
 

@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.1)
+## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.2)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10bf (0.10.0 → 0.35.1). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bg (0.10.0 → 0.35.2). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -627,6 +627,14 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Resolve o pendente da 0.35.0. `logos.ts`: quando a TV roda código mais novo que o .ipk (`window.__PRISMA_OTA__`) ou com a pref `logosCdn` (teste no PC), lê o `meus-logos.json` desta versão em `cdn.jsdelivr.net/gh/xSam10-10/prisma@<commit>/public/logos/custom/` e usa essa lista; imagem com o mesmo arquivo do .ipk fica local, o resto vem da jsDelivr (`mergeCustom`, com teste).
 - Commit gravado no build: `__APP_COMMIT__` (`GITHUB_SHA` no Actions, senão `git rev-parse HEAD`; `vite.config.ts`). A jsDelivr manda cache "imutável" para endereço com commit. Lista guardada em `prisma.logosRemote` (sem internet usa a última).
 - Teste: TV simulada com lista local vazia e PNG locais em 404 → Globo SP, DAZN e HBO 2 vieram da jsDelivr em 256 px (13 pedidos). Detalhes em `docs/icones/LEIA-ME.md`.
+## 10bg. Versão 0.35.2 — revisão de testes, só atrizes e ícones dos pacotes 2–5 (12/11)
+- Revisão geral pedida pelo Samuel (fim do projeto): roteiros Playwright passando por todas as telas (texto cortado, imagens quebradas, erros, tarefas longas), navegação só por setas nas grades e uso prolongado (6 rodadas, memória estável ~32 MB). Comparação 0.34.5 × 0.34.7 × 0.35.1 × atual no build da TV com CPU 4× mais lenta: telas e setas sem piora (Início ~620 → ~440 ms).
+- `Vod.tsx` PosterCard: imagem deitada → `pa-wide` (contain) + `pa-blur` (a mesma desfocada; sem blur no modo leve). Rodízio: capa oficial primeiro, depois as atrizes (ordem do nome no título), 3 s cada.
+- `tpdb.ts`: `genderOf`/`isFemale` (só female/woman); `Performer.female`; `onlyWomen` confere no perfil (`profileOf`, /performers?q=) quem veio com sexo em branco na cena. Cache das capas de adultos `adult6|` (as `adult0-5|` saem) e lista de atrizes conferidas `tpdbPerf2`.
+- `VirtualGrid`: fileira mais alta que a grade recolhe o que fica em cima também quando a grade já tem o foco; se ainda não couber, capas até 28% menores (streamings na TV). Título da capa acima da sombra (`z-index`).
+- `tmdb.ts`: cache 6.000 títulos e sai o menos usado (`hit` move para o fim); antes 3.000 por ordem de entrada fazia as capas voltarem à internet. `tops.ts`: espera 5 min depois de falhar. `highlights.ts`: um programa por canal e horário (chave repetida no React).
+- Ícones: pacotes `PRISMA-faltantes-lote-2/3/4/5.zip` (126 novos, 318 arquivos); `tcm canal 10 rn` deixou de ser bloqueio. Controle: 296 aplicados, 15 revisar, 193 pendentes (ver `docs/icones/LEIA-ME.md`).
+- `test/fake-xtream.mjs`: CORS liberado (build da TV no navegador) e "Jesus Teste" (homem com sexo em branco na cena).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

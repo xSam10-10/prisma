@@ -27,7 +27,7 @@ import { hasEpAlert, newEpisodeOf, onNewEpisodes, toggleEpAlert } from '../core/
 import { ZoomFrom } from '../ui/premium4';
 import { isAdultName } from '../core/parental';
 import { FilterRow, useAdultFilters } from './Actresses';
-import { castByItem } from '../core/actresses';
+import { actressKey, castByItem } from '../core/actresses';
 import type { Performer } from '../core/tpdb';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
@@ -43,18 +43,33 @@ function norm(s: string) {
 export function PosterCard({ item, w, selected, rank, fallbackCast }: { item: Channel; w: number; selected?: boolean; rank?: number; fallbackCast?: Performer[] }) {
   const [broken, setBroken] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // Imagem deitada (cena do filme) numa capa em pé: mostra inteira, com ela mesma desfocada atrás (0.35.2).
+  const [wide, setWide] = useState(false);
   // Capa da lista que não abre: pede a oficial (0.32.0). Fica marcada até trocar de título.
   const [logoBad, setLogoBad] = useState(false);
   useEffect(() => setLogoBad(false), [item.id]);
   const tm = useTmdb(item, logoBad);
-  // Capa com a foto das atrizes (0.33.0): a do título é a padrão; com o foco (ou o mouse)
-  // parado 3 segundos, passa para a próxima a cada 3 segundos. Saiu, volta para a principal.
-  // Sem capa achada e a da lista é genérica: usa a foto das atrizes que o filtro achou no título (0.34.1).
+  // Capa e fotos das atrizes (0.35.2): primeiro a capa oficial; com o foco (ou o mouse) parado
+  // 3 segundos, passa para a foto de cada atriz (as do título primeiro, na ordem do nome), a cada
+  // 3 segundos. Saiu, volta para a capa. Só mulheres (os homens já saem na busca, ver onlyWomen).
+  // Sem capa oficial: a foto da atriz principal é a capa (0.33.0); sem nada achado e a da lista
+  // é genérica, usa as atrizes que o filtro achou no título (0.34.1).
   const generic = isGenericLogo(item.logo) || logoBad;
-  const cast = tm?.actressCover ? (tm.performers ?? []).filter((p) => p.portrait) : !tm?.poster && generic && fallbackCast ? fallbackCast.map((p) => ({ ...p, portrait: p.portrait || p.photo })).filter((p) => p.portrait) : [];
+  const official = tm?.actressCover ? undefined : tm?.poster || (!generic ? item.logo : undefined);
+  const cast = useMemo(() => {
+    const own = (tm?.performers ?? []).filter((p) => p.portrait);
+    const l = own.length ? own : !official && fallbackCast ? fallbackCast.map((p) => ({ ...p, portrait: p.portrait || p.photo })).filter((p) => p.portrait) : [];
+    const title = ' ' + actressKey(item.fullName ?? item.name) + ' ';
+    const at = (n: string) => {
+      const i = title.indexOf(' ' + actressKey(n) + ' ');
+      return i < 0 ? 1e6 : i;
+    };
+    return l.map((p, i) => ({ p, i })).sort((a, b) => at(a.p.name) - at(b.p.name) || a.i - b.i).map((x) => x.p);
+  }, [tm, official, fallbackCast, item.fullName, item.name]);
+  const slides = (official ? 1 : 0) + cast.length;
   const [hover, setHover] = useState(false);
   const [ci, setCi] = useState(0);
-  const rotate = (!!selected || hover) && cast.length > 1;
+  const rotate = (!!selected || hover) && slides > 1;
   useEffect(() => {
     setCi(0);
     if (!rotate) return;
@@ -67,12 +82,14 @@ export function PosterCard({ item, w, selected, rank, fallbackCast }: { item: Ch
       clearTimeout(t);
       clearInterval(iv);
     };
-  }, [rotate, cast.length]);
-  const who = cast.length ? cast[ci % cast.length] : undefined;
-  const img = who?.portrait || tm?.poster || item.logo;
+  }, [rotate, slides]);
+  const si = slides ? ci % slides : 0;
+  const who = official ? (si > 0 ? cast[si - 1] : undefined) : cast[si];
+  const img = who?.portrait || official || tm?.poster || item.logo;
   useEffect(() => {
     setBroken(false);
     setLoaded(false);
+    setWide(false);
   }, [img]);
   const p = getProgress(item.id);
   const c = colorFor(item.group || item.name);
@@ -93,7 +110,8 @@ export function PosterCard({ item, w, selected, rank, fallbackCast }: { item: Ch
             )}
           </div>
         )}
-        {img && !broken && <img className={'fade-img' + (loaded ? ' in' : '')} src={img} alt="" loading="lazy" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => { setBroken(true); if (img === item.logo) setLogoBad(true); }} />}
+        {img && !broken && wide && <img className="pa-blur" src={img} alt="" aria-hidden referrerPolicy="no-referrer" />}
+        {img && !broken && <img className={'fade-img' + (loaded ? ' in' : '') + (wide ? ' pa-wide' : '')} src={img} alt="" loading="lazy" referrerPolicy="no-referrer" onLoad={(e) => { const i = e.currentTarget; setWide(i.naturalWidth > i.naturalHeight * 1.05); setLoaded(true); }} onError={() => { setBroken(true); if (img === item.logo) setLogoBad(true); }} />}
         {badges.length > 0 && (
           <span className="pbadges">
             {badges.map((b) => (
@@ -101,13 +119,13 @@ export function PosterCard({ item, w, selected, rank, fallbackCast }: { item: Ch
             ))}
           </span>
         )}
-        {who && (
+        {(who || (rotate && ci > 0)) && (
           <span className="poster-cast">
-            <b>{who.name}</b>
-            {cast.length > 1 && (
+            {who && <b>{who.name}</b>}
+            {slides > 1 && (
               <span className="pc-dots">
-                {cast.map((p, k) => (
-                  <i key={p.name} className={k === ci % cast.length ? 'on' : undefined} />
+                {Array.from({ length: slides }, (_, k) => (
+                  <i key={k} className={k === si ? 'on' : undefined} />
                 ))}
               </span>
             )}

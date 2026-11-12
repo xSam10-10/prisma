@@ -33,6 +33,25 @@ Regra do app (0.34.6): meu ícone só passa na frente do logo oficial quando cas
 |---|---|---:|---:|---:|---:|---|
 | 1 | 11/11/2026 | 151 + 9 variantes | 147 | 4 | 353 | 0.34.6 |
 | 2 | 12/11/2026 | 34 (32 marcas) | 177 | 8 | 319 | 0.34.7 |
+| 4 | 12/11/2026 | 23 | 199 | 9 | 296 | 0.35.2 |
+| pacotes 2, 3 e 5 | 12/11/2026 | 22 + 63 + 18 | 296 | 15 | 193 | 0.35.2 |
+
+Nome dos pacotes × lotes daqui: o "lote 2" daqui é o `PRISMA-faltantes-lote-1.zip`; o "4" é o `PRISMA-faltantes-lote-4.zip`.
+Do pacote 2 em diante o controle grava `pacote lote-N (data)` em `LoteIntegracao`.
+
+**Pacotes 2, 3 e 5** (103 ícones): 306 linhas da TV ao vivo com ícone novo, todas carregadas em 256 px, nenhuma falha;
+nenhum status anterior mudou. Cobrem emissoras (TV Aracati, IMPD, Petrópolis, Globo Cabo Branco, Rede Gospel, Ideal TV,
+Boa Vontade, Cine Brasil, TV Arapuan, RCN67, Santa Portal), quase todos os desenhos e séries 24H, os canais de shows
+(Gusttavo Lima, Henrique e Juliano, Jorge e Mateus, Zé Neto e Cristiano) e duas marcas adultas (BangBros, Brazzers).
+- `tcm canal 10 rn` deixou de ser bloqueio: o pacote 3 trouxe a marca própria (TCM 10).
+- Revisar (contraste, já aparecem no app): Black Mirror, Jogos Mortais, John Wick, Cine Brasil TV, TV Arapuan (o pacote já
+  avisava) e Web TV Rio Grande (fonte pequena, ilegível na lista).
+- Faltam 193: 174 não geradas e 19 por confirmar identidade.
+
+**Lote 4** (`PRISMA-faltantes-lote-4.zip`, 23 ícones): 99 linhas da TV ao vivo com ícone novo (NBA League Pass 1–13,
+A Fazenda sinais 1–7, Trace Brazuca, desenhos e séries 24H) e nenhuma falha; nenhum status anterior mudou.
+- Revisar (contraste no fundo escuro, já aparece no app): Timão e Pumba (letras escuras; o pacote já avisava).
+- Faltam 296: 85 nos pacotes 2 e 3 que ainda não chegaram, 192 não geradas e 19 por confirmar identidade.
 
 **Lote 1:** 159 arquivos, 1.011 linhas da TV ao vivo verificadas com o ícone novo e nenhuma falha de carregamento.
 - Revisar (contraste no fundo escuro, já aparecem no app): Sabor & Arte, CNN Brasil Money, Paramount+ (2 linhas do CSV: PARAMOUNT e PARAMOUNT+).

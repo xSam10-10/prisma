@@ -50,7 +50,11 @@ export function todayHighlights(live: Channel[], favIds: string[], now = Date.no
   list.sort((a, b) => (a.e.start <= now ? 0 : 1) - (b.e.start <= now ? 0 : 1) || a.e.start - b.e.start);
   const out: Highlight[] = [];
   const perKind: Record<string, number> = {};
+  // Um programa por canal e horário (o mesmo jogo pode vir do guia e da aba Jogos com nomes diferentes; 0.35.2).
+  const slot = new Set<string>();
   for (const h of list) {
+    if (slot.has(h.ch.id + h.e.start)) continue;
+    slot.add(h.ch.id + h.e.start);
     if ((perKind[h.kind] ?? 0) >= Math.ceil(max / 2)) continue;
     perKind[h.kind] = (perKind[h.kind] ?? 0) + 1;
     out.push({ ch: h.ch, e: h.e, kind: h.kind });
@@ -81,8 +85,10 @@ export function tonightPicks(live: Channel[], favIds: string[], now = Date.now()
       if (!cur || score > cur.score) byKey.set(key, { ch, e, kind: k, score });
     }
   }
+  const slot = new Set<string>();
   return [...byKey.values()]
     .sort((a, b) => a.e.start - b.e.start || b.score - a.score)
+    .filter((h) => !slot.has(h.ch.id + h.e.start) && !!slot.add(h.ch.id + h.e.start))
     .slice(0, max)
     .map(({ ch, e, kind }) => ({ ch, e, kind }));
 }

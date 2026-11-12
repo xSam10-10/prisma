@@ -99,16 +99,28 @@ function toInfo(r: Raw, type: 'movie' | 'tv'): TmdbInfo {
 let cache: Record<string, TmdbInfo | null> | null = null;
 let saveTimer: number | undefined;
 async function loadCache(): Promise<Record<string, TmdbInfo | null>> {
-  if (!cache) cache = (await idbGet<Record<string, TmdbInfo | null>>('tmdb')) ?? {};
+  if (!cache) {
+    cache = (await idbGet<Record<string, TmdbInfo | null>>('tmdb')) ?? {};
+    // Buscas de adultos de antes da 0.35.2 (podiam ter homens no elenco): saem para dar lugar às novas.
+    for (const k of Object.keys(cache)) if (/^adult[0-5]\|/.test(k)) delete cache[k];
+  }
   return cache;
 }
-/** Títulos guardados no máximo (0.35.0): antes crescia sem fim e era regravado inteiro a cada 2 s. */
-const CACHE_MAX = 3000;
+/** Leu do cache: passa para o fim da fila, para não ser o próximo a sair (0.35.2). */
+function hit(c: Record<string, TmdbInfo | null>, key: string): TmdbInfo | null {
+  const v = c[key];
+  delete c[key];
+  c[key] = v;
+  return v;
+}
+/** Títulos guardados no máximo (0.35.0): antes crescia sem fim e era regravado inteiro a cada 2 s.
+ *  0.35.2: 3.000 era pouco para listas grandes (as capas voltavam a ser buscadas na internet); sai o menos usado. */
+const CACHE_MAX = 6000;
 function persist() {
   clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
     if (!cache) return;
-    // Os mais antigos saem primeiro (a ordem das chaves é a de entrada).
+    // Os menos usados saem primeiro (a ordem das chaves é a do último uso, ver hit).
     const keys = Object.keys(cache);
     for (let i = 0; i < keys.length - CACHE_MAX; i++) delete cache[keys[i]];
     void idbSet('tmdb', cache);
@@ -145,7 +157,7 @@ export async function lookup(item: Channel, logoBroken = false): Promise<TmdbInf
   const { title, year } = searchTitle(item.fullName ?? item.name);
   const key = `${type}|${norm(title)}|${year ?? item.year ?? ''}`;
   const c = await loadCache();
-  if (key in c) return c[key];
+  if (key in c) return hit(c, key);
   return slot(async () => {
     try {
       const y = year ?? item.year;
@@ -172,9 +184,9 @@ export async function lookup(item: Channel, logoBroken = false): Promise<TmdbInf
 export async function adultInfo(item: Channel): Promise<TmdbInfo | null> {
   const name = item.fullName ?? item.name;
   const { title, year } = searchTitle(adultQuery(name));
-  const key = `adult5|${tpdbKey() ? 'p' : ''}${tmdbKey() ? 't' : ''}|${norm(title)}|${year ?? item.year ?? ''}`;
+  const key = `adult6|${tpdbKey() ? 'p' : ''}${tmdbKey() ? 't' : ''}|${norm(title)}|${year ?? item.year ?? ''}`;
   const c = await loadCache();
-  if (key in c) return c[key];
+  if (key in c) return hit(c, key);
   if (!tmdbKey() && !tpdbKey()) return null;
   return slot(async () => {
     let info: TmdbInfo | null = null;

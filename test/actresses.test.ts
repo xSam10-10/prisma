@@ -23,7 +23,7 @@ describe('atrizes da categoria de adultos', () => {
   });
   it('a ThePornDB deixa só as atrizes (homem fica de fora) e traz a foto', () => {
     const p = performersOfItem({ performers: [{ name: 'Ana Exemplo', face: 'f.jpg', parent: { extras: { gender: 'Female' } } }, { name: 'Joao Ator', parent: { extras: { gender: 'Male' } } }] });
-    expect(p).toEqual([{ name: 'Ana Exemplo', photo: 'f.jpg', portrait: 'f.jpg' }]);
+    expect(p).toEqual([{ name: 'Ana Exemplo', photo: 'f.jpg', portrait: 'f.jpg', female: true }]);
   });
   it('sem token: entra o nome que aparece em 2+ títulos', () => {
     const items = [mk('1', 'Estudio Teste - Ana Exemplo - Noite Quatro'), mk('2', 'Estudio Teste - Ana Exemplo & Bia Modelo - Tarde Cinco'), mk('3', 'Outro Estudio - Bia Modelo - Manha Seis'), mk('4', 'Outro - Carla Teste - Sete'), mk('5', 'Estudio Teste - Cena Adulta Dois'), mk('6', 'Estudio Teste - Filme Adulto Um')];
@@ -72,5 +72,21 @@ describe('nome parecido na ThePornDB (0.33.0)', () => {
     expect(similar('Grande Festa 11', 'Grande Festa Vol. 10')).toBe(0);
     expect(similar('Grande Festa', 'Pequena Reuniao')).toBe(0);
     expect(similar('Kali Rose', 'Kali Roses')).toBe(1);
+  });
+});
+
+describe('só atrizes (0.35.2)', () => {
+  it('homem sai; mulher fica marcada; sexo em branco fica para conferir no perfil', async () => {
+    const { performersOfItem } = await import('../src/core/tpdb');
+    const r = performersOfItem({
+      performers: [
+        { name: 'Ana', parent: { extras: { gender: 'Female' } } },
+        { name: 'Jesus', extra: { gender: 'Male' } },
+        { name: 'Joao', parent: { extras: { gender: 'Male' } }, extra: { gender: null } },
+        { name: 'Lia', extras: { gender: 'Transgender Female' } },
+        { name: 'Sem Sexo' },
+      ],
+    });
+    expect(r.map((p) => [p.name, !!p.female])).toEqual([['Ana', true], ['Lia', true], ['Sem Sexo', false]]);
   });
 });

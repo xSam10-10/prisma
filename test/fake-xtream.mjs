@@ -224,6 +224,7 @@ function fakeGitHub(req, res, u) {
 }
 
 createServer((req, res) => {
+  res.setHeader('access-control-allow-origin', '*'); // build da TV no navegador chama direto (sem o proxy)
   const u = new URL(req.url, 'http://x');
   if (u.pathname.startsWith('/gh/')) return fakeGitHub(req, res, u);
   if (u.pathname.startsWith('/tpdb/')) {
@@ -234,12 +235,15 @@ createServer((req, res) => {
     const face = (n) => `http://127.0.0.1:${PORT}/poster/rosto-${n}.svg`;
     const ana = { name: 'Ana Exemplo', face: face('ana'), parent: { extras: { gender: 'Female' } } };
     const joao = { name: 'Joao Ator', face: face('joao'), parent: { extras: { gender: 'Male' } } };
+    // Homem com o sexo em branco na cena (só o perfil diz), como acontece na ThePornDB (0.35.2)
+    const jesus = { name: 'Jesus Teste', face: face('jesus'), image: face('jesus-corpo'), extra: { gender: null } };
     if (u.pathname === '/tpdb/performers') {
       const qn = (u.searchParams.get('q') || '').toLowerCase();
       const all = [
         { name: 'Bia Modelo', face: face('bia'), image: face('bia-corpo'), posters: [{ url: `http://127.0.0.1:${PORT}/poster/atriz-bia.svg` }], extras: { gender: 'Female' } },
         { name: 'Carla Teste', face: face('carla'), posters: [{ url: `http://127.0.0.1:${PORT}/poster/atriz-carla.svg` }], extras: { gender: 'Female' } },
         { name: 'Ana Exemplo', face: face('ana'), posters: [{ url: `http://127.0.0.1:${PORT}/poster/atriz-ana.svg` }], extras: { gender: 'Female' } },
+        { name: 'Jesus Teste', face: face('jesus'), posters: [{ url: `http://127.0.0.1:${PORT}/poster/ator-jesus.svg` }], extras: { gender: 'Male' } },
       ];
       const perf = all.filter((x) => x.name.toLowerCase() === qn);
       return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: perf }));
@@ -257,7 +261,7 @@ createServer((req, res) => {
     if (u.pathname === '/tpdb/scenes' && p.includes('video fans especial'))
       return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ id: 's15', title: 'Video Fans Especial Quinze', site: { name: 'FansDB: Lena Fans', poster: `http://127.0.0.1:${PORT}/poster/onlyfans-lena.svg` }, performers: [] }] }));
     if (u.pathname === '/tpdb/scenes' && p.includes('noite quatro'))
-      return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ id: 's4', title: 'Noite Quatro', site: { name: 'Estudio Teste' }, date: '2024-06-01', performers: [ana, joao], posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-noite.svg` } }] }));
+      return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ id: 's4', title: 'Noite Quatro', site: { name: 'Estudio Teste' }, date: '2024-06-01', performers: [jesus, ana, joao], posters: { large: `http://127.0.0.1:${PORT}/poster/tpdb-noite.svg` } }] }));
     const tq = (u.searchParams.get('q') || '').toLowerCase();
     if (u.pathname === '/tpdb/movies' && tq.includes('grande festa'))
       return res.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ id: 'm10', title: 'Grande Festa Vol. 10', date: '2016-03-01', posters: { large: `http://127.0.0.1:${PORT}/poster/grande-festa-10.svg` } }, { id: 'm9', title: 'Grande Festa Vol. 9', date: '2015-03-01', posters: { large: `http://127.0.0.1:${PORT}/poster/grande-festa-9.svg` } }] }));

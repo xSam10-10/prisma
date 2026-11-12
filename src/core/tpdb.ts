@@ -49,16 +49,17 @@ export function fansOf(x?: Site | null): FansPage | undefined {
   if (!m) return undefined;
   return { name: m[1].trim(), image: x?.poster || x?.logo || x?.favicon || undefined };
 }
-type Gender = { gender?: string };
+type Gender = { gender?: string | null };
 interface Perf {
   name?: string;
+  gender?: string | null;
   image?: string;
   face?: string;
   thumbnail?: string;
   posters?: { url?: string }[];
   extra?: Gender;
   extras?: Gender;
-  parent?: { name?: string; image?: string; face?: string; thumbnail?: string; posters?: { url?: string }[]; extras?: Gender; extra?: Gender };
+  parent?: { name?: string; image?: string; face?: string; thumbnail?: string; posters?: { url?: string }[]; extras?: Gender; extra?: Gender; gender?: string | null };
 }
 
 /** Atriz do resultado (0.32.0): nome e foto do rosto. Homens ficam de fora. */
@@ -68,16 +69,24 @@ export interface Performer {
   photo?: string;
   /** Foto em pé (para a capa, 0.33.0). */
   portrait?: string;
+  /** A ThePornDB disse que é mulher (0.35.2). Sem isso, o sexo veio em branco e precisa ser conferido. */
+  female?: boolean;
 }
+/** Sexo informado ('' = em branco). Na cena ele às vezes vem só no perfil "pai". */
+function genderOf(p: Perf): string {
+  return (p.extra?.gender || p.extras?.gender || p.gender || p.parent?.extras?.gender || p.parent?.extra?.gender || p.parent?.gender || '').toLowerCase();
+}
+/** Só mulheres (0.35.2): "Female", "Woman", "Transgender Female"; homem e qualquer outro sexo informado ficam de fora. */
+const isFemale = (g: string) => /female|woman/.test(g);
 function toPerformer(p: Perf): Performer | null {
   const name = (p.name || p.parent?.name || '').trim();
   if (!name) return null;
-  const g = (p.extra?.gender || p.extras?.gender || p.parent?.extras?.gender || p.parent?.extra?.gender || '').toLowerCase();
-  if (g && !/female|woman|trans/.test(g)) return null;
+  const g = genderOf(p);
+  if (g && !isFemale(g)) return null;
   const photo = p.face || p.parent?.face || p.image || p.parent?.image || p.thumbnail || p.parent?.thumbnail || undefined;
   const post = (l?: { url?: string }[]) => (Array.isArray(l) ? l.map((x) => x && x.url).filter(Boolean)[0] : undefined);
   const portrait = post(p.posters) || post(p.parent?.posters) || p.image || p.parent?.image || p.thumbnail || p.parent?.thumbnail || photo;
-  return { name, photo, portrait };
+  return { name, photo, portrait, female: g ? true : undefined };
 }
 export function performersOfItem(it: { performers?: Perf[] }): Performer[] {
   const out: Performer[] = [];
@@ -270,8 +279,8 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
     }
     if (best && score > 0) {
       const info = toInfo(best, q, year);
-      if (info) return info;
-      if (!cast.length) cast = performersOfItem(best);
+      if (info) return { ...info, performers: await onlyWomen(info.performers ?? []) };
+      if (!cast.length) cast = await onlyWomen(performersOfItem(best));
       if (!studio) studio = toStudio(best.site);
       if (!fans) fans = fansOf(best.site);
     }
@@ -295,8 +304,8 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
       }
       if (best && score >= 0.8) {
         const info = toInfo(best, t, year);
-        if (info) return info;
-        if (!cast.length) cast = performersOfItem(best);
+        if (info) return { ...info, performers: await onlyWomen(info.performers ?? []) };
+        if (!cast.length) cast = await onlyWomen(performersOfItem(best));
         if (!studio) studio = toStudio(best.site);
         if (!fans) fans = fansOf(best.site);
       }
@@ -305,11 +314,11 @@ export async function tpdbLookup(name: string, year?: number): Promise<TmdbInfo 
   return cast.length || studio || fans ? { id: negId('cast:' + q), type: 'movie', title: t || q, performers: cast, studio, fans } : null;
 }
 
-// Atrizes já procuradas nesta sessão (o mesmo nome aparece em vários filmes).
-const perfMemo = new Map<string, Promise<Performer | null>>();
+// Perfis já procurados nesta sessão (o mesmo nome aparece em vários filmes).
+const perfMemo = new Map<string, Promise<Perf | null>>();
 
-/** Atriz pelo nome (aceita uma letra de diferença, ex.: "Kali Rose" × "Kali Roses"). */
-export function tpdbPerformer(name: string): Promise<Performer | null> {
+/** Perfil pelo nome (aceita uma letra de diferença, ex.: "Kali Rose" × "Kali Roses"), homem ou mulher. */
+function profileOf(name: string): Promise<Perf | null> {
   const k = words(name).join(' ');
   let p = perfMemo.get(k);
   if (!p) {
@@ -317,12 +326,38 @@ export function tpdbPerformer(name: string): Promise<Performer | null> {
       const key = tpdbKey();
       if (!key) return null;
       const r = await get(`/performers?q=${encodeURIComponent(name)}&per_page=5`, key).catch(() => null);
-      const found = ((r?.data ?? []) as Perf[]).map(toPerformer).filter((x): x is Performer => !!x);
-      return found.find((x) => words(x.name).join(' ') === k) ?? found.find((x) => similar(name, x.name) === 1) ?? null;
+      const all = ((r?.data ?? []) as Perf[]).filter((x) => (x.name || x.parent?.name || '').trim());
+      const nm = (x: Perf) => x.name || x.parent?.name || '';
+      return all.find((x) => words(nm(x)).join(' ') === k) ?? all.find((x) => similar(name, nm(x)) === 1) ?? null;
     })();
     perfMemo.set(k, p);
   }
   return p;
+}
+
+/** Atriz pelo nome (homem fica de fora). */
+export async function tpdbPerformer(name: string): Promise<Performer | null> {
+  const p = await profileOf(name);
+  return p ? toPerformer(p) : null;
+}
+
+/**
+ * Tira os homens do elenco (0.35.2). Na cena o sexo às vezes vem em branco: aí confere no perfil
+ * da pessoa. Sem perfil (ou perfil também em branco), fica.
+ */
+export async function onlyWomen(list: Performer[]): Promise<Performer[]> {
+  const out: Performer[] = [];
+  for (const p of list) {
+    if (p.female) {
+      out.push(p);
+      continue;
+    }
+    const prof = await profileOf(p.name).catch(() => null);
+    const g = prof ? genderOf(prof) : '';
+    if (g && !isFemale(g)) continue;
+    out.push(g ? { ...p, female: true } : p);
+  }
+  return out;
 }
 
 // Produtoras já procuradas nesta sessão.

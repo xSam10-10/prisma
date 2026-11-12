@@ -26,7 +26,7 @@ function stored<T>(idbKey: string) {
         const raw = (await idbGet<Record<string, T | null>>(idbKey)) ?? {};
         cache = new Map(Object.keys(raw).map((k) => [k, raw[k]] as [string, T | null]));
         // Atrizes guardadas antes da 0.33.0 não têm a foto em pé: confere de novo.
-        if (idbKey === 'tpdbPerf') cache.forEach((v, k) => v && !(v as unknown as Performer).portrait && cache!.delete(k));
+        if (idbKey === 'tpdbPerf2') cache.forEach((v, k) => v && !(v as unknown as Performer).portrait && cache!.delete(k));
       }
       return cache;
     },
@@ -38,7 +38,8 @@ function stored<T>(idbKey: string) {
     },
   };
 }
-const perfStore = stored<Performer>('tpdbPerf');
+// 'tpdbPerf2' (0.35.2): a lista antiga podia ter homens com o sexo em branco; confere de novo.
+const perfStore = stored<Performer>('tpdbPerf2');
 const siteStore = stored<SiteInfo>('tpdbSite');
 
 /** Atrizes e produtoras da categoria (vão crescendo enquanto a ThePornDB responde). */
