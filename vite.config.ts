@@ -24,7 +24,15 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: webos ? 'dist-webos' : mode === 'android' ? 'dist-android' : 'dist',
       chunkSizeWarningLimit: 1200,
-      ...(webos ? { cssTarget: 'chrome38' } : {}),
+      // TV: a atualização dentro do app troca só o código principal (prisma-webos-<v>.json), então
+      // tudo precisa caber nele: sem partes separadas e com as fontes embutidas (0.35.0).
+      ...(webos
+        ? {
+            cssTarget: 'chrome38',
+            assetsInlineLimit: (file: string) => (/\.woff2$/.test(file) ? true : undefined),
+            rollupOptions: { output: { inlineDynamicImports: true } },
+          }
+        : {}),
     },
     server: { host: '127.0.0.1', port: 5173 },
   };

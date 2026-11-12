@@ -1,7 +1,7 @@
 import { prefGet, prefSet } from '../core/storage';
 import { canCatchup, startOverItem } from '../core/catchup';
 import { T } from '../ui/tokens';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Engine } from '../core/engine';
 import { IS_ANDROID, IS_WEBOS } from '../core/platform';
 import { useSettings } from '../core/settings';
@@ -25,9 +25,11 @@ import { KEY, dirOf, focusFirst, isBack, isEnter } from '../ui/nav';
 import { useClock, useEpg } from '../ui/useEpg';
 import { BarIcon, BarMenu, BarTop, ClassicBar, MenuItem, MenuToggle, PinDialog, PipWindow, pipSlotStyle, type BarAction } from './ChannelBar';
 import { FullList } from './FullList';
-import { Guide } from './Guide';
 import { NowOnTV } from './NowOnTV';
 import { setChannelHidden, checkPin, hasPin, isLockMarked, isLocked, setLocked, setPin, unlockForSession } from '../core/parental';
+
+// Guia de programação: carrega quando abre (0.35.0).
+const Guide = lazy(() => import('./Guide').then((m) => ({ default: m.Guide })));
 
 export type PlayerMode = 'off' | 'preview' | 'full';
 export interface Rect {
@@ -302,8 +304,14 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
     const save = () => {
       if (v.duration && isFinite(v.duration) && v.currentTime > 0) saveProgress(id, v.currentTime, v.duration);
     };
+    let lastSec = -1;
     const onTime = () => {
-      setTime({ cur: v.currentTime, dur: isFinite(v.duration) ? v.duration : 0, paused: v.paused });
+      // O vídeo avisa ~4 vezes por segundo; a tela só mostra segundos (0.35.0: 1 redesenho por segundo).
+      const sec = Math.floor(v.currentTime);
+      if (sec !== lastSec) {
+        lastSec = sec;
+        setTime({ cur: v.currentTime, dur: isFinite(v.duration) ? v.duration : 0, paused: v.paused });
+      }
       if (Date.now() - lastSave.current > 10000) {
         lastSave.current = Date.now();
         save();
@@ -1106,6 +1114,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
       )}
 
       {full && guideOpen && playlist && (
+        <Suspense fallback={null}>
         <Guide
           playlist={playlist}
           channels={guideOpen.channels}
@@ -1124,6 +1133,7 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
             onPlayVod?.(it);
           }}
         />
+        </Suspense>
       )}
 
       {status === 'locked' && mode !== 'off' && channel && (

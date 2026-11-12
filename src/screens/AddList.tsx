@@ -7,13 +7,12 @@ import { VERSION } from '../version';
 import { useLayout } from '../ui/layout';
 import { VoiceButton } from '../ui/Voice';
 
-type Mode = 'm3u' | 'xtream' | 'file' | 'demo';
+type Mode = 'm3u' | 'xtream' | 'file';
 
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: 'xtream', label: 'Xtream (Smarters / XCIPTV)', hint: 'Servidor, usuário e senha — os mesmos do IPTV Smarters ou do XCIPTV.' },
   { id: 'm3u', label: 'Link M3U / SS IPTV', hint: 'Endereço da lista M3U ou M3U8 (o mesmo usado no SS IPTV como lista externa).' },
   { id: 'file', label: 'Arquivo', hint: 'Um arquivo .m3u ou .m3u8 salvo neste aparelho.' },
-  { id: 'demo', label: 'Lista de teste', hint: 'Canais de demonstração para conhecer o app antes de colocar a sua lista.' },
 ];
 
 interface Props {
@@ -57,8 +56,6 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
     } else if (mode === 'm3u') {
       if (!/^https?:\/\//i.test(url.trim())) return setError(new SourceError('format', 'O link precisa começar com http:// ou https://'));
       run({ type: 'm3u', name: name.trim() || 'Minha lista', url: url.trim() });
-    } else if (mode === 'demo') {
-      run({ type: 'm3u', name: 'Lista de teste', url: new URL('demo/lista-teste.m3u', location.href).href });
     } else {
       fileRef.current?.click();
     }
@@ -125,7 +122,7 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
       >
         <span className="muted" style={{ fontSize: 16 }}>{hint}</span>
 
-        {mode !== 'demo' && mode !== 'file' && (
+        {mode !== 'file' && (
           <div className="field">
             <label htmlFor="f-name">Nome da lista</label>
             <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -160,11 +157,6 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
           </div>
         )}
         {mode === 'file' && <input ref={fileRef} type="file" accept=".m3u,.m3u8,audio/x-mpegurl,application/vnd.apple.mpegurl,text/plain" style={{ display: 'none' }} onChange={(e) => onFile(e.target.files?.[0])} />}
-        {mode === 'demo' && (
-          <span style={{ fontSize: 17, lineHeight: 1.5 }}>
-            Carrega 6 canais de demonstração (um deles fora do ar de propósito, para ver o aviso). Depois é só trocar pela sua lista em Perfil › Lista.
-          </span>
-        )}
 
         {!mobile && <div style={{ flexGrow: 1 }} />}
 
@@ -177,7 +169,7 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
 
         <div className="gx-16" style={{ display: 'flex', alignItems: 'center' }}>
           <button className="btn primary" data-nav="" disabled={busy} onClick={submit} style={{ height: 52, padding: '0 28px' }}>
-            {mode === 'file' ? 'Escolher arquivo' : mode === 'demo' ? 'Abrir lista de teste' : 'Entrar'}
+            {mode === 'file' ? 'Escolher arquivo' : 'Entrar'}
           </button>
           {busy && (
             <>

@@ -1,11 +1,10 @@
 import { rememberSource } from './core/sources';
 import { applyParental, onParental, parentalVersion } from './core/parental';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { setBaseTheme, themeById } from './ui/themes';
 import { askOnStart, chosenThisSession, currentProfile, switchProfile } from './core/profiles';
 import { WhoIsWatching } from './screens/Profiles';
 import { MyList, VodScreen, type VodTab } from './screens/Vod';
-import { Games } from './screens/Games';
 import { openSportsView } from './screens/F1';
 import { ScoreBug } from './ui/ScoreBug';
 import { cloudSync } from './core/cloud';
@@ -26,13 +25,18 @@ import { SourceError, type Channel, type Playlist, type SourceConfig } from './c
 import { AddList } from './screens/AddList';
 import { LiveTV, catColumnWidth, liveGeometry } from './screens/LiveTV';
 import { Home, Search } from './screens/Other';
-import { Settings } from './screens/Settings';
 import { SettingsContext, loadSettings, saveSettings, type Settings as SettingsT } from './core/settings';
 import { LayoutContext, useViewportLayout, type Layout } from './ui/layout';
 import { EMPTY_SECTIONS, SectionsContext, type SectionsData } from './core/sections';
 import { Player, type PlayerMode } from './screens/Player';
 import { Ambient, Brand, Icon, Symbol } from './ui/bits';
 import { focusEl, pushBack } from './ui/nav';
+import { ErrorBoundary } from './ui/ErrorBoundary';
+import { loadHls } from './core/engine';
+
+// Telas pesadas e menos usadas carregam quando abrem (0.35.0; na TV vão juntas no código principal).
+const Games = lazy(() => import('./screens/Games').then((m) => ({ default: m.Games })));
+const Settings = lazy(() => import('./screens/Settings').then((m) => ({ default: m.Settings })));
 
 type Tab = 'inicio' | 'aovivo' | 'jogos' | 'filmes' | 'series' | 'anime' | 'busca' | 'lista' | 'ajustes';
 
@@ -150,6 +154,12 @@ export function App() {
       clearInterval(iv);
     };
   }, [phase]);
+  // Motor de vídeo HLS: carrega logo depois da abertura (0.35.0), para o 1º canal não esperar.
+  useEffect(() => {
+    if (phase !== 'app') return;
+    const t = setTimeout(() => void loadHls(), 1500);
+    return () => clearTimeout(t);
+  }, [phase]);
   // Inclinação da capa seguindo o mouse (computador; na TV e no toque, não).
   useEffect(() => {
     if (document.documentElement.classList.contains('lite')) return;
@@ -204,8 +214,9 @@ export function App() {
       }, () => {});
     };
     const checkGoals = () => {
-      // Acompanha o placar de todos os jogos desde que o app abre (para não perder
-      // o 1º gol depois de escolher os times) e avisa só os de "Meus times".
+      // Só com "Meus times" escolhidos e o app na frente (0.35.0): antes eram 14 consultas à ESPN
+      // por minuto o tempo todo, disputando a internet com o vídeo. A 1ª leitura só marca o placar.
+      if (document.hidden || !myTeams().length) return;
       loadScores().then((sc) => {
         if (!alive) return;
         const mt = myTeams();
@@ -529,7 +540,11 @@ export function App() {
             <TopBar tab={tab} onTab={setTab} L={L} />
           ))}
         <div key={tab} className="screen-in" style={railW ? { position: 'absolute', left: railW, top: 0, bottom: 0, width: L.W - railW } : { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-          <LayoutContext.Provider value={Ls}>{screen}</LayoutContext.Provider>
+          <LayoutContext.Provider value={Ls}>
+            <ErrorBoundary where={'aba ' + tab} resetKey={tab} onHome={() => setTab('inicio')}>
+              <Suspense fallback={<div className="spinner" style={{ position: 'absolute', left: '50%', top: '50%', marginLeft: -24, marginTop: -24 }} />}>{screen}</Suspense>
+            </ErrorBoundary>
+          </LayoutContext.Provider>
         </div>
       </>
     );
@@ -543,6 +558,7 @@ export function App() {
       <div className="stage" style={{ width: L.W, height: L.H, transform: `scale(${scale})`, WebkitTransform: `scale(${scale})` }}>
         {body}
         {phase === 'app' && (
+          <ErrorBoundary where="player" resetKey={playing?.id}>
           <Player
             playlist={playlist}
             channel={playing}
@@ -575,6 +591,7 @@ export function App() {
               if (i >= 0 && queue[i + 1]) playVod(queue[i + 1], 0);
             }}
           />
+          </ErrorBoundary>
         )}
         {phase === 'app' && mode === 'full' && <ScoreBug />}
         {goal && (

@@ -4,7 +4,7 @@ import type { Channel, Playlist } from '../core/types';
 import { hasReminder, toggleReminder } from '../core/games';
 import { todayHighlights, tonightPicks } from '../core/highlights';
 import { hasXmltv, loadXmltv } from '../core/xmltv';
-import { Ambient, ChannelLogo, ChannelTile, Icon, Symbol, colorFor, fmtTime, initials, rgba } from '../ui/bits';
+import { ChannelLogo, ChannelTile, Icon, colorFor, fmtTime, initials, rgba } from '../ui/bits';
 import { progressOf } from '../core/epg';
 import { useClock, useEpg } from '../ui/useEpg';
 import { focusEl, focusFirst, pushBack } from '../ui/nav';
@@ -831,26 +831,3 @@ export function Search({ playlist, onWatch, onPlayVod }: { playlist: Playlist; o
   );
 }
 
-// ---------------------------------------------------------------- Em breve
-export function Soon({ title, step, text, count }: { title: string; step: string; text: string; count?: number }) {
-  const L = useLayout();
-  const mobile = L.form === 'mobile';
-  return (
-    <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
-      <Ambient variant="soft" />
-      <div className="gy-14" style={{ position: 'absolute', left: L.px, top: L.top + (mobile ? 20 : 60), width: Math.min(720, L.W - L.px * 2), display: 'flex', flexDirection: 'column' }}>
-        <Symbol size={mobile ? 52 : 72} />
-        <span className="title" style={{ fontSize: mobile ? 30 : 40, fontWeight: 800 }}>{title}</span>
-        <span className="chip" style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', background: 'rgba(245,184,61,0.18)', color: T.warn }}>
-          {step}
-        </span>
-        <span className="muted" style={{ fontSize: mobile ? 16 : 18, lineHeight: 1.5 }}>{text}</span>
-        {count !== undefined && (
-          <span style={{ fontSize: mobile ? 16 : 18 }}>
-            {Icon.bookmark} <b>{count.toLocaleString('pt-BR')}</b> itens já foram lidos da sua lista e estão prontos para esta tela.
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}

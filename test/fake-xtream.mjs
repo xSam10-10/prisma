@@ -6,7 +6,8 @@ import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const demo = fileURLToPath(new URL('../public/demo/', import.meta.url));
+// Vídeos de teste (saíram de public/ na 0.35.0, para não irem nos pacotes do app).
+const demo = fileURLToPath(new URL('./demo/', import.meta.url));
 const PORT = Number(process.env.PORT || 8090);
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 

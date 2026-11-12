@@ -34,6 +34,21 @@ describe('card da série abre no próximo episódio', () => {
   });
 });
 
+const { prefRead, prefSet } = await import('../src/core/storage');
+const { getProgress } = await import('../src/core/vod');
+describe('leitura rápida das preferências', () => {
+  beforeEach(() => mem.clear());
+  it('acompanha o que foi gravado depois', () => {
+    expect(prefRead('progress', {})).toEqual({});
+    saveProgress('f1', 300, 6000);
+    expect(getProgress('f1')?.pos).toBe(300);
+    saveProgress('f1', 900, 6000);
+    expect(getProgress('f1')?.pos).toBe(900);
+    prefSet('progress', {});
+    expect(getProgress('f1')).toBeUndefined();
+  });
+});
+
 const { fuzzyMatch } = await import('../src/core/fuzzy');
 describe('busca tolerante', () => {
   it('erros de digitação', () => {

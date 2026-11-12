@@ -1,8 +1,8 @@
 // Motor de reprodução: escolhe hls.js, mpegts.js ou o player nativo
 // conforme o tipo do endereço, e avisa quando o canal falha.
 
-import Hls from 'hls.js';
-import mpegts from 'mpegts.js';
+import type Hls from 'hls.js';
+import type mpegts from 'mpegts.js';
 import { USE_PROXY, proxify } from './net';
 import { LITE } from './platform';
 import type { Channel } from './types';
@@ -44,6 +44,27 @@ function trackLabel(name?: string, lang?: string, i = 0): string {
   return nice || (lang ? lang.toUpperCase() : `Faixa ${i + 1}`);
 }
 
+// Os motores carregam sob demanda (0.35.0): o app abre sem ler ~800 KB de código de vídeo.
+// O HLS é pedido logo depois da abertura (quase todo canal usa); o MPEG-TS só quando precisa.
+type HlsCtor = typeof Hls;
+type Mpegts = typeof mpegts;
+let HlsLib: HlsCtor | undefined;
+let MpegtsLib: Mpegts | undefined;
+let hlsLoading: Promise<HlsCtor | undefined> | undefined;
+let tsLoading: Promise<Mpegts | undefined> | undefined;
+export function loadHls(): Promise<HlsCtor | undefined> {
+  return (hlsLoading ??= import('hls.js').then(
+    (m) => (HlsLib = m.default),
+    () => ((hlsLoading = undefined), undefined),
+  ));
+}
+function loadMpegts(): Promise<Mpegts | undefined> {
+  return (tsLoading ??= import('mpegts.js').then(
+    (m) => (MpegtsLib = m.default),
+    () => ((tsLoading = undefined), undefined),
+  ));
+}
+
 type Kind = 'hls' | 'ts' | 'native';
 
 function kindOf(url: string): Kind {
@@ -68,6 +89,8 @@ export class Engine {
   private ts?: mpegts.Player;
   private stallTimer?: number;
   private destroyed = false;
+  /** Muda a cada play(): um motor que termina de carregar depois de outro play() não toca. */
+  private seq = 0;
   /** Bytes baixados recentemente (para mostrar a velocidade, ex.: "436 KB/s"). */
   private loaded: { t: number; b: number }[] = [];
 
@@ -110,13 +133,31 @@ export class Engine {
   play(url: string, ch?: Channel, startAt = 0, native = false): void {
     this.stop();
     this.destroyed = false;
+    const seq = ++this.seq;
     this.armStall();
+    const k = kindOf(url);
+    // Motor ainda não carregado: carrega e continua (se nada mudou nesse meio-tempo).
+    const need = native ? undefined : k === 'hls' && !HlsLib ? loadHls : k === 'ts' && !MpegtsLib ? loadMpegts : undefined;
+    if (need) {
+      void need().then(() => {
+        if (seq === this.seq && !this.destroyed) this.start(url, ch, startAt, native);
+      });
+      return;
+    }
+    this.start(url, ch, startAt, native);
+  }
+
+  private start(url: string, ch: Channel | undefined, startAt: number, native: boolean): void {
     const v = this.video;
     const k = kindOf(url);
     const src = withHeaders(url, ch);
+    const Hls = HlsLib;
+    const mpegts = MpegtsLib;
 
-    if (!native && k === 'hls' && Hls.isSupported()) {
+    if (!native && k === 'hls' && Hls && Hls.isSupported()) {
       const hls = new Hls({
+        // Aparelho fraco (TV de 2017): menos vídeo guardado na memória (o padrão vai a ~60 MB).
+        ...(LITE ? { maxBufferLength: 20, maxMaxBufferLength: 40, maxBufferSize: 25 * 1000 * 1000 } : {}),
         enableWorker: !LITE, // o worker não recebe os polyfills da TV antiga
         lowLatencyMode: false,
         backBufferLength: 30,
@@ -156,10 +197,18 @@ export class Engine {
       return;
     }
 
-    if (!native && k === 'ts' && mpegts.getFeatureList().mseLivePlayback) {
+    if (!native && k === 'ts' && mpegts && mpegts.getFeatureList().mseLivePlayback) {
       const p = mpegts.createPlayer(
         { type: 'mpegts', isLive: !ch || ch.kind === 'live', url: new URL(src, location.href).href },
-        { enableWorker: !LITE, liveBufferLatencyChasing: true, lazyLoad: false },
+        {
+          enableWorker: !LITE,
+          liveBufferLatencyChasing: true,
+          lazyLoad: false,
+          // Sem isso o vídeo já visto fica guardado e, depois de horas no mesmo canal, a TV fica sem memória (0.35.0).
+          autoCleanupSourceBuffer: true,
+          autoCleanupMaxBackwardDuration: LITE ? 20 : 60,
+          autoCleanupMinBackwardDuration: LITE ? 10 : 30,
+        },
       );
       this.ts = p;
       p.on(mpegts.Events.ERROR, () => this.fail('O canal está fora do ar ou não respondeu.'));
@@ -280,6 +329,7 @@ export class Engine {
   }
 
   stop(): void {
+    this.seq++;
     clearTimeout(this.stallTimer);
     this.loaded = [];
     if (this.hls) {

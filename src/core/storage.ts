@@ -58,10 +58,16 @@ export async function idbDel(key: string): Promise<void> {
 // antigas (sem prefixo), para não perder nada de quem já usava o app.
 const PER_PROFILE = new Set(['favs', 'recents', 'sections', 'myList', 'progress', 'vodRecents', 'reminders', 'settings', 'live.cat', 'tab', 'lastKind', 'locked', 'myTeams', 'watched', 'epAlerts', 'lockedCats', 'hiddenCats', 'hiddenCh', 'trackPref']);
 
+let profRaw: string | null | undefined;
+let profVal = 'p1';
 function profileId(): string {
   try {
     const v = localStorage.getItem('prisma.profile');
-    return v ? (JSON.parse(v) as string) : 'p1';
+    if (v !== profRaw) {
+      profRaw = v;
+      profVal = v ? (JSON.parse(v) as string) : 'p1';
+    }
+    return profVal;
   } catch {
     return 'p1';
   }
@@ -77,6 +83,26 @@ export function prefGet<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(fullKey(key));
     return v == null ? fallback : (JSON.parse(v) as T);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Leitura rápida, SÓ PARA CONSULTA (0.35.0): reaproveita o valor já convertido enquanto o texto
+ * guardado for o mesmo. As capas consultam progresso/assistidos a cada movimento do controle;
+ * antes cada consulta convertia o JSON de novo. Não altere o objeto devolvido (use prefGet).
+ */
+const readCache = new Map<string, { raw: string | null; val: unknown }>();
+export function prefRead<T>(key: string, fallback: T): T {
+  try {
+    const full = fullKey(key);
+    const raw = localStorage.getItem(full);
+    const hit = readCache.get(full);
+    if (hit && hit.raw === raw) return (raw == null ? fallback : hit.val) as T;
+    const val = raw == null ? fallback : (JSON.parse(raw) as T);
+    readCache.set(full, { raw, val });
+    return val;
   } catch {
     return fallback;
   }

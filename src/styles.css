@@ -1647,3 +1647,11 @@ html.lite .feat-art > img.feat-blur { -webkit-filter: none; filter: none; opacit
 .pick-grid { -webkit-flex-grow: 1; flex-grow: 1; min-height: 0; display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-align-content: flex-start; align-content: flex-start; padding: 10px 6px 40px; }
 .pick-grid .act { margin-bottom: 14px; }
 .mobile .pick-page { padding: 18px 14px 0; }
+
+/* Proteção contra erro (0.35.0) */
+.err-screen { position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-flex-direction: column; flex-direction: column; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; padding: 40px; }
+.err-screen > * { margin-bottom: 18px; }
+
+/* Modo leve (TV antiga): sem animações contínuas no banner dos streamings (0.35.0) */
+html.lite .sb-aurora, html.lite .sb-sweep { -webkit-animation: none; animation: none; }
+html.lite .sb-sweep { display: none; }

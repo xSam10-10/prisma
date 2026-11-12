@@ -102,9 +102,17 @@ async function loadCache(): Promise<Record<string, TmdbInfo | null>> {
   if (!cache) cache = (await idbGet<Record<string, TmdbInfo | null>>('tmdb')) ?? {};
   return cache;
 }
+/** Títulos guardados no máximo (0.35.0): antes crescia sem fim e era regravado inteiro a cada 2 s. */
+const CACHE_MAX = 3000;
 function persist() {
   clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(() => cache && idbSet('tmdb', cache), 2000);
+  saveTimer = window.setTimeout(() => {
+    if (!cache) return;
+    // Os mais antigos saem primeiro (a ordem das chaves é a de entrada).
+    const keys = Object.keys(cache);
+    for (let i = 0; i < keys.length - CACHE_MAX; i++) delete cache[keys[i]];
+    void idbSet('tmdb', cache);
+  }, 10000);
 }
 export function clearTmdbCache(): void {
   cache = {};
@@ -402,11 +410,6 @@ export interface NextEpisode {
   season: number;
   episode: number;
   name?: string;
-}
-
-/** Próximo episódio da série no TMDB (para "Chegando esta semana"). */
-export function nextEpisodeOf(info: TmdbInfo): Promise<NextEpisode | null> {
-  return episodesOf(info).then((r) => r.next ?? null);
 }
 
 /** Próximo episódio a sair e o último que saiu (para o selo "NOVO EPISÓDIO"). */

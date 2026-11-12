@@ -3,7 +3,7 @@
 // cada perfil. Desbloqueado uma vez, o canal fica liberado até fechar o app.
 // No horário livre (padrão 22:00–06:00) nada pede a senha.
 
-import { prefGet, prefSet } from './storage';
+import { prefGet, prefRead, prefSet } from './storage';
 import type { Channel, Playlist } from './types';
 
 const unlocked = new Set<string>();
@@ -22,10 +22,10 @@ export function lockedIds(): string[] {
   return prefGet<string[]>('locked', []);
 }
 export function isLocked(id: string): boolean {
-  return lockedIds().includes(id) && !unlocked.has(id) && !inFreeHours();
+  return prefRead<string[]>('locked', []).includes(id) && !unlocked.has(id) && !inFreeHours();
 }
 export function isLockMarked(id: string): boolean {
-  return lockedIds().includes(id);
+  return prefRead<string[]>('locked', []).includes(id);
 }
 export function setLocked(id: string, on: boolean): void {
   const cur = lockedIds().filter((x) => x !== id);
@@ -127,9 +127,6 @@ export function setCatLocked(items: Channel[], key: string, on: boolean): void {
   bumpVer();
 }
 /** Há categorias protegidas fechadas agora? */
-export function catsLockedNow(items: Channel[]): number {
-  return hasPin() && !openNow() ? lockedCats(items).length : 0;
-}
 export function unlockCats(): void {
   catsOpen = true;
   bumpVer();

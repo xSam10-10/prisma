@@ -190,10 +190,6 @@ export async function loadGames(pl: Playlist, onProgress?: (done: number, total:
   return games;
 }
 
-export function clearGamesCache(): void {
-  cache = null;
-}
-
 // ---- Lembretes ----
 
 export interface Reminder {

@@ -1,4 +1,4 @@
-import { prefGet, prefSet } from './storage';
+import { prefGet, prefRead, prefSet } from './storage';
 import type { Channel } from './types';
 import { norm, searchTitle } from './tmdb';
 import { isAdultName } from './parental';
@@ -72,7 +72,7 @@ export interface Progress {
 }
 
 export function getProgress(id: string): Progress | undefined {
-  return prefGet<Record<string, Progress>>('progress', {})[id];
+  return prefRead<Record<string, Progress>>('progress', {})[id];
 }
 
 export function saveProgress(id: string, pos: number, dur: number): void {
@@ -132,7 +132,7 @@ export function watchedIds(): Record<string, number> {
 }
 
 export function isWatched(id: string): boolean {
-  return !!watchedIds()[id];
+  return !!prefRead<Record<string, number>>('watched', {})[id];
 }
 
 export function setWatched(ids: string[], on: boolean): void {

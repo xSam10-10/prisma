@@ -65,12 +65,41 @@ function inner(block: string, name: string): string {
   return m ? unescape(m[1]) : '';
 }
 
+type Parsed = Omit<Stored, 'url' | 'at'>;
+
 /**
  * Lê o XMLTV sem montar a árvore inteira (arquivos de dezenas de MB):
  * percorre <channel> e <programme> com indexOf.
  */
-export function parseXmltv(xml: string, wanted: (id: string, names: string[]) => boolean, now = Date.now()): Omit<Stored, 'url' | 'at'> {
+export function parseXmltv(xml: string, wanted: (id: string, names: string[]) => boolean, now = Date.now()): Parsed {
+  const it = parseSteps(xml, wanted, now);
+  for (;;) {
+    const r = it.next();
+    if (r.done) return r.value;
+  }
+}
+
+/**
+ * Mesma leitura, em pedaços (0.35.0): devolve a vez à tela a cada ~25 ms, para a TV não congelar
+ * nos segundos que leva para ler o guia de ~10 MB da lista.
+ */
+export async function parseXmltvAsync(xml: string, wanted: (id: string, names: string[]) => boolean, now = Date.now()): Promise<Parsed> {
+  const it = parseSteps(xml, wanted, now);
+  let t = Date.now();
+  for (;;) {
+    const r = it.next();
+    if (r.done) return r.value;
+    if (Date.now() - t > 25) {
+      await new Promise<void>((ok) => setTimeout(ok, 0));
+      t = Date.now();
+    }
+  }
+}
+
+/** Percorre o XML; para (yield) de tempos em tempos para quem chama poder dar a vez à tela. */
+function* parseSteps(xml: string, wanted: (id: string, names: string[]) => boolean, now: number): Generator<void, Parsed, void> {
   const guide: Record<string, EpgEntry[]> = {};
+  let n = 0;
   const names: Record<string, string> = {};
   const keep = new Set<string>();
   let i = 0;
@@ -88,9 +117,10 @@ export function parseXmltv(xml: string, wanted: (id: string, names: string[]) =>
     while ((m = re.exec(block))) dn.push(unescape(m[1]));
     if (id && wanted(id, dn)) {
       keep.add(id);
-      for (const n of dn) names[logoKey(n)] = id;
+      for (const d of dn) names[logoKey(d)] = id;
     }
     i = b + 10;
+    if (++n % 200 === 0) yield;
   }
   const from = now - PAST;
   const to = now + AHEAD;
@@ -117,6 +147,7 @@ export function parseXmltv(xml: string, wanted: (id: string, names: string[]) =>
       }
     }
     i = b + 12;
+    if (++n % 200 === 0) yield;
   }
   for (const k of Object.keys(guide)) guide[k].sort((x, y) => x.start - y.start);
   return { guide, names };
@@ -138,13 +169,14 @@ export const PUBLIC_GUIDES: { name: string; url: string }[] = [
   { name: 'Pluto TV Brasil (i.mjh.nz)', url: 'https://i.mjh.nz/PlutoTV/br.xml.gz' },
 ];
 
-async function fetchGuide(url: string, pl: Playlist): Promise<Omit<Stored, 'url' | 'at'>> {
-  const bytes = await fetchBytes(url);
-  const raw = bytes[0] === 0x1f && bytes[1] === 0x8b ? gunzipSync(bytes) : bytes;
-  const xml = strFromU8(raw);
+async function fetchGuide(url: string, pl: Playlist): Promise<Parsed> {
+  let bytes: Uint8Array | null = await fetchBytes(url);
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) bytes = gunzipSync(bytes);
+  const xml = strFromU8(bytes);
+  bytes = null; // libera os bytes antes de ler (memória da TV)
   const ids = new Set(pl.items.filter((c) => c.kind === 'live' && c.epgId).map((c) => c.epgId!));
   const nameKeys = new Set(pl.items.filter((c) => c.kind === 'live').map((c) => logoKey(c.fullName ?? c.name)));
-  return parseXmltv(xml, (id, dn) => ids.has(id) || dn.some((n) => nameKeys.has(logoKey(n))));
+  return parseXmltvAsync(xml, (id, dn) => ids.has(id) || dn.some((n) => nameKeys.has(logoKey(n))));
 }
 
 /** Resultado da última leitura de cada guia extra (para Ajustes). */
@@ -164,7 +196,7 @@ export function loadXmltv(pl: Playlist, force = false): Promise<Stored | null> {
         const saved = await idbGet<Stored>(KEY);
         if (saved && saved.url === url && Date.now() - saved.at < REFRESH) return (mem = saved);
       }
-      let parsed: Omit<Stored, 'url' | 'at'> = { guide: {}, names: {} };
+      let parsed: Parsed = { guide: {}, names: {} };
       if (main) {
         try {
           parsed = await fetchGuide(main, pl);

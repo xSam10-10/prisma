@@ -3,6 +3,7 @@ import { App } from './App';
 import { installNavigation } from './ui/nav';
 import { LITE } from './core/platform';
 import { cloudPullOnStart } from './core/cloud';
+import './fonts.css';
 import './styles.css';
 import './sports.css';
 import './stream.css';
