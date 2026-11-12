@@ -9,7 +9,7 @@ Tudo o que importa está no **GitHub** (código, histórico, documentos, workflo
 
 - Repositório: **https://github.com/xSam10-10/prisma** (público, branch `main`)
 - Cópia local no PC do Samuel: `C:\Users\Samuel Costa\Downloads\prisma` (em dia com o GitHub em 11/11)
-- Versão publicada: **0.34.5** (Release `v2026.11.11-2253`: Windows, TV LG, Android e Roku)
+- Versão publicada: **0.34.6** (Release `v2026.11.12-0014`: Windows, TV LG, Android e Roku)
 - Ordem de leitura para a nova conversa: **este arquivo** → `docs/PRISMA-continuidade.md` (seção 0 e as
   seções 10as–10az) → `docs/PENDENCIAS.md` → `release-notes.md`.
 
