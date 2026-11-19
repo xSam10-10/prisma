@@ -95,7 +95,8 @@ export function PosterCard({ item, w, selected, rank, fallbackCast }: { item: Ch
   const c = colorFor(item.group || item.name);
   const [, tick] = useState(0);
   useEffect(() => (item.kind === 'series' ? onNewEpisodes(() => tick((x) => x + 1)) : undefined), [item.kind]);
-  const badges = badgesOf(item);
+  // Capa estreita (celular): só 1 selo, para não encostar na nota (1.0).
+  const badges = badgesOf(item, Date.now(), w < 125 ? 1 : 2);
   return (
     <div className={'poster' + (selected ? ' sel' : '') + (badges.some((b) => b.k === 'newep') ? ' newep' : '')} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <div className="poster-art" style={{ height: Math.round(w * 1.5), background: `linear-gradient(160deg, ${rgba(c, 0.6)} 0%, ${rgba(c, 0.18)} 45%, #12121a 100%)` }}>

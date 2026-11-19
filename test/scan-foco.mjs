@@ -16,7 +16,7 @@ await p.addInitScript(() => {
 });
 await p.goto('http://localhost:5173/'); await p.waitForTimeout(2500);
 await p.fill('#f-server', 'http://127.0.0.1:8090'); await p.fill('#f-user', 'teste'); await p.fill('#f-pass', '1234');
-await p.click('text=Entrar'); await p.waitForTimeout(5000);
+await p.click('button:text-is("Entrar")'); await p.waitForTimeout(5000);
 await p.evaluate(() => document.documentElement.classList.add('kbd'));
 // Verifica se o foco está inteiro visível: na janela, abaixo do menu e dentro de cada ancestral que corta (overflow).
 const check = () => p.evaluate(() => {

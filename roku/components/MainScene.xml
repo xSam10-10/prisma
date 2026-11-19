@@ -2,6 +2,7 @@
 <!-- PRISMA para Roku: menu à esquerda, categorias no meio, lista à direita e o player por cima. -->
 <component name="MainScene" extends="Scene">
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+  <script type="text/brightscript" uri="pkg:/components/Goldcard.brs" />
   <children>
     <Rectangle id="bg" width="1920" height="1080" color="#0B0B12" />
     <Rectangle id="glow" width="1920" height="6" translation="[0,0]" color="#3DD6C4" />

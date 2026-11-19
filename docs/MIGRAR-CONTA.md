@@ -247,6 +247,7 @@ a lista de descartados está no topo de `docs/PENDENCIAS.md`.
 
 **Testes que dependem do Samuel** (cópia de `docs/PENDENCIAS.md`):
 - **0.34.4:** filmes e séries mostram Dublado/Legendado na capa e no detalhe; conferir se algum legendado aparece como Dublado (na Goldcard, sem marca = dublado) e mandar o nome. Em Jogos, o cartão da F1 em foco cabe na tela.
+- **1.0.0:** em cada aparelho, Ajustes › Lista › trocar lista (ou instalar do zero) e apertar **Entrar com a Goldcard**: a lista carrega sem digitar nada. No Roku, abrir o app pela primeira vez já entra.
 - **0.35.5:** na TV ao vivo, procurar A Grande Família, Vai que Cola, Marília Mendonça e Jiraya: os ícones novos aparecem na lista e no Início.
 - **0.35.4:** na TV ao vivo, procurar Pica-Pau, X-Men, Corrida Maluca e Filhos da Anarquia: os ícones novos aparecem na lista e no Início.
 - **0.35.3:** abrir a categoria de adultos, esperar as capas e os filtros carregarem, sair e fechar o app. Ao abrir de novo, as atrizes e produtoras aparecem na hora e as capas já vistas não voltam para a genérica.

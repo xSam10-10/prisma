@@ -1,6 +1,13 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 1.0.0 — PRISMA 1.0
+- Entrar com a Goldcard: um botão na tela de adicionar lista preenche servidor, usuário e senha e já carrega a lista (Windows, celular/tablet, TV LG e Roku). No Roku, a primeira abertura já entra sozinha. Se o servidor principal falhar, tenta o reserva sozinho
+- Controle remoto: se o item em foco some da tela (troca de aba, lista recarregada), o foco volta sozinho para a tela, em vez de ficar perdido
+- Roku: o caminho no topo não cresce mais a cada categoria; voltar de uma série não baixa a lista de novo; categoria vazia avisa e volta
+- Celular: capas estreitas mostram 1 selo (não encosta mais na nota); campo da busca sem a borda branca dentro
+- Revisão geral: setas em todas as direções, OK e Voltar testados em todas as abas na TV (1080p e 720p) e no celular, sem travar nem perder o foco
+
 ## 0.35.5 — mais 23 ícones de canais
 - TV ao vivo: 23 ícones novos (pacote 8) em 66 canais — A Grande Família, Detetives do Prédio Azul, Vai que Cola, Escolinha do Professor Raimundo, Sítio do Picapau Amarelo, Luluzinha, Pantera Cor de Rosa, Ursinhos Carinhosos, Digimon Savers, Jiraya, MegaMan, Rambo, Shinzo, Shurato, Simon, Superman, Wally Gator, Marília Mendonça, Simone e Simaria, Eduardo Costa, Trio Parada Dura, BRTV Max Rodeio e TV Super Gospel
 - Agora são 362 ícones próprios

@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (12/11/2026 · versão 0.35.5)
+## 0. ESTADO ATUAL — leia primeiro (19/11/2026 · versão 1.0.0)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10bj (0.10.0 → 0.35.5). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bk (0.10.0 → 1.0.0). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -649,6 +649,13 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - 23 PNGs novos em `public/logos/custom/` (362 no total) e 23 chaves novas em `meus-logos.json` (363). Conferidos no app: 66 canais carregando, 0 falhas.
 - O pacote veio só com `lista-256/`; o mapa saiu da `relacao-completa-atualizada.csv` do lote 7 (nomes de arquivo batem).
 - Controle: 337 aplicados, 18 revisar (entrou BRTV Max Rodeio), 149 pendentes.
+## 10bk. Versão 1.0.0 — revisão geral e Goldcard em um toque (19/11)
+- Pedido do Samuel: versão 1.0 com revisão geral (telas, filtros, setas, travamentos) e preencher a Goldcard sem digitar em cada aparelho. Ele escolheu "dados sem proteção" (avisado de que os arquivos da Release são públicos).
+- Goldcard: secrets `GOLDCARD_SERVER/USER/PASS` (env do `release.yml`) → `vite.config.ts` define `__GOLDCARD__` (null nos testes e sem secrets; local: `goldcard.local.json`, no .gitignore). `AddList` mostra "Entrar com a Goldcard" (dourado, primeiro foco). Roku: `components/Goldcard.brs` com marcadores `__GC_*__` que `scripts/roku-pack.mjs` troca na hora de empacotar; sem lista guardada entra sozinho; item "Entrar com a Goldcard" no menu. Nada de credencial no código. `GOLDCARD_SERVER` aceita vários servidores separados por vírgula (hoje lvbxsmart.xyz,607187.sbs): web e Roku tentam em ordem e só pulam em falha de rede (auth/vencida param).
+- `nav.ts`: `focusout` + 180 ms → se o foco caiu no body (modo controle), `focusFirst(activeScope())`.
+- Roku: `secName`/`catName` no caminho; lista de séries guardada para o Voltar dos episódios; categoria vazia volta para as categorias.
+- `Vod.tsx`: capa com largura < 125 px mostra 1 selo; `.sk-field` sem a sombra de foco do input.
+- Teste "macaco" (Playwright, teclas aleatórias com vídeo bloqueado) nas 6 abas em 1920×1080, 1280×720 e 390×844: 0 focos perdidos/presos, maior resposta 0,37 s. A "trava" de 15 s vista antes era do navegador sem janela tocando vídeo (com janela, 0 ms). Varredura de foco: 0 problemas.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

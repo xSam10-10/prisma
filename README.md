@@ -96,6 +96,17 @@ Na TV o app acessa a lista direto (sem proxy). O build usa só scripts "legacy" 
 > - se o hls.js/mpegts.js não tocar um canal, o app tenta o **player nativo da TV** antes de dar "fora do ar".
 > Ainda não foi testado numa B7 de verdade — a primeira instalação é o teste.
 
+## Botão "Entrar com a Goldcard" (1.0)
+
+Nos instaladores da Release (Windows, Android, TV LG e Roku), a tela "Adicione a sua lista"
+tem o botão **Entrar com a Goldcard**, que preenche servidor, usuário e senha e já carrega a lista.
+Os dados vêm dos secrets do repositório `GOLDCARD_SERVER`, `GOLDCARD_USER` e `GOLDCARD_PASS`
+(Settings › Secrets and variables › Actions) e só entram nos arquivos na hora de gerar. **Nunca**
+escrever os dados no código. Sem os secrets, o botão não aparece.
+Para um build feito no próprio PC, crie `goldcard.local.json` (fora do git):
+`{"server":"http://lvbxsmart.xyz","username":"…","password":"…"}`.
+Atenção: os arquivos da Release são públicos, então quem baixar consegue extrair os dados.
+
 ## Testar a sua lista (Goldcard) no computador
 
 ```bash

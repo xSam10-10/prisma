@@ -12,12 +12,23 @@ sub init()
     m.status = m.top.findNode("status")
 
     m.section = ""
+    m.secName = ""
+    m.catName = ""
+    m.seriesNames = []
+    m.seriesFocus = 0
     m.catList = []
     m.itemList = []
     m.episodes = []
     m.level = "menu"
 
-    m.menu.content = listOf(["Ao vivo", "Filmes", "Séries", "Trocar lista"])
+    m.gold = goldcard()
+    m.goldTrying = false
+    if m.gold.user <> "" and m.gold.pass <> "" and Left(m.gold.user, 2) <> "__"
+        m.menu.content = listOf(["Ao vivo", "Filmes", "Séries", "Trocar lista", "Entrar com a Goldcard"])
+    else
+        m.gold = invalid
+        m.menu.content = listOf(["Ao vivo", "Filmes", "Séries", "Trocar lista"])
+    end if
     m.menu.observeField("itemSelected", "onMenu")
     m.cats.observeField("itemSelected", "onCat")
     m.items.observeField("itemSelected", "onItem")
@@ -28,7 +39,9 @@ sub init()
     m.server = reg.Read("server")
     m.user = reg.Read("user")
     m.pass = reg.Read("pass")
-    if m.server = "" or m.user = "" or m.pass = ""
+    if (m.server = "" or m.user = "" or m.pass = "") and m.gold <> invalid
+        useGold()
+    else if m.server = "" or m.user = "" or m.pass = ""
         askLogin(0)
     else
         m.menu.setFocus(true)
@@ -80,6 +93,27 @@ function sv(v as dynamic) as string
 end function
 
 ' ------------------------------------------------------------ Login (teclado do Roku)
+
+' 1.0: entra com os dados da Goldcard embutidos no pacote.
+sub useGold()
+    if m.gold = invalid then return
+    ' Vários servidores separados por vírgula: tenta um e, se falhar, o próximo.
+    if m.goldList = invalid
+        m.goldList = []
+        for each s in m.gold.server.Split(",")
+            s = s.Trim()
+            if s <> "" then m.goldList.Push(s)
+        end for
+        m.goldIdx = 0
+    end if
+    if m.goldIdx >= m.goldList.Count() then m.goldIdx = 0
+    m.goldTrying = true
+    m.server = m.goldList[m.goldIdx]
+    m.user = m.gold.user
+    m.pass = m.gold.pass
+    say("Entrando com a Goldcard…")
+    load(api("", ""), "login")
+end sub
 
 sub askLogin(stepNum as integer)
     m.loginStep = stepNum
@@ -152,6 +186,13 @@ sub onLoaded()
     r = m.task.result
     if r = invalid then return
     if not r.ok
+        if r.kind = "login" and m.goldTrying = true and m.goldIdx + 1 < m.goldList.Count()
+            m.goldIdx = m.goldIdx + 1
+            useGold()
+            return
+        end if
+        m.goldTrying = false
+        m.goldIdx = 0
         say("")
         showError(r.error)
         if r.kind = "login" then askLogin(0)
@@ -170,6 +211,8 @@ sub onLoaded()
         reg.Write("user", m.user)
         reg.Write("pass", m.pass)
         reg.Flush()
+        m.goldTrying = false
+        m.goldIdx = 0
         say("Conectado: " + m.server)
         m.menu.setFocus(true)
     else if r.kind = "cats"
@@ -199,6 +242,12 @@ sub onLoaded()
             end for
         end if
         m.items.content = listOf(names)
+        if names.Count() = 0
+            say("Nenhum título nesta categoria.")
+            m.level = "cats"
+            m.cats.setFocus(true)
+            return
+        end if
         say(names.Count().ToStr() + " títulos · OK para assistir · Voltar volta")
         m.level = "items"
         m.items.setFocus(true)
@@ -229,16 +278,21 @@ sub onMenu()
     i = m.menu.itemSelected
     if i = 0
         m.section = "live"
-        m.crumb.text = "Ao vivo"
+        m.secName = "Ao vivo"
+        m.crumb.text = m.secName
         load(api("get_live_categories", ""), "cats")
     else if i = 1
         m.section = "vod"
-        m.crumb.text = "Filmes"
+        m.secName = "Filmes"
+        m.crumb.text = m.secName
         load(api("get_vod_categories", ""), "cats")
     else if i = 2
         m.section = "series"
-        m.crumb.text = "Séries"
+        m.secName = "Séries"
+        m.crumb.text = m.secName
         load(api("get_series_categories", ""), "cats")
+    else if i = 4
+        useGold()
     else
         reg = CreateObject("roRegistrySection", "prisma")
         reg.Delete("pass")
@@ -251,7 +305,8 @@ sub onCat()
     c = m.catList[m.cats.itemSelected]
     if c = invalid then return
     id = sv(c.category_id)
-    m.crumb.text = m.crumb.text + "  ›  " + sv(c.category_name)
+    m.catName = sv(c.category_name)
+    m.crumb.text = m.secName + "  ›  " + m.catName
     if m.section = "live"
         load(api("get_live_streams", "&category_id=" + id), "items")
     else if m.section = "vod"
@@ -288,7 +343,12 @@ sub onItem()
         if ext = "" then ext = "mp4"
         play(m.server + "/movie/" + esc(m.user) + "/" + esc(m.pass) + "/" + sv(it.stream_id) + "." + ext, sv(it.name), ext)
     else
-        m.crumb.text = m.crumb.text + "  ›  " + sv(it.name)
+        m.crumb.text = m.secName + "  ›  " + m.catName + "  ›  " + sv(it.name)
+        m.seriesNames = []
+        for i = 0 to m.items.content.getChildCount() - 1
+            m.seriesNames.Push(m.items.content.getChild(i).title)
+        end for
+        m.seriesFocus = m.items.itemFocused
         load(api("get_series_info", "&series_id=" + sv(it.series_id)), "series")
     end if
 end sub
@@ -345,10 +405,15 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "back"
         if m.level = "episodes"
             m.level = "items"
-            load(api("get_series", "&category_id=" + sv(m.catList[m.cats.itemFocused].category_id)), "items")
+            m.items.content = listOf(m.seriesNames)
+            m.items.jumpToItem = m.seriesFocus
+            m.crumb.text = m.secName + "  ›  " + m.catName
+            say(m.seriesNames.Count().ToStr() + " títulos · OK para assistir · Voltar volta")
+            m.items.setFocus(true)
             return true
         else if m.level = "items"
             m.level = "cats"
+            m.crumb.text = m.secName
             m.cats.setFocus(true)
             return true
         else if m.level = "cats"

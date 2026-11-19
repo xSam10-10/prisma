@@ -11,6 +11,13 @@ on:
 permissions:
   contents: write
 
+# 1.0: botão "Entrar com a Goldcard" (pedido do Samuel). Os dados ficam só nos
+# secrets do repositório e entram nos instaladores na hora de gerar; nunca no código.
+env:
+  GOLDCARD_SERVER: ${{ secrets.GOLDCARD_SERVER }}
+  GOLDCARD_USER: ${{ secrets.GOLDCARD_USER }}
+  GOLDCARD_PASS: ${{ secrets.GOLDCARD_PASS }}
+
 jobs:
   windows:
     runs-on: windows-latest

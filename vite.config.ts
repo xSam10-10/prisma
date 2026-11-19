@@ -20,6 +20,34 @@ function commit(): string {
   }
 }
 
+/**
+ * Dados da Goldcard para o botão "Entrar com a Goldcard" (pedido do Samuel, 1.0).
+ * Vêm dos secrets GOLDCARD_SERVER/USER/PASS na publicação ou do arquivo local
+ * goldcard.local.json (fora do git). Nunca escrever os dados no código.
+ */
+function goldcard(): { server: string; servers: string[]; username: string; password: string } | null {
+  let server = process.env.GOLDCARD_SERVER || '';
+  let username = process.env.GOLDCARD_USER || '';
+  let password = process.env.GOLDCARD_PASS || '';
+  if (!username) {
+    try {
+      const j = JSON.parse(readFileSync('goldcard.local.json', 'utf8'));
+      server = j.server || server;
+      username = j.username || '';
+      password = j.password || '';
+    } catch {
+      /* sem arquivo local */
+    }
+  }
+  if (!username || !password) return null;
+  // Vários servidores separados por vírgula: o app tenta um e, se falhar, o próximo.
+  const servers = (server || 'http://lvbxsmart.xyz,http://607187.sbs')
+    .split(/[,\s]+/)
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+  return { server: servers[0], servers, username, password };
+}
+
 export default defineConfig(({ mode }) => {
   const webos = mode === 'webos';
   return {
@@ -27,6 +55,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version),
       __APP_COMMIT__: JSON.stringify(commit()),
+      __GOLDCARD__: JSON.stringify(mode === 'test' ? null : goldcard()),
     },
     plugins: [
       react(),

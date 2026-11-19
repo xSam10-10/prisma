@@ -1,4 +1,4 @@
-# PRISMA — Melhorias pendentes (atualizado em 12/11/2026, versão 0.35.5)
+# PRISMA — Melhorias pendentes (atualizado em 19/11/2026, versão 1.0.0)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -48,6 +48,7 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 
 ## Depende do Samuel
 - **0.34.4:** filmes e séries mostram Dublado/Legendado na capa e no detalhe; conferir se algum legendado aparece como Dublado (na Goldcard, sem marca = dublado) e mandar o nome. Em Jogos, o cartão da F1 em foco cabe na tela.
+- **1.0.0:** em cada aparelho, Ajustes › Lista › trocar lista (ou instalar do zero) e apertar **Entrar com a Goldcard**: a lista carrega sem digitar nada. No Roku, abrir o app pela primeira vez já entra.
 - **0.35.5:** na TV ao vivo, procurar A Grande Família, Vai que Cola, Marília Mendonça e Jiraya: os ícones novos aparecem na lista e no Início.
 - **0.35.4:** na TV ao vivo, procurar Pica-Pau, X-Men, Corrida Maluca e Filhos da Anarquia: os ícones novos aparecem na lista e no Início.
 - **0.35.3:** abrir a categoria de adultos, esperar as capas e os filtros carregarem, sair e fechar o app. Ao abrir de novo, as atrizes e produtoras aparecem na hora e as capas já vistas não voltam para a genérica.

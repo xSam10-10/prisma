@@ -9,6 +9,9 @@ import { VoiceButton } from '../ui/Voice';
 
 type Mode = 'm3u' | 'xtream' | 'file';
 
+/** Goldcard embutida na publicação (1.0): um toque preenche e entra. */
+const GOLD = typeof __GOLDCARD__ !== 'undefined' ? __GOLDCARD__ : null;
+
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: 'xtream', label: 'Xtream (Smarters / XCIPTV)', hint: 'Servidor, usuário e senha — os mesmos do IPTV Smarters ou do XCIPTV.' },
   { id: 'm3u', label: 'Link M3U / SS IPTV', hint: 'Endereço da lista M3U ou M3U8 (o mesmo usado no SS IPTV como lista externa).' },
@@ -67,6 +70,34 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
     run({ type: 'm3u-file', name: name.trim() || f.name, fileName: f.name, content });
   };
 
+  const gold = () => {
+    if (!GOLD) return;
+    setMode('xtream');
+    setServer(GOLD.server);
+    setUser(GOLD.username);
+    setPass(GOLD.password);
+    setName('Goldcard TV');
+    const list = GOLD.servers && GOLD.servers.length ? GOLD.servers : [GOLD.server];
+    setBusy(true);
+    setError(null);
+    // Tenta cada servidor da Goldcard; só passa para o próximo em falha de rede/servidor.
+    (async () => {
+      let last: SourceError | null = null;
+      for (const sv of list) {
+        setServer(sv);
+        try {
+          await onSubmit({ type: 'xtream', name: 'Goldcard TV', server: sv, username: GOLD.username, password: GOLD.password });
+          return;
+        } catch (e) {
+          last = e instanceof SourceError ? e : new SourceError('network', (e as Error).message || 'Erro ao carregar a lista.');
+          if (last.code === 'auth' || last.code === 'expired') break;
+        }
+      }
+      setError(last);
+      setBusy(false);
+    })();
+  };
+
   const hint = MODES.find((m) => m.id === mode)!.hint;
   const errTitle =
     error?.code === 'auth' ? 'Usuário ou senha errados' : error?.code === 'expired' ? 'Lista vencida' : error?.code === 'empty' ? 'Lista vazia' : 'Não deu para abrir a lista';
@@ -93,7 +124,19 @@ export function AddList({ onSubmit, onCancel, progress, initialError }: Props) {
         <span className="muted" style={{ fontSize: mobile ? 15 : 18, lineHeight: 1.45 }}>
           O PRISMA é um player: ele mostra os canais, filmes e séries da lista que você assina. Nada sai deste aparelho.
         </span>
-        <div className={mobile ? 'wrap-row' : 'gy-8'} style={{ display: 'flex', flexDirection: mobile ? 'row' : 'column', flexWrap: mobile ? 'wrap' : undefined, marginTop: mobile ? 4 : 26 }}>
+        {GOLD && (
+          <button
+            className="btn primary gold-btn"
+            data-nav=""
+            disabled={busy}
+            onClick={gold}
+            style={{ justifyContent: 'flex-start', borderRadius: 16, height: mobile ? 48 : 60, marginTop: mobile ? 4 : 20, fontSize: mobile ? 17 : 19, fontWeight: 800 }}
+          >
+            Entrar com a Goldcard
+          </button>
+        )}
+        {GOLD && <span className="muted" style={{ fontSize: 14 }}>Preenche servidor, usuário e senha e já carrega a lista. Ou escolha outro tipo abaixo.</span>}
+        <div className={mobile ? 'wrap-row' : 'gy-8'} style={{ display: 'flex', flexDirection: mobile ? 'row' : 'column', flexWrap: mobile ? 'wrap' : undefined, marginTop: mobile ? 4 : GOLD ? 8 : 26 }}>
           {MODES.map((m) => (
             <button
               key={m.id}

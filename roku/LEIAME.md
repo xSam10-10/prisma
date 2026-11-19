@@ -1,7 +1,10 @@
 # PRISMA para Roku (versão básica)
 
-Entra com a lista Xtream (servidor, usuário e senha, digitados no próprio Roku e
-guardados só nele), mostra **Ao vivo** por categoria, **Filmes** e **Séries**
+Entra com a lista Xtream. Desde a 1.0, o pacote da Release já traz os dados da
+Goldcard: na primeira abertura ele entra sozinho, e o menu tem **Entrar com a
+Goldcard** para voltar a ela depois de trocar de lista. Outra lista: **Trocar
+lista** (servidor, usuário e senha digitados no próprio Roku e guardados só nele).
+O app mostra **Ao vivo** por categoria, **Filmes** e **Séries**
 (temporadas e episódios) e toca no player do Roku.
 
 ## Instalar (modo desenvolvedor)

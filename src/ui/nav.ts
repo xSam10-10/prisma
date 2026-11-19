@@ -232,6 +232,21 @@ export function installNavigation(): void {
   const html = document.documentElement;
 
   window.addEventListener('mousedown', () => html.classList.remove('kbd'), true);
+  // 1.0: se o item em foco some da tela (troca de aba, lista recarregada, diálogo fechado),
+  // o foco não fica perdido no vazio: volta para o primeiro item da área ativa.
+  let lost = 0;
+  window.addEventListener(
+    'focusout',
+    () => {
+      if (!html.classList.contains('kbd')) return;
+      clearTimeout(lost);
+      lost = window.setTimeout(() => {
+        const a = document.activeElement;
+        if (html.classList.contains('kbd') && (!a || a === document.body)) focusFirst(activeScope());
+      }, 180);
+    },
+    true,
+  );
   window.addEventListener('keydown', (e) => {
     const d = dirOf(e);
     if (d || isEnter(e)) html.classList.add('kbd');

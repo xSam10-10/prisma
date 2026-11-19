@@ -53,6 +53,31 @@ for (const p of files) {
         .replace(/^build_version=.*$/m, `build_version=${pat}`),
     );
   }
+  if (name === 'components/Goldcard.brs') {
+    // 1.0: dados da Goldcard (secrets) só dentro do zip; aspas viram "" no BrightScript.
+    const env = process.env;
+    let gc = {};
+    try {
+      gc = JSON.parse(readFileSync(new URL('../goldcard.local.json', import.meta.url), 'utf8'));
+    } catch {
+      /* sem arquivo local */
+    }
+    const brs = (s) => String(s || '').replace(/"/g, '""');
+    const user = env.GOLDCARD_USER || gc.username || '';
+    const pass = env.GOLDCARD_PASS || gc.password || '';
+    const server = user && pass ? (env.GOLDCARD_SERVER || gc.server || 'http://lvbxsmart.xyz,http://607187.sbs')
+          .split(/[,\s]+/)
+          .map((s) => s.replace(/\/+$/, ''))
+          .filter(Boolean)
+          .join(',') : '';
+    data = Buffer.from(
+      data
+        .toString('utf8')
+        .replace('__GC_SERVER__', brs(server))
+        .replace('__GC_USER__', brs(user))
+        .replace('__GC_PASS__', brs(pass)),
+    );
+  }
   const comp = deflateRawSync(data);
   const crc = crc32(data);
   const nameBuf = Buffer.from(name);
