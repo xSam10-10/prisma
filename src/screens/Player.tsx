@@ -235,9 +235,10 @@ export function Player({ playlist, channel, zapList, allLive, mode, rect, isFav,
   const urls = prefExt ? [...urls0.filter((u) => prefExt.test(u)), ...urls0.filter((u) => !prefExt.test(u))] : urls0;
   const sources = urls.reduce<{ u: string; n: number; native: boolean }[]>((acc, u, n) => {
     // Android: HLS e filmes primeiro no player do aparelho (não esbarra em CORS).
-    if (IS_ANDROID && !/\.ts(\?|$)/i.test(u)) acc.push({ u, n, native: true });
+    // TV LG (1.0.2): primeiro o player da TV (decodifica por hardware). O hls.js
+    // sem worker converte o vídeo na mesma linha da tela e travava a navegação.
+    if ((IS_ANDROID && !/\.ts(\?|$)/i.test(u)) || IS_WEBOS) acc.push({ u, n, native: true });
     acc.push({ u, n, native: false });
-    if (IS_WEBOS) acc.push({ u, n, native: true });
     return acc;
   }, []);
   const cur0 = sources[srcIdx] ?? sources[0];

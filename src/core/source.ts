@@ -2,9 +2,12 @@ import { detectXtreamFromUrl, parseM3U } from './m3u';
 import { cleanLabel } from './logos';
 import { isBackupOf, parseEpisodeName, sameChannelKey, simplifyGroups, simplifyName } from './names';
 import { fetchText } from './net';
-import { idbDel, idbGet, idbSet } from './storage';
+import { idbDel, idbGet, idbRebuild, idbTrySet } from './storage';
+import { LITE } from './platform';
+import { isPacked, packPlaylist, unpackPlaylist, type PackedPlaylist } from './packlist';
 import { SourceError, type Category, type Channel, type ItemKind, type Playlist, type SourceConfig } from './types';
 import * as xtream from './xtream';
+import { VERSION } from '../version';
 
 const PLAYLIST_KEY = 'playlist';
 
@@ -53,6 +56,7 @@ export function tidyPlaylist(p: Playlist): Playlist {
   }
   for (const list of twins.values()) list.forEach((c, i) => (c.name = `${c.name} ${i + 1}`));
   p.items = groupM3uSeries(out);
+  p.tidied = VERSION;
   return p;
 }
 
@@ -129,12 +133,42 @@ async function loadSourceRaw(src: SourceConfig, onProgress: Progress = () => {})
 }
 
 export async function savePlaylist(p: Playlist): Promise<void> {
-  await idbSet(PLAYLIST_KEY, p);
+  // TV LG: pouco espaço (~24 MB) — guarda compacta. Se não couber por cima da
+  // antiga (o banco precisa das duas por um instante), apaga a antiga e tenta de novo.
+  const t0 = Date.now();
+  let value: Playlist | PackedPlaylist = p;
+  if (LITE) {
+    try {
+      value = packPlaylist(p);
+    } catch (e) {
+      console.warn('[PRISMA] compactar a lista falhou:', (e as Error)?.message);
+    }
+  }
+  if (await idbTrySet(PLAYLIST_KEY, value)) {
+    console.info('[PRISMA] lista gravada em', Date.now() - t0, 'ms', isPacked(value) ? '(compacta)' : '');
+    return;
+  }
+  console.warn('[PRISMA] lista não coube; recriando o banco');
+  // Sem espaço: recria o banco com a lista primeiro e o resto pequeno depois
+  // (guia, capas e atualização baixada saem; voltam sozinhos se couberem).
+  const ok = await idbRebuild([PLAYLIST_KEY, value], ['tops', 'sports', 'tmdb']);
+  console.info('[PRISMA] banco recriado; lista', ok ? 'gravada' : 'NÃO gravada', 'em', Date.now() - t0, 'ms');
 }
 
 export async function loadSavedPlaylist(): Promise<Playlist | undefined> {
-  const p = await idbGet<Playlist>(PLAYLIST_KEY);
-  return p ? tidyPlaylist(p) : p;
+  const raw = await idbGet<Playlist | PackedPlaylist>(PLAYLIST_KEY);
+  if (!raw) return undefined;
+  const p = isPacked(raw) ? unpackPlaylist(raw) : raw;
+  // 1.0.2: a lista já é guardada arrumada. Só arruma de novo depois de uma
+  // atualização do app (regras novas); na TV LG isso tirava ~18% da abertura.
+  if (p.tidied === VERSION) {
+    // TV LG com a lista ainda no formato antigo (grande): regrava compacta.
+    if (LITE && !isPacked(raw)) void savePlaylist(p).catch(() => {});
+    return p;
+  }
+  const t = tidyPlaylist(p);
+  void savePlaylist(t).catch(() => {});
+  return t;
 }
 
 export async function clearPlaylist(): Promise<void> {

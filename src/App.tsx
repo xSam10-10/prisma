@@ -11,7 +11,8 @@ import { cloudSync } from './core/cloud';
 import { cachedGames, dueReminders, ensureReminder, loadGames, myTeams, reminders, teamsOf, type Reminder } from './core/games';
 import { isMyTeam, loadScores, scoreFor } from './core/scores';
 import { installNative, nativePlayVod, notifyNow, syncNativeReminders } from './core/native';
-import { IS_ANDROID } from './core/platform';
+import { IS_ANDROID, LITE } from './core/platform';
+import { warmUp } from './core/warm';
 import { applyNow, autoInstall, checkForUpdate, installUpdate, markBootOk, shouldAutoCheck, type CheckResult } from './core/updater';
 import { loadTops } from './core/tops';
 import { Splash, Toasts, toast as showToast, useHomeScrolled } from './ui/premium2';
@@ -88,6 +89,9 @@ export function App() {
   // A aba Anime virou parte de Séries (as categorias de anime e o Crunchyroll estão lá).
   const [tab, setTab] = useState<Tab>(() => {
     const t = prefGet<Tab>('tab', 'aovivo');
+    // TV LG (1.0.2): não abre no Início — medido na B7, abrir nele somava 4–10 s de
+    // travadas no 1º minuto (no Ao vivo, ~1 s). O Início continua a um toque.
+    if (LITE && t === 'inicio') return 'aovivo';
     return t === 'anime' ? 'series' : t;
   });
   const [playing, setPlaying] = useState<Channel>();
@@ -285,6 +289,10 @@ export function App() {
   useEffect(() => prefSet('favs', favIds), [favIds]);
   useEffect(() => prefSet('recents', recentIds), [recentIds]);
 
+  // TV LG: adianta aos poucos os cálculos da 1ª visita a Filmes/Séries/Início.
+  useEffect(() => {
+    if (LITE && phase === 'app' && playlist) warmUp(playlist.items);
+  }, [playlist, phase]);
   const live = useMemo(() => playlist?.items.filter((i) => i.kind === 'live') ?? [], [playlist]);
   const byId = useMemo(() => new Map(live.map((c) => [c.id, c])), [live]);
   const favs = useMemo(() => favIds.map((id) => byId.get(id)).filter(Boolean) as Channel[], [favIds, byId]);
@@ -406,7 +414,8 @@ export function App() {
   };
   const submitSource = async (src: SourceConfig) => {
     const p = await loadSource(src, setProgress);
-    await savePlaylist(p);
+    // Grava em segundo plano: na TV gravar 55 mil itens leva segundos.
+    void savePlaylist(p).catch(() => {});
     setPlaylist(p);
     setPlaying(undefined);
     setFull(false);
@@ -420,7 +429,7 @@ export function App() {
     setReloading(true);
     try {
       const p = await loadSource(playlist.source);
-      await savePlaylist(p);
+      void savePlaylist(p).catch(() => {});
       setPlaylist(p);
     } catch (e) {
       setBootError(e instanceof SourceError ? e : null);

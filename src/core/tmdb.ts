@@ -2,6 +2,7 @@ import { fetchText } from './net';
 import { idbGet, idbSet, prefGet } from './storage';
 import type { Channel } from './types';
 import { isAdultName } from './parental';
+import { LITE } from './platform';
 import { isGenericLogo } from './vod';
 import { adultQuery, sameContent, titlePart, tpdbKey, tpdbLookup, tpdbPerformer, type FansPage, type Performer, type StudioInfo } from './tpdb';
 import { actressKey, namesInTitle } from './actresses';
@@ -253,7 +254,8 @@ export async function adultCached(items: Channel[]): Promise<{ hit: Map<string, 
 /** Já está na memória? (a capa aparece na hora, sem esperar). undefined = ainda não sabe. */
 export function cachedInfo(item: Channel, logoBroken = false): TmdbInfo | null | undefined {
   if (item.kind === 'live') return null;
-  if (isAdultName(item.group)) return isGenericLogo(item.logo) || logoBroken ? adultHit(item) : null;
+  // TV LG (1.0.2, pedido do Samuel): adultos ficam com a capa da lista (sem busca de capa/atriz).
+  if (isAdultName(item.group)) return LITE ? null : isGenericLogo(item.logo) || logoBroken ? adultHit(item) : null;
   if (!cache || !tmdbKey()) return undefined;
   const key = tmdbCacheKey(item);
   return key in cache ? cache[key] : undefined;
@@ -284,7 +286,7 @@ export async function lookup(item: Channel, logoBroken = false): Promise<TmdbInf
   // Adultos (0.31.0): só procura quando a capa da lista é a genérica; aí tenta o TMDB com
   // conteúdo adulto e, se não achar, a ThePornDB. Capa de verdade da lista fica como está.
   // 0.32.0: capa da lista que não abre (link quebrado) também conta como genérica.
-  if (isAdultName(item.group)) return isGenericLogo(item.logo) || logoBroken ? adultInfo(item) : null;
+  if (isAdultName(item.group)) return LITE ? null : isGenericLogo(item.logo) || logoBroken ? adultInfo(item) : null;
   if (!tmdbKey()) return null;
   const type = item.kind === 'movie' ? 'movie' : 'tv';
   const { title, year } = searchTitle(item.fullName ?? item.name);

@@ -238,4 +238,13 @@ export function markBootOk(): void {
   } catch {
     /* ignora */
   }
+  // 1.0.2: atualização baixada que não é mais nova que a instalada (ex.: o .ipk
+  // novo já foi instalado) só ocupa espaço — a TV tem ~24 MB no total.
+  // Só quando está rodando o código instalado (rodando o baixado, ele é o atual).
+  if (IS_WEBOS && !(window as unknown as { __PRISMA_OTA__?: string }).__PRISMA_OTA__) void dropStaleOta();
+}
+
+async function dropStaleOta(): Promise<void> {
+  const saved = await idbGet<WebosBundle>('ota');
+  if (saved && !newer(saved.version, VERSION)) await idbDel('ota');
 }

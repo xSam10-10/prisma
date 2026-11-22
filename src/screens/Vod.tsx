@@ -29,6 +29,8 @@ import { isAdultName } from '../core/parental';
 import { FilterRow, useAdultFilters } from './Actresses';
 import { actressKey, castByItem } from '../core/actresses';
 import type { Performer } from '../core/tpdb';
+import { memoBy, memoBy2 } from '../core/memo';
+import { LITE } from '../core/platform';
 
 // Filmes · Séries · Anime: streamings no topo, categorias à esquerda,
 // grade de capas com busca; OK abre o detalhe (sinopse, elenco, episódios).
@@ -173,12 +175,16 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   const { settings } = useSettings();
   const logoMode = settings.streamLogos ?? 'color';
   const skinMode: SkinMode = settings.streamSkin ?? 'marcante';
-  const all = useMemo(() => {
-    const kinds: ItemKind[] = tab === 'filmes' ? ['movie'] : tab === 'series' ? ['series'] : ['movie', 'series'];
-    const list = playlist.items.filter((i) => kinds.includes(i.kind));
-    return tab === 'anime' ? list.filter((i) => ANIME.test(i.group)) : list;
-  }, [playlist, tab]);
-  const groups = useMemo(() => [...new Set(all.map((i) => i.group))], [all]);
+  const all = useMemo(
+    () =>
+      memoBy(playlist.items, 'vod:' + tab, () => {
+        const kinds: ItemKind[] = tab === 'filmes' ? ['movie'] : tab === 'series' ? ['series'] : ['movie', 'series'];
+        const list = playlist.items.filter((i) => kinds.includes(i.kind));
+        return tab === 'anime' ? list.filter((i) => ANIME.test(i.group)) : list;
+      }),
+    [playlist, tab],
+  );
+  const groups = useMemo(() => memoBy(all, 'groups', () => [...new Set(all.map((i) => i.group))]), [all]);
   const fromCats = useMemo(() => streamingsIn(groups), [groups]);
   const [stream, setStream] = useState<string>('');
   const [cat, setCat] = useState<string>('');
@@ -202,10 +208,10 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   }, [st?.id, skinMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => applyStreamSkin(null), []);
 
-  const byCats = useMemo(() => (st ? all.filter((i) => st.match.test(i.group)) : all), [all, st]);
+  const byCats = useMemo(() => (st ? memoBy(all, 'st:' + st.id, () => all.filter((i) => st.match.test(i.group))) : all), [all, st]);
   // Tops (Netflix oficial, mais populares de cada streaming, gêneros…), só com títulos da lista
   const { data: tops, ready: topsReady } = useTopsState(playlist);
-  const topLists = useMemo<MatchedList[]>(() => (tab === 'anime' ? [] : matchedLists(tops, playlist.items, tab === 'filmes' ? 'movie' : 'tv')), [tops, playlist, tab]);
+  const topLists = useMemo<MatchedList[]>(() => (tab === 'anime' ? [] : memoBy2(tops, playlist.items, 'matched:' + tab, () => matchedLists(tops, playlist.items, tab === 'filmes' ? 'movie' : 'tv'))), [tops, playlist, tab]);
   // Top do streaming escolhido (ex.: "Top 10 Netflix" no alto das categorias da Netflix)
   const stTop = st ? topLists.find((l) => l.sid === st.id) : undefined;
   // Streamings da fileira: os das categorias da lista + os que têm Top com títulos da lista
@@ -230,7 +236,7 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     return r.length ? { id: 'recent', title: 'Adicionados recentemente', src: `Os últimos ${tab === 'filmes' ? 'filmes' : 'títulos'} que chegaram na sua lista`, items: r.map((item, i) => ({ item, rank: i + 1 })), ranked: false } : null;
   }, [all, tab]);
   // Coleções e sagas (TMDB) com 2+ filmes da lista
-  const colls = useMemo(() => (tab === 'filmes' ? collectionsIn(tops, playlist.items) : []), [tops, playlist, tab]);
+  const colls = useMemo(() => (tab === 'filmes' ? memoBy2(tops, playlist.items, 'colls', () => collectionsIn(tops, playlist.items)) : []), [tops, playlist, tab]);
   const [coll, setColl] = useState<Collection | null>(null);
   const collRow: Row = {
     id: 'colecoes',
@@ -286,17 +292,18 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
     setQuery('');
   };
   // Coluna/chips de categorias: Todos › lançamentos (ex.: "Top Lançamentos 2026") › Últimos adicionados › as demais.
-  const cats = useMemo(() => {
+  const cats = useMemo(() => memoBy(inStream, 'cats', () => {
     const all = countCats(inStream);
     const launch = all.filter((c) => LAUNCH.test(c.name));
     const rest = all.filter((c) => !LAUNCH.test(c.name));
     const rec = Math.min(RECENT_MAX, inStream.filter((i) => i.added).length);
     return [...launch, ...(rec ? [{ name: RECENT, count: rec, label: 'Últimos adicionados' }] : []), ...rest];
-  }, [inStream]);
+  }), [inStream]);
   const q = norm(query.trim());
   const adultCat = !!cat && cat !== RECENT && isAdultName(cat) && tab === 'filmes';
   const catItems = useMemo(() => (adultCat ? inStream.filter((i) => i.group === cat) : []), [adultCat, inStream, cat]);
-  const flt = useAdultFilters(catItems, adultCat);
+  // TV LG: sem atrizes/produtoras (buscas e fotos pesam e ocupam o pouco espaço da TV).
+  const flt = useAdultFilters(catItems, adultCat && !LITE);
   const actSel = adultCat && actress ? flt.actresses.find((a) => a.key === actress) : undefined;
   const castOfItem = useMemo(() => (adultCat ? castByItem(catItems, flt.actresses) : null), [adultCat, catItems, flt.actresses]);
   const [studio, setStudio] = useState('');
@@ -309,19 +316,25 @@ export function VodScreen({ playlist, tab, onPlay }: { playlist: Playlist; tab: 
   }, [cat, stream, tab]);
   const list = useMemo(() => {
     if (!q && topMode) return [];
-    let l = q
+    const src = q
       ? (() => {
           const ex = all.filter((i) => norm(i.fullName ?? i.name).includes(q));
           return ex.length >= 8 || q.length < 4 ? ex : [...ex, ...all.filter((i) => !ex.includes(i) && fuzzyMatch(i.fullName ?? i.name, q))];
         })()
       : cat === RECENT
-        ? inStream.filter((i) => i.added).sort((a, b) => (b.added ?? 0) - (a.added ?? 0)).slice(0, RECENT_MAX)
+        ? memoBy(inStream, 'recent', () => inStream.filter((i) => i.added).sort((a, b) => (b.added ?? 0) - (a.added ?? 0)).slice(0, RECENT_MAX))
         : cat
-          ? inStream.filter((i) => i.group === cat)
+          ? memoBy(inStream, 'cat:' + cat, () => inStream.filter((i) => i.group === cat))
           : inStream;
-    if (sort === 'az') l = [...l].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-    else if (sort === 'rating') l = [...l].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-    else l = [...l].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
+    const sorted = (s: Channel[]) =>
+      sort === 'az'
+        ? [...s].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+        : sort === 'rating'
+          ? [...s].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+          : [...s].sort((a, b) => (b.added ?? 0) - (a.added ?? 0));
+    // Sem busca nem filtros: ordenação + versões juntas guardadas (voltar à aba é imediato).
+    if (!q && !yearF && !langF && !actSel && !stSel) return memoBy(src, 'list:' + sort, () => collapseVersions(sorted(src)));
+    let l = sorted(src);
     if (yearF) l = l.filter((i) => YEARS[yearF].test(i.year));
     if (langF) l = l.filter((i) => LANGS[langF].test(audioShown(i)));
     if (actSel) l = l.filter((i) => actSel.ids.has(i.id));

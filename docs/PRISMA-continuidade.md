@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (21/11/2026 · versão 1.0.1)
+## 0. ESTADO ATUAL — leia primeiro (22/11/2026 · versão 1.0.2)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10bl (0.10.0 → 1.0.1). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bm (0.10.0 → 1.0.2). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -663,6 +663,17 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - **Bug 2 (lento/fechava):** o core-js troca ~60 nativos do Chrome 38 por versões em JS (JSON.parse: 9 MB em 94 s × 1,4 s nativo; stringify 10×; replace/exec/Array). O carregador do index.html (`fixJson`) guarda os nativos antes dos polyfills e devolve depois: JSON.parse/stringify, Array map/filter/slice/splice/concat/indexOf/lastIndexOf/push/unshift/sort, String trim/replace/split/match/search, RegExp exec/test. Seguro porque o bundle não usa grupos com nome, sticky nem flags u/s em tempo de execução — conferir de novo se entrar biblioteca nova. Map/Set/Promise/Symbol/Object.* ficam do core-js (os Symbols dele precisam).
 - Medido na B7: reabrir 107 s → 18 s; 1ª carga da Goldcard (44.379 filmes, 9.523 séries, 2.036 canais) ~2 min; aba Filmes ~10 s, Séries ~3 s; ao vivo toca (cai no player nativo).
 - `ares-package` minifica de novo os .js (posições do perfil de CPU são do arquivo da TV, não do dist-webos).
+
+## 10bm. Versão 1.0.2 — TV LG mais leve (só a versão LITE/webOS) (22/11)
+- Pedido do Samuel: fluidez na LG mantendo recursos; só na LG: guia só do agora, sem capas/atrizes de adultos, fundo preto, Início removível se pesar. Tudo atrás de `LITE` (as outras versões não mudam).
+- **Espaço (cota ~24 MB na B7):** `src/core/packlist.ts` guarda a lista compacta (começos de URL numa tabela, grupos numa tabela, itens em arrays por "molde"): 16 MB → 8,7 MB. `savePlaylist` em falha de cota chama `idbRebuild` (`storage.ts`): lê as chaves a manter, `deleteDatabase` (só isso devolve espaço na hora), grava a lista primeiro. Conexão do IndexedDB única e o carregador do index.html fecha a dele. `Playlist.tidied = VERSION`: não refaz a limpeza a cada abertura. `main.tsx` apaga `adultc0..15` após 20 s; `updater.ts` apaga OTA velho (`dropStaleOta`, nunca o que está rodando).
+- **Guia (`xmltv.ts`):** LITE = agora + 6 h, renova a cada 3 h, só grava se `storageRoom()` > 1,3×tamanho + 3 MB (~481 KB).
+- **Adultos:** `tmdb.ts` devolve null para itens adultos no LITE; `Vod.tsx` desliga os filtros de atrizes.
+- **Desenho (Chrome 38):** `src/ui/liteImages.ts` troca tamanhos do TMDB por menores (no Chrome 38 `src` é propriedade da instância: patch em `createElement` + `setAttribute`). `styles.css` (html.lite): sem transições, filtros, máscaras, `.ambient/.hero-glow/.daypart-tint`; fundo #000; filhos de `.scroll-y` com `translateZ(0)` (rolagem sem repintar a tela toda: Início 1,1–5 s → 85 ms por seta).
+- **CPU:** `memo.ts` (memoBy/memoBy2) guarda listas de Filmes/Séries/Início; `warm.ts` adianta versionKey e o índice dos tops em pedaços após 8 s; Início adia as fileiras 350 ms; carregador devolve também `RegExp` nativo.
+- **Player:** no webOS o nativo vem primeiro (o JS disputava a CPU com a tela; nativo toca 1920p).
+- **Início:** abrir nele somava 4–10 s de travadas no 1º minuto; a TV abre no Ao vivo (`App.tsx`), Início continua a um toque. Remover de vez se o Samuel pedir.
+- Medido na B7: Goldcard 31 s; reabrir 16 s; lag no 1º minuto 0,9 s (antes 55 s); Filmes 1ª visita 3,3 s / volta 0,7 s; Séries 1,1 s / 0,45 s; espaço 12 MB. Macaco 6 min / 405 teclas: sem reiniciar, 0 erros, foco nunca perdido.
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

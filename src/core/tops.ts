@@ -161,6 +161,38 @@ function indexOf(items: Channel[]): { movie: Index; series: Index } {
   return idx;
 }
 
+/**
+ * TV LG (1.0.2): monta o índice de títulos aos poucos, em fatias curtas, para a
+ * 1ª visita a Filmes/Séries/Início não travar alguns segundos montando tudo de uma vez.
+ */
+export function warmTopsIndex(items: Channel[], slice = 400): Promise<void> {
+  if (indexes.has(items)) return Promise.resolve();
+  const idx = { movie: new Map() as Index, series: new Map() as Index };
+  let i = 0;
+  return new Promise((resolve) => {
+    const step = () => {
+      if (indexes.has(items)) return resolve();
+      const end = Math.min(items.length, i + slice);
+      for (; i < end; i++) {
+        const it = items[i];
+        if (it.kind !== 'movie' && it.kind !== 'series') continue;
+        const k = norm(searchTitle(it.fullName ?? it.name).title);
+        if (!k) continue;
+        const m = it.kind === 'movie' ? idx.movie : idx.series;
+        const arr = m.get(k);
+        if (arr) arr.push(it);
+        else m.set(k, [it]);
+      }
+      if (i < items.length) setTimeout(step, 40);
+      else {
+        if (!indexes.has(items)) indexes.set(items, idx);
+        resolve();
+      }
+    };
+    setTimeout(step, 0);
+  });
+}
+
 function yearOfItem(it: Channel): number | undefined {
   return it.year ?? searchTitle(it.fullName ?? it.name).year;
 }
@@ -396,14 +428,15 @@ const QUALITY = /\b(fhd|4k|uhd)\b/i;
  * embutido no app) + o que está passando (jogo, filme, grande programa) +
  * favoritos e vistos por último.
  */
+const chKeys = new WeakMap<Channel, string>();
 export function topChannels(data: TopsData | null, live: Channel[], favIds: string[], recentIds: string[], now = Date.now(), max = 10): TopChannelPick[] {
   const rank = data?.channels?.length ? data.channels : (base.canais as TopChannel[]);
   const fav = new Set(favIds);
   const recentPos = new Map(recentIds.slice(0, 15).map((id, i) => [id, i]));
-  const keys = new Map<string, string>();
   const keyOf = (c: Channel) => {
-    let k = keys.get(c.id);
-    if (k == null) keys.set(c.id, (k = logoKey(c.fullName ?? c.name)));
+    // Guardada por canal: topChannels roda de novo a cada favorito/recente/guia.
+    let k = chKeys.get(c);
+    if (k == null) chKeys.set(c, (k = logoKey(c.fullName ?? c.name)));
     return k;
   };
   const used = new Set<string>();

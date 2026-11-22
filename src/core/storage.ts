@@ -4,13 +4,59 @@
 const DB_NAME = 'prisma';
 const STORE = 'kv';
 
+// Uma conexão só, reaproveitada (antes: uma nova a cada leitura/gravação, que
+// nunca fechava — e impedia recriar o banco quando falta espaço na TV).
+let dbp: Promise<IDBDatabase> | null = null;
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbp) return dbp;
+  dbp = new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => {
+        db.close();
+        dbp = null;
+      };
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
   });
+  dbp.catch(() => (dbp = null));
+  return dbp;
+}
+
+/**
+ * Recria o banco do zero, guardando de volta só o que for pedido. Na TV LG o
+ * espaço de itens apagados demora a voltar (o banco só compacta depois); apagar
+ * o banco inteiro libera na hora. Devolve se conseguiu gravar `first`.
+ */
+export async function idbRebuild(first: [string, unknown], keepKeys: string[]): Promise<boolean> {
+  const kept: [string, unknown][] = [];
+  for (const k of keepKeys) {
+    const v = await idbGet(k);
+    if (v !== undefined) kept.push([k, v]);
+  }
+  try {
+    const db = await openDb();
+    db.close();
+  } catch {
+    /* ignora */
+  }
+  dbp = null;
+  await new Promise<void>((resolve) => {
+    try {
+      const r = indexedDB.deleteDatabase(DB_NAME);
+      r.onsuccess = () => resolve();
+      r.onerror = () => resolve();
+      r.onblocked = () => setTimeout(resolve, 3000);
+    } catch {
+      resolve();
+    }
+  });
+  const ok = await idbTrySet(first[0], first[1]);
+  for (const [k, v] of kept) await idbTrySet(k, v);
+  return ok;
 }
 
 export async function idbGet<T>(key: string): Promise<T | undefined> {
@@ -37,6 +83,38 @@ export async function idbSet(key: string, value: unknown): Promise<void> {
     });
   } catch {
     /* sem armazenamento: o app segue funcionando, só não guarda */
+  }
+}
+
+/**
+ * Espaço livre do armazenamento em bytes (Chrome antigo: webkitTemporaryStorage).
+ * Sem como saber: Infinity.
+ */
+export function storageRoom(): Promise<number> {
+  return new Promise((resolve) => {
+    try {
+      const s = (navigator as unknown as { webkitTemporaryStorage?: { queryUsageAndQuota(ok: (u: number, q: number) => void, err?: () => void): void } }).webkitTemporaryStorage;
+      if (!s) return resolve(Infinity);
+      s.queryUsageAndQuota((u, q) => resolve(Math.max(0, q - u)), () => resolve(Infinity));
+    } catch {
+      resolve(Infinity);
+    }
+  });
+}
+
+/** Como idbSet, mas diz se gravou (false: sem espaço ou erro). */
+export async function idbTrySet(key: string, value: unknown): Promise<boolean> {
+  try {
+    const db = await openDb();
+    return await new Promise<boolean>((resolve) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put(value, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+      tx.onabort = () => resolve(false);
+    });
+  } catch {
+    return false;
   }
 }
 

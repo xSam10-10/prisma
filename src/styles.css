@@ -1663,3 +1663,26 @@ html.lite .sb-sweep { display: none; }
 
 /* 1.0: botão da Goldcard na tela de adicionar lista */
 .btn.gold-btn { background: linear-gradient(135deg, #F7CF63 0%, #E0A126 100%); color: #1B1304; border-color: transparent; }
+
+/* 1.0.2 — TV LG (LITE): cada quadro redesenhado custa ~0,3 s na B7 (o palco
+   escalado não rola em camada própria). Sem transições, mudar o foco pinta uma
+   vez só; sem o brilho de fundo do Início e sem a sombra grande do foco. */
+html.lite *, html.lite *::before, html.lite *::after { -webkit-transition: none !important; transition: none !important; }
+html.lite .daypart-tint { display: none; }
+html.lite .tile:focus .tile-art { box-shadow: 0 0 0 3px #f4f4f8; }
+html.lite .vgrid:focus .poster.sel .poster-art { box-shadow: 0 0 0 3px #f4f4f8; }
+/* Sombras com filter: drop-shadow e máscaras de degradê forçam um redesenho
+   lento no Chrome 38: medido na B7, o fim do Início caiu de 0,35 s (pior 1,1 s)
+   para 0,15 s (pior 0,3 s) por seta sem eles. Só os decorativos saem. */
+html.lite .mcard-team .crest, html.lite .sbh-tart img, html.lite .logo-box.glow img, html.lite .tile-art img, html.lite .hero-logo,
+html.lite .sb-logo, html.lite .tlogo img, html.lite .empty-state svg, html.lite .mh-team img, html.lite .wtile-art img.wtile-poster { -webkit-filter: none !important; filter: none !important; }
+html.lite *, html.lite *::before, html.lite *::after { -webkit-mask-image: none !important; mask-image: none !important; }
+/* A rolagem vertical do Chrome 38 não tem camada própria: cada seta que rola
+   o Início redesenhava a tela inteira (~1,1 s com as capas). Com o conteúdo em
+   camada (translateZ), a placa da TV só move o que já está pintado: medido na
+   B7, 1,1 s → 0,09 s por seta. Colunas de categorias (muitos botões) ficam de fora. */
+html.lite .scroll-y:not(.cats) > * { -webkit-transform: translateZ(0); transform: translateZ(0); }
+/* TV LG (1.0.2, pedido do Samuel): fundo preto liso, sem as manchas de cor
+   (ambient) nem o brilho por horário — e menos para desenhar a cada quadro. */
+html.lite .stage, html.lite body { background: #000 !important; }
+html.lite .ambient, html.lite .hero-glow { display: none !important; }

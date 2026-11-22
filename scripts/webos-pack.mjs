@@ -50,9 +50,9 @@ if (!poly || !entry) throw new Error('index.html da TV mudou: não achei os scri
 const loader = `<script>(function(){
 var PACKAGED=${JSON.stringify(version)},POLY=${JSON.stringify(poly[1])},ENTRY=${JSON.stringify(entry[1])};
 function newer(a,b){a=String(a).split('.');b=String(b).split('.');for(var i=0;i<Math.max(a.length,b.length);i++){var x=parseInt(a[i],10)||0,y=parseInt(b[i],10)||0;if(x!==y)return x>y;}return false;}
-var NJP=JSON.parse,NJS=JSON.stringify,AP=Array.prototype,NA={},NAM=['map','filter','slice','splice','concat','indexOf','lastIndexOf','push','unshift','sort'],NTR=String.prototype.trim,SP=String.prototype,RP=RegExp.prototype,NS2={},NSM=['replace','split','match','search'],NR={exec:RP.exec,test:RP.test};for(var q=0;q<NAM.length;q++)NA[NAM[q]]=AP[NAM[q]];for(q=0;q<NSM.length;q++)NS2[NSM[q]]=SP[NSM[q]];
+var NJP=JSON.parse,NJS=JSON.stringify,AP=Array.prototype,NA={},NAM=['map','filter','slice','splice','concat','indexOf','lastIndexOf','push','unshift','sort'],NTR=String.prototype.trim,SP=String.prototype,RP=RegExp.prototype,NS2={},NSM=['replace','split','match','search'],NR={exec:RP.exec,test:RP.test},NRX=RegExp;for(var q=0;q<NAM.length;q++)NA[NAM[q]]=AP[NAM[q]];for(q=0;q<NSM.length;q++)NS2[NSM[q]]=SP[NSM[q]];
 function put(o,k,v){try{Object.defineProperty(o,k,{value:v,writable:true,configurable:true,enumerable:false});}catch(e){}}
-function fixJson(){try{JSON.parse=NJP;JSON.stringify=NJS;}catch(e){}for(var q=0;q<NAM.length;q++){try{Object.defineProperty(AP,NAM[q],{value:NA[NAM[q]],writable:true,configurable:true,enumerable:false});}catch(e){}}put(SP,'trim',NTR);for(q=0;q<NSM.length;q++)put(SP,NSM[q],NS2[NSM[q]]);put(RP,'exec',NR.exec);put(RP,'test',NR.test);}
+function fixJson(){try{JSON.parse=NJP;JSON.stringify=NJS;}catch(e){}for(var q=0;q<NAM.length;q++){try{Object.defineProperty(AP,NAM[q],{value:NA[NAM[q]],writable:true,configurable:true,enumerable:false});}catch(e){}}put(SP,'trim',NTR);for(q=0;q<NSM.length;q++)put(SP,NSM[q],NS2[NSM[q]]);put(RP,'exec',NR.exec);put(RP,'test',NR.test);try{if(window.RegExp!==NRX){window.RegExp=NRX;}}catch(e){}}
 function packaged(){var s=document.createElement('script');s.src=POLY;s.onload=function(){fixJson();System.import(ENTRY);};document.body.appendChild(s);}
 var done=false;function go(f){if(!done){done=true;f();}}
 var tried=null;try{tried=localStorage.getItem('prisma.otaBoot');}catch(e){}
@@ -62,7 +62,7 @@ rq.onupgradeneeded=function(){rq.result.createObjectStore('kv');};
 rq.onerror=function(){go(packaged);};
 rq.onsuccess=function(){try{var db=rq.result,g=db.transaction('kv','readonly').objectStore('kv').get('ota');
 g.onerror=function(){go(packaged);};
-g.onsuccess=function(){var b=g.result;
+g.onsuccess=function(){var b=g.result;setTimeout(function(){try{db.close();}catch(e){}},0);
 if(!b||!b.version||!newer(b.version,PACKAGED)){go(packaged);return;}
 if(tried===b.version){try{db.transaction('kv','readwrite').objectStore('kv').delete('ota');localStorage.removeItem('prisma.otaBoot');}catch(e){}go(packaged);return;}
 go(function(){try{localStorage.setItem('prisma.otaBoot',b.version);}catch(e){}

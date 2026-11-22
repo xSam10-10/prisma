@@ -1,6 +1,13 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 1.0.2 — TV LG mais leve e fluida
+- TV LG: setas respondem em 0,1 a 0,2 s em todas as abas (no Início chegavam a 5 s) e o primeiro minuto depois de abrir não trava mais
+- TV LG: entrar com a Goldcard leva cerca de 30 s (antes ~2 min) e o app abre direto no Ao vivo
+- TV LG: a lista é guardada compacta e cabe no espaço da TV; se o espaço acabar, o app se reorganiza sozinho em vez de perder a lista
+- TV LG: guia só com o agora e as próximas 6 horas (guardado, não lê tudo de novo a cada abertura); fundo preto; ao vivo usa o player da TV
+- TV LG: filmes adultos ficam com as capas da lista (sem busca de capas e fotos de atrizes), liberando espaço
+
 ## 1.0.1 — TV LG abrindo de verdade
 - TV LG: o app ficava na tela escura com o círculo girando e não abria. Corrigido (testado numa OLED B7 real)
 - TV LG: abrir o app caiu de mais de 1 minuto e meio para cerca de 18 segundos, e a primeira carga da Goldcard não fecha mais o app no meio

@@ -2,7 +2,7 @@ import { gunzipSync, strFromU8 } from 'fflate';
 import { logoKey } from './logos';
 import { fetchBytes } from './net';
 import { LITE } from './platform';
-import { idbGet, idbSet, prefGet, prefSet } from './storage';
+import { idbGet, idbSet, prefGet, prefSet, storageRoom } from './storage';
 import type { Channel, EpgEntry, Playlist } from './types';
 import { normalizeServer } from './xtream';
 
@@ -11,9 +11,11 @@ import { normalizeServer } from './xtream';
 // (na TV de 2017: 1 dia atrás e 2 à frente, para caber na memória).
 
 const KEY = 'xmltv';
-const REFRESH = 12 * 3600 * 1000;
-const PAST = (LITE ? 1 : 3) * 86400000;
-const AHEAD = (LITE ? 2 : 7) * 86400000;
+// TV LG (1.0.2, pedido do Samuel): só o que está passando agora e o que vem nas
+// próximas horas — guia pequeno, cabe no espaço da TV e não é lido de novo a cada abertura.
+const REFRESH = (LITE ? 3 : 12) * 3600 * 1000;
+const PAST = LITE ? 0 : 3 * 86400000;
+const AHEAD = LITE ? 6 * 3600000 : 7 * 86400000;
 
 interface Stored {
   url: string;
@@ -56,12 +58,20 @@ function unescape(s: string): string {
     )
     .trim();
 }
+// 1.0.2: expressões guardadas por nome (antes: uma nova por programa e campo;
+// na TV LG cada RegExp nova custava caro).
+const attrRx = new Map<string, RegExp>();
+const tagRx = new Map<string, RegExp>();
 function attr(tag: string, name: string): string {
-  const m = tag.match(new RegExp(name + '="([^"]*)"'));
+  let rx = attrRx.get(name);
+  if (!rx) attrRx.set(name, (rx = new RegExp(name + '="([^"]*)"')));
+  const m = tag.match(rx);
   return m ? unescape(m[1]) : '';
 }
 function inner(block: string, name: string): string {
-  const m = block.match(new RegExp('<' + name + '[^>]*>([\\s\\S]*?)</' + name + '>'));
+  let rx = tagRx.get(name);
+  if (!rx) tagRx.set(name, (rx = new RegExp('<' + name + '[^>]*>([\\s\\S]*?)</' + name + '>')));
+  const m = block.match(rx);
   return m ? unescape(m[1]) : '';
 }
 
@@ -223,7 +233,18 @@ export function loadXmltv(pl: Playlist, force = false): Promise<Stored | null> {
       if (!Object.keys(parsed.guide).length && !main) throw new Error('vazio');
       const st: Stored = { url, at: Date.now(), ...parsed };
       mem = st;
-      await idbSet(KEY, st);
+      // TV LG (~24 MB no total): só guarda o guia se sobrar folga para a lista,
+      // que tem prioridade (senão a lista deixa de conseguir ser regravada).
+      if (!LITE) await idbSet(KEY, st);
+      else {
+        let size = 0;
+        try {
+          size = JSON.stringify(st).length;
+        } catch {
+          size = Infinity;
+        }
+        if ((await storageRoom()) > size * 1.3 + 3 * 1048576) await idbSet(KEY, st);
+      }
       return st;
     } catch {
       return mem;

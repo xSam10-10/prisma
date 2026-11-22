@@ -1,5 +1,7 @@
 import { T } from '../ui/tokens';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { LITE } from '../core/platform';
+import { memoBy2 } from '../core/memo';
 import type { Channel, Playlist } from '../core/types';
 import { hasReminder, toggleReminder } from '../core/games';
 import { todayHighlights, tonightPicks } from '../core/highlights';
@@ -60,14 +62,26 @@ export function Home({
   const saved = myList();
   const lastVod = prefGet<string>('lastKind', 'live') === 'vod' ? vodNow[0] : undefined;
   const heroItem = lastVod ?? recents[0];
-  const movies = playlist.items.filter((i) => i.kind === 'movie').length;
-  const series = playlist.items.filter((i) => i.kind === 'series').length;
+  const { movies, series } = useMemo(() => {
+    let m = 0;
+    let s = 0;
+    for (const i of playlist.items) i.kind === 'movie' ? m++ : i.kind === 'series' && s++;
+    return { movies: m, series: s };
+  }, [playlist]);
+  // TV LG (LITE): as fileiras que cruzam a lista inteira (tops, coleções, canais
+  // em destaque) montam logo depois da 1ª pintura, para a tela abrir na hora.
+  const [warm, setWarm] = useState(!LITE);
+  useEffect(() => {
+    if (warm) return;
+    const t = setTimeout(() => setWarm(true), 350);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [detail, setDetail] = useState<Channel | null>(null);
   const onGoVod = (v: Channel) => setDetail(v);
   // Tops (arquivo atualizado no GitHub): filmes e séries juntos, só o que existe na lista
   const { data: tops, ready: topsReady } = useTopsState(playlist);
-  const shelves = useMemo(() => homeShelves(tops, playlist.items), [tops, playlist]);
-  const colls = useMemo(() => collectionsIn(tops, playlist.items), [tops, playlist]);
+  const shelves = useMemo(() => (warm ? memoBy2(tops, playlist.items, 'shelves', () => homeShelves(tops, playlist.items)) : []), [warm, tops, playlist]);
+  const colls = useMemo(() => (warm ? memoBy2(tops, playlist.items, 'colls', () => collectionsIn(tops, playlist.items)) : []), [warm, tops, playlist]);
   const [coll, setColl] = useState<Collection | null>(null);
   const L = useLayout();
   const mobile = L.form === 'mobile';
@@ -128,7 +142,7 @@ export function Home({
       alive = false;
     };
   }, [playlist]); // eslint-disable-line react-hooks/exhaustive-deps
-  const upcoming = useMemo(() => [...followed, ...upcomingOf(tops, playlist.items).filter((u) => !followed.some((f) => f.title === u.title))].sort((a, b) => a.date - b.date).slice(0, 14), [followed, tops, playlist]);
+  const upcoming = useMemo(() => [...followed, ...(warm ? memoBy2(tops, playlist.items, 'upcoming', () => upcomingOf(tops, playlist.items)) : []).filter((u) => !followed.some((f) => f.title === u.title))].sort((a, b) => a.date - b.date).slice(0, 14), [warm, followed, tops, playlist]);
   // "Porque você assistiu…": semelhantes (TMDB) do último filme/série visto, só o que existe na lista.
   const lastSeen = vodRecents()[0];
   const becauseBase = lastSeen ? (lastSeen.seriesId ? { ...lastSeen, name: lastSeen.group, kind: 'series' as const, fullName: undefined } : lastSeen) : null;
@@ -153,7 +167,7 @@ export function Home({
     };
   }, [becauseTm?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Top 10 canais agora: popularidade + o que está passando + favoritos e vistos por último
-  const topCh = useMemo(() => topChannels(tops, live, favs.map((f) => f.id), recents.map((r) => r.id)), [tops, live, favs, recents, guideReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  const topCh = useMemo(() => (warm ? topChannels(tops, live, favs.map((f) => f.id), recents.map((r) => r.id)) : []), [warm, tops, live, favs, recents, guideReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const topChList = useMemo(() => topCh.map((p) => p.ch), [topCh]);
   return (
     <>

@@ -42,6 +42,8 @@ export interface Playlist {
   epgUrl?: string;
   items: Channel[];
   account?: AccountInfo;
+  /** Versão do app que arrumou a lista (tidyPlaylist). Igual à atual: não precisa arrumar de novo ao abrir. */
+  tidied?: string;
 }
 
 export interface AccountInfo {
