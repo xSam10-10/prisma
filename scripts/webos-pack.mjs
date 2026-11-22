@@ -20,7 +20,12 @@ for (const f of readdirSync(assets)) {
     compact: true,
     comments: false,
     sourceType: 'script',
-    presets: [['@babel/preset-env', { targets: { chrome: '38' }, modules: false, bugfixes: true }]],
+    // 1.0.1: sem "transform-typeof-symbol". Ele criava um _typeof GLOBAL em cada
+    // arquivo; o do código principal substituía o dos polyfills e o core-js
+    // passava a achar que os Symbols dele não eram objetos ("Incompatible
+    // receiver, Symbol required"): a TV B7 real ficava no carregando para
+    // sempre. O Chrome 38 já tem typeof symbol nativo.
+    presets: [['@babel/preset-env', { targets: { chrome: '38' }, modules: false, bugfixes: true, exclude: ['transform-typeof-symbol'] }]],
   });
   writeFileSync(file, r.code);
   console.log(`ES5: ${f} (${Math.round(r.code.length / 1024)} KB)`);
@@ -36,10 +41,19 @@ const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.u
 const poly = page.match(/<script id="vite-legacy-polyfill" src="([^"]+)"><\/script>/);
 const entry = page.match(/<script id="vite-legacy-entry" data-src="([^"]+)">[^<]*<\/script>/);
 if (!poly || !entry) throw new Error('index.html da TV mudou: não achei os scripts legacy.');
+// 1.0.1: o core-js troca JSON.parse/stringify e vários métodos de Array/String do
+// Chrome 38 por versões em JS até 30x mais lentas (a B7 levava 94 s para ler a
+// lista de séries). Depois de carregar os polyfills, o carregador devolve os
+// nativos que funcionam bem nessa TV (fixJson). Regex: o app não usa grupos com
+// nome, sticky nem flags u/s em tempo de execução, então exec/test/replace/split
+// nativos são seguros (conferido no bundle da 1.0.1).
 const loader = `<script>(function(){
 var PACKAGED=${JSON.stringify(version)},POLY=${JSON.stringify(poly[1])},ENTRY=${JSON.stringify(entry[1])};
 function newer(a,b){a=String(a).split('.');b=String(b).split('.');for(var i=0;i<Math.max(a.length,b.length);i++){var x=parseInt(a[i],10)||0,y=parseInt(b[i],10)||0;if(x!==y)return x>y;}return false;}
-function packaged(){var s=document.createElement('script');s.src=POLY;s.onload=function(){System.import(ENTRY);};document.body.appendChild(s);}
+var NJP=JSON.parse,NJS=JSON.stringify,AP=Array.prototype,NA={},NAM=['map','filter','slice','splice','concat','indexOf','lastIndexOf','push','unshift','sort'],NTR=String.prototype.trim,SP=String.prototype,RP=RegExp.prototype,NS2={},NSM=['replace','split','match','search'],NR={exec:RP.exec,test:RP.test};for(var q=0;q<NAM.length;q++)NA[NAM[q]]=AP[NAM[q]];for(q=0;q<NSM.length;q++)NS2[NSM[q]]=SP[NSM[q]];
+function put(o,k,v){try{Object.defineProperty(o,k,{value:v,writable:true,configurable:true,enumerable:false});}catch(e){}}
+function fixJson(){try{JSON.parse=NJP;JSON.stringify=NJS;}catch(e){}for(var q=0;q<NAM.length;q++){try{Object.defineProperty(AP,NAM[q],{value:NA[NAM[q]],writable:true,configurable:true,enumerable:false});}catch(e){}}put(SP,'trim',NTR);for(q=0;q<NSM.length;q++)put(SP,NSM[q],NS2[NSM[q]]);put(RP,'exec',NR.exec);put(RP,'test',NR.test);}
+function packaged(){var s=document.createElement('script');s.src=POLY;s.onload=function(){fixJson();System.import(ENTRY);};document.body.appendChild(s);}
 var done=false;function go(f){if(!done){done=true;f();}}
 var tried=null;try{tried=localStorage.getItem('prisma.otaBoot');}catch(e){}
 setTimeout(function(){go(packaged);},4000);
@@ -53,7 +67,7 @@ if(!b||!b.version||!newer(b.version,PACKAGED)){go(packaged);return;}
 if(tried===b.version){try{db.transaction('kv','readwrite').objectStore('kv').delete('ota');localStorage.removeItem('prisma.otaBoot');}catch(e){}go(packaged);return;}
 go(function(){try{localStorage.setItem('prisma.otaBoot',b.version);}catch(e){}
 window.__PRISMA_OTA__=b.version;
-var s=document.createElement('script');s.text=b.polyfills;document.body.appendChild(s);
+var s=document.createElement('script');s.text=b.polyfills;document.body.appendChild(s);fixJson();
 System.import(URL.createObjectURL(new Blob([b.entry],{type:'text/javascript'})));
 setTimeout(function(){if(!window.__PRISMA_BOOTED__)location.reload();},25000);});};
 }catch(e){go(packaged);}};

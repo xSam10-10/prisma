@@ -8,7 +8,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 ---
 
-## 0. ESTADO ATUAL — leia primeiro (19/11/2026 · versão 1.0.0)
+## 0. ESTADO ATUAL — leia primeiro (21/11/2026 · versão 1.0.1)
 
 **O que é:** PRISMA, player de IPTV pessoal do Samuel (lista Goldcard, Xtream em `http://lvbxsmart.xyz` — usuário/senha só com o Samuel, **nunca** gravar credenciais no repositório). Roda em: Windows (Electron), TV LG OLED55B7P (webOS 3.5 / Chrome 38), Android/Google TV (Capacitor), Roku (app básico, 0.30.0) e navegador.
 
@@ -26,7 +26,7 @@ Atualizado em: 07/11/2026 (Fase 1 iniciada)
 
 **Tops (0.18.0):** dados em `prisma-tops.json`, gerado pelo workflow `tops.yml` (4×/dia, `scripts/tops/build-tops.mjs`, secret `TMDB_KEY`) e publicado na Release pré-lançamento `tops`; o app baixa de `releases/download/tops/` (pref `topsFeed` para testes). Ver 10t.
 
-**Histórico de versões:** seções 10b–10bk (0.10.0 → 1.0.0). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
+**Histórico de versões:** seções 10b–10bl (0.10.0 → 1.0.1). **Pendências atuais: `docs/PENDENCIAS.md`** (substitui as listas antigas das seções 10g e 11).
 
 **Migração de conta (09/11):** o projeto pode continuar em outra conta do Claude seguindo `docs/MIGRAR-CONTA.md`.
 
@@ -656,6 +656,13 @@ Referência: vídeo enviado pelo usuário (app de IPTV com barra de receptor e P
 - Roku: `secName`/`catName` no caminho; lista de séries guardada para o Voltar dos episódios; categoria vazia volta para as categorias.
 - `Vod.tsx`: capa com largura < 125 px mostra 1 selo; `.sk-field` sem a sombra de foco do input.
 - Teste "macaco" (Playwright, teclas aleatórias com vídeo bloqueado) nas 6 abas em 1920×1080, 1280×720 e 390×844: 0 focos perdidos/presos, maior resposta 0,37 s. A "trava" de 15 s vista antes era do navegador sem janela tocando vídeo (com janela, 0 ms). Varredura de foco: 0 problemas.
+
+## 10bl. Versão 1.0.1 — TV LG real (OLED55B7P, webOS 3.5, Chrome 38) (21/11)
+- Primeira instalação numa B7 de verdade (192.168.1.12, `ares-install` daqui do PC; perfil `tv` com chave `~/.ssh/tv_webos`). Node 26 quebra o ssh2 do @webos-tools/cli 3.2.1 (`util.isDate` sumiu): rodar com `NODE_OPTIONS=--require util-shim.cjs` que recoloca `util.isDate` etc. `ares-inspect` dá o DevTools (CDP antigo; Node 26 tem WebSocket nativo).
+- **Bug 1 (tela escura com círculo):** o Babel do `scripts/webos-pack.mjs` criava `_typeof` GLOBAL em cada arquivo; o do código principal substituía o dos polyfills e o core-js passava a ver os Symbols dele como "symbol" → `Incompatible receiver, Symbol required`. Correção: `exclude: ['transform-typeof-symbol']`.
+- **Bug 2 (lento/fechava):** o core-js troca ~60 nativos do Chrome 38 por versões em JS (JSON.parse: 9 MB em 94 s × 1,4 s nativo; stringify 10×; replace/exec/Array). O carregador do index.html (`fixJson`) guarda os nativos antes dos polyfills e devolve depois: JSON.parse/stringify, Array map/filter/slice/splice/concat/indexOf/lastIndexOf/push/unshift/sort, String trim/replace/split/match/search, RegExp exec/test. Seguro porque o bundle não usa grupos com nome, sticky nem flags u/s em tempo de execução — conferir de novo se entrar biblioteca nova. Map/Set/Promise/Symbol/Object.* ficam do core-js (os Symbols dele precisam).
+- Medido na B7: reabrir 107 s → 18 s; 1ª carga da Goldcard (44.379 filmes, 9.523 séries, 2.036 canais) ~2 min; aba Filmes ~10 s, Séries ~3 s; ao vivo toca (cai no player nativo).
+- `ares-package` minifica de novo os .js (posições do perfil de CPU são do arquivo da TV, não do dist-webos).
 
 ## 10g. Sugestões guardadas para a sequência (ordem combinada em 08/11) — HISTÓRICO; a lista atual é docs/PENDENCIAS.md
 **Fazer primeiro:** 7 controle parental (PIN em categorias +18, perfil infantil — o bloqueio por canal já existe) · 15 começar do início · 24 "Agora na TV" (mosaico) · 30 "Meus times" · 38 várias listas · 39 painel da assinatura · 41 esconder canais/categorias · 48 fileiras automáticas · 53 logo do título no detalhe · 54 classificação e selos · 57 versões num só card · 61 episódios com miniatura · 62 marcar assistido · 64 abrir no próximo episódio · 70 lembrar áudio/legenda por série · 76 remover de Continuar assistindo · 81 busca tolerante.

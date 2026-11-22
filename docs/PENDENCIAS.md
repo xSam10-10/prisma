@@ -1,4 +1,4 @@
-# PRISMA — Melhorias pendentes (atualizado em 19/11/2026, versão 1.0.0)
+# PRISMA — Melhorias pendentes (atualizado em 21/11/2026, versão 1.0.1)
 
 Números = os da lista original de sugestões (seções A–D). Prioridade combinada com o Samuel:
 **[1º]** fazer primeiro · **[Depois]** · **[Grande]** projeto maior · **[Talvez]** talvez não valha · **[Sem prior.]** sem prioridade definida.
@@ -48,6 +48,7 @@ Itens conferidos no código em 10/11: "parcial" = já existe uma parte. Organiza
 
 ## Depende do Samuel
 - **0.34.4:** filmes e séries mostram Dublado/Legendado na capa e no detalhe; conferir se algum legendado aparece como Dublado (na Goldcard, sem marca = dublado) e mandar o nome. Em Jogos, o cartão da F1 em foco cabe na tela.
+- **1.0.1:** TV LG: deixar o app aberto e ver se a primeira carga termina sozinha; a aba Filmes (~10 s) ainda pode ficar mais rápida (filtrar sem refazer a lista toda).
 - **1.0.0:** em cada aparelho, Ajustes › Lista › trocar lista (ou instalar do zero) e apertar **Entrar com a Goldcard**: a lista carrega sem digitar nada. No Roku, abrir o app pela primeira vez já entra.
 - **0.35.5:** na TV ao vivo, procurar A Grande Família, Vai que Cola, Marília Mendonça e Jiraya: os ícones novos aparecem na lista e no Início.
 - **0.35.4:** na TV ao vivo, procurar Pica-Pau, X-Men, Corrida Maluca e Filhos da Anarquia: os ícones novos aparecem na lista e no Início.

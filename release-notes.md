@@ -1,6 +1,11 @@
 # Novidades do PRISMA
 <!-- A seção da versão atual (a de cima) aparece no aviso de atualização dentro do app. -->
 
+## 1.0.1 — TV LG abrindo de verdade
+- TV LG: o app ficava na tela escura com o círculo girando e não abria. Corrigido (testado numa OLED B7 real)
+- TV LG: abrir o app caiu de mais de 1 minuto e meio para cerca de 18 segundos, e a primeira carga da Goldcard não fecha mais o app no meio
+- TV LG: ler a lista ficou até 60 vezes mais rápido
+
 ## 1.0.0 — PRISMA 1.0
 - Entrar com a Goldcard: um botão na tela de adicionar lista preenche servidor, usuário e senha e já carrega a lista (Windows, celular/tablet, TV LG e Roku). No Roku, a primeira abertura já entra sozinha. Se o servidor principal falhar, tenta o reserva sozinho
 - Controle remoto: se o item em foco some da tela (troca de aba, lista recarregada), o foco volta sozinho para a tela, em vez de ficar perdido
